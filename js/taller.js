@@ -82,7 +82,39 @@ async function consultarPatente(val) {
 
       const html = await extractor(resp);
       console.log('[patente] contenido recibido: ' + (html ? html.length + ' chars' : 'null/vacío'));
-      if (html && html.length >= 200) console.log('[patente] primeros 400 chars:', html.slice(0, 400));
+      if (html && html.length >= 200) {
+        console.log('[patente] primeros 2000 chars:\n', html.slice(0, 2000));
+
+        // Buscar campos clave en el HTML crudo
+        const docDbg = new DOMParser().parseFromString(html, 'text/html');
+        const keywords = ['marca','modelo','año','ano','chasis','vin','motor'];
+        console.log('[patente] === búsqueda de campos en el DOM ===');
+
+        // Todas las celdas td/th que contengan las palabras clave
+        docDbg.querySelectorAll('td, th').forEach(el => {
+          const t = el.textContent.trim().toLowerCase();
+          if (keywords.some(k => t.includes(k))) {
+            const next = el.nextElementSibling;
+            console.log('[patente] td/th encontrado:', JSON.stringify(el.textContent.trim()), '→ siguiente celda:', JSON.stringify(next ? next.textContent.trim() : '(ninguna)'));
+          }
+        });
+
+        // Spans y divs con esas palabras
+        docDbg.querySelectorAll('span, div, p, label, li').forEach(el => {
+          const t = el.textContent.trim().toLowerCase();
+          if (keywords.some(k => t.startsWith(k)) && el.textContent.trim().length < 120) {
+            console.log('[patente] span/div:', JSON.stringify(el.tagName), JSON.stringify(el.className), '→', JSON.stringify(el.textContent.trim()));
+          }
+        });
+
+        // Clases que suenan a resultado
+        ['.result','.results','.datos','.data','.vehicle','.vehiculo','.info','.car-info',
+         '.patente-result','.patente-datos','.ficha','.detalle','.plate-info']
+          .forEach(sel => {
+            const found = docDbg.querySelector(sel);
+            if (found) console.log('[patente] selector', sel, '→', JSON.stringify(found.textContent.trim().slice(0, 300)));
+          });
+      }
 
       if (!html || html.length < 200) { console.log('[patente] descartado (muy corto o vacío)'); continue; }
 
