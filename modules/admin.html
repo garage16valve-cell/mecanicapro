@@ -1,0 +1,64 @@
+<!-- REPORTES -->
+<div class="page active" id="pg-reportes">
+  <div class="kgrid5">
+    <div class="kcard"><div class="kl">OTs completadas</div><div class="kv">47</div><div class="ks ku">+12 vs mayo</div></div>
+    <div class="kcard"><div class="kl">Ingresos</div><div class="kv">$4.2M</div><div class="ks ku">+18%</div></div>
+    <div class="kcard"><div class="kl">Clientes nuevos</div><div class="kv">14</div><div class="ks ku">+3</div></div>
+    <div class="kcard"><div class="kl">Rent./hora</div><div class="kv">$9.4K</div><div class="ks ku">mejor mes</div></div>
+    <div class="kcard"><div class="kl">Satisfacción</div><div class="kv">4.8 ★</div><div class="ks" style="color:var(--text-muted)">32 reseñas</div></div>
+  </div>
+  <div class="g2">
+    <div class="card">
+      <div class="ch"><span class="ct">Servicios más rentables</span></div>
+      <table class="tbl">
+        <thead><tr><th>Servicio</th><th>OTs</th><th>Ingreso total</th><th>Rent./hora</th></tr></thead>
+        <tbody>
+          <tr><td>Cambio embrague</td><td>8</td><td>$2.56M</td><td style="color:var(--text-success);font-weight:500">$96K/h</td></tr>
+          <tr><td>Diagnóstico scanner</td><td>14</td><td>$630K</td><td style="color:var(--text-success);font-weight:500">$60K/h</td></tr>
+          <tr><td>Cambio frenos</td><td>11</td><td>$935K</td><td style="color:var(--text-success);font-weight:500">$57K/h</td></tr>
+          <tr><td>Mantención 10k km</td><td>18</td><td>$1.17M</td><td style="color:var(--text-warning);font-weight:500">$52K/h</td></tr>
+        </tbody>
+      </table>
+      <div class="div"></div>
+      <div style="display:flex;gap:6px">
+        <button class="btn" style="flex:1;justify-content:center;font-size:11px"><i class="ti ti-download"></i>Exportar PDF</button>
+        <button class="btn" style="flex:1;justify-content:center;font-size:11px"><i class="ti ti-download"></i>Exportar Excel</button>
+      </div>
+    </div>
+    <div class="card">
+      <div class="ch"><span class="ct">Rendimiento por mecánico</span></div>
+      <table class="tbl">
+        <thead><tr><th>Mecánico</th><th>OTs</th><th>Ingresos</th><th>Nota</th></tr></thead>
+        <tbody>
+          <tr><td>Pedro Ramírez</td><td>18</td><td>$1.6M</td><td>4.9 ★</td></tr>
+          <tr><td>Javier Muñoz</td><td>15</td><td>$1.3M</td><td>4.7 ★</td></tr>
+          <tr><td>Luis González</td><td>9</td><td>$820K</td><td>4.8 ★</td></tr>
+          <tr><td>Roberto Araya</td><td>5</td><td>$480K</td><td>4.6 ★</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- CONFIGURACIÓN -->
+<div class="page" id="pg-config">
+  <div class="g2">
+    <div class="card">
+      <div class="ch"><span class="ct">Datos del taller</span></div>
+      <div class="fg"><label>Nombre del taller</label><input value="AutoTaller Santiago"></div>
+      <div class="fg"><label>RUT empresa</label><input value="76.543.210-8"></div>
+      <div class="fg"><label>Dirección</label><input value="Av. Providencia 1234, Santiago"></div>
+      <div class="fg"><label>Link de agendamiento</label><input value="plataforma.cl/agenda/autotaller-santiago" readonly></div>
+      <button class="btn bpa" style="margin-top:4px"><i class="ti ti-device-floppy"></i>Guardar cambios</button>
+    </div>
+    <div class="card">
+      <div class="ch"><span class="ct">Integraciones API</span></div>
+      <div style="display:flex;flex-direction:column;gap:6px">
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:9px;background:var(--surface-1);border-radius:var(--radius)"><div><div style="font-size:12px;font-weight:500"><i class="ti ti-car" style="font-size:12px"></i> API Patentes Chile</div><div style="font-size:10px;color:var(--text-muted)">Auto-relleno de datos vehiculares</div></div><span class="st s-done"><span class="dot"></span>Activa</span></div>
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:9px;background:var(--surface-1);border-radius:var(--radius)"><div><div style="font-size:12px;font-weight:500"><i class="ti ti-brand-whatsapp" style="font-size:12px;color:#25d366"></i> Wati / WhatsApp API</div><div style="font-size:10px;color:var(--text-muted)">Mensajes automáticos de fidelización</div></div><span class="st s-done"><span class="dot"></span>Activa</span></div>
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:9px;background:var(--surface-1);border-radius:var(--radius)"><div><div style="font-size:12px;font-weight:500"><i class="ti ti-receipt" style="font-size:12px"></i> Haulmer / SII</div><div style="font-size:10px;color:var(--text-muted)">Boletas y facturas electrónicas</div></div><span class="st s-done"><span class="dot"></span>Activa</span></div>
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:9px;background:var(--surface-1);border-radius:var(--radius)"><div><div style="font-size:12px;font-weight:500"><i class="ti ti-map-pin" style="font-size:12px"></i> Geolocalización MINSAL residuos</div><div style="font-size:10px;color:var(--text-muted)">Empresas autorizadas de retiro</div></div><span class="st s-wait"><span class="dot"></span>Pendiente</span></div>
+      </div>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,697 @@
+
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--sidebar:230px}
+.app{display:flex;height:100vh;min-height:720px;font-family:var(--font-sans)}
+.sidebar{width:var(--sidebar);background:var(--surface-2);border-right:0.5px solid var(--border);display:flex;flex-direction:column;flex-shrink:0;overflow-y:auto}
+.logo{padding:16px;border-bottom:0.5px solid var(--border);display:flex;align-items:center;gap:10px}
+.logo-icon{width:32px;height:32px;background:var(--fill-accent);border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.logo-title{font-size:14px;font-weight:500}
+.logo-sub{font-size:10px;color:var(--text-muted)}
+.nav{padding:8px;flex:1}
+.ns{font-size:9px;color:var(--text-muted);font-weight:500;padding:10px 8px 3px;text-transform:uppercase;letter-spacing:.06em}
+.ni{display:flex;align-items:center;gap:9px;padding:7px 9px;border-radius:var(--radius);cursor:pointer;font-size:12px;color:var(--text-secondary);margin-bottom:1px;transition:all .12s}
+.ni:hover{background:var(--surface-1);color:var(--text-primary)}
+.ni.active{background:var(--bg-accent);color:var(--text-accent);font-weight:500}
+.ni i{font-size:15px;flex-shrink:0}
+.nbadge{background:var(--fill-danger);color:#fff;font-size:9px;font-weight:600;padding:1px 5px;border-radius:8px;margin-left:auto}
+.nbadge-warn{background:var(--fill-warning);color:#fff;font-size:9px;font-weight:600;padding:1px 5px;border-radius:8px;margin-left:auto}
+.sf{padding:10px 8px;border-top:0.5px solid var(--border)}
+.urow{display:flex;align-items:center;gap:8px;padding:6px 8px}
+.av{width:28px;height:28px;border-radius:50%;background:var(--bg-accent);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:500;color:var(--text-accent);flex-shrink:0}
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden;background:var(--surface-0)}
+.topbar{padding:12px 20px;border-bottom:0.5px solid var(--border);display:flex;align-items:center;justify-content:space-between;background:var(--surface-2);flex-shrink:0}
+.pt{font-size:15px;font-weight:500}
+.tact{display:flex;gap:6px;align-items:center}
+.btn{padding:6px 12px;border-radius:var(--radius);font-size:12px;cursor:pointer;border:0.5px solid var(--border-strong);background:transparent;color:var(--text-primary);display:inline-flex;align-items:center;gap:5px;transition:all .12s;font-family:var(--font-sans);white-space:nowrap}
+.btn:hover{background:var(--surface-1)}
+.bpa{background:var(--fill-accent);color:#fff;border-color:var(--fill-accent)}
+.bpa:hover{opacity:.9}
+.bpg{background:var(--fill-success);color:#fff;border-color:var(--fill-success)}
+.content{flex:1;overflow-y:auto;padding:20px}
+.page{display:none}.page.active{display:block}
+.kgrid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:18px}
+.kgrid5{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px;margin-bottom:18px}
+.kcard{background:var(--surface-1);border-radius:var(--radius);padding:14px}
+.kl{font-size:11px;color:var(--text-muted);margin-bottom:5px}
+.kv{font-size:22px;font-weight:500}
+.ks{font-size:10px;color:var(--text-muted);margin-top:3px}
+.ku{color:var(--text-success)}.kd{color:var(--text-danger)}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:14px}
+.card{background:var(--surface-2);border:0.5px solid var(--border);border-radius:12px;padding:16px}
+.ch{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.ct{font-size:13px;font-weight:500}
+.tbl{width:100%;border-collapse:collapse;font-size:12px}
+.tbl th{text-align:left;font-size:10px;color:var(--text-muted);font-weight:500;padding:0 0 7px;border-bottom:0.5px solid var(--border);text-transform:uppercase;letter-spacing:.04em}
+.tbl td{padding:8px 0;border-bottom:0.5px solid var(--border);color:var(--text-primary);vertical-align:middle}
+.tbl tr:last-child td{border:none}
+.st{display:inline-flex;align-items:center;gap:3px;padding:2px 8px;border-radius:8px;font-size:10px;font-weight:500;white-space:nowrap}
+.dot{width:5px;height:5px;border-radius:50%;background:currentColor;flex-shrink:0}
+.s-new{background:var(--bg-accent);color:var(--text-accent)}
+.s-prog{background:var(--bg-warning);color:var(--text-warning)}
+.s-done{background:var(--bg-success);color:var(--text-success)}
+.s-wait{background:var(--surface-1);color:var(--text-secondary);border:0.5px solid var(--border)}
+.s-paid{background:var(--bg-success);color:var(--text-success)}
+.s-pend{background:var(--bg-warning);color:var(--text-warning)}
+.s-crit{background:var(--bg-danger);color:var(--text-danger)}
+.s-sched{background:var(--bg-pro);color:var(--text-pro)}
+.div{height:0.5px;background:var(--border);margin:12px 0}
+.sb{display:flex;align-items:center;gap:8px;background:var(--surface-1);border:0.5px solid var(--border);border-radius:var(--radius);padding:7px 10px;margin-bottom:14px}
+.sb input{border:none;background:transparent;font-size:12px;color:var(--text-primary);flex:1;font-family:var(--font-sans)}
+.sb input:focus{outline:none}
+.pbar{height:5px;border-radius:3px;background:var(--surface-1);overflow:hidden;margin-top:4px}
+.pfill{height:100%;border-radius:3px}
+.al{display:flex;align-items:flex-start;gap:8px;padding:9px;border-radius:var(--radius);margin-bottom:6px}
+.al-w{background:var(--bg-warning);border:0.5px solid var(--border-warning)}
+.al-d{background:var(--bg-danger);border:0.5px solid var(--border-danger)}
+.al-s{background:var(--bg-success);border:0.5px solid var(--border-success)}
+.al-a{background:var(--bg-accent);border:0.5px solid var(--border-accent)}
+.al i{font-size:14px;flex-shrink:0;margin-top:1px}
+.al-w i{color:var(--text-warning)}.al-d i{color:var(--text-danger)}.al-s i{color:var(--text-success)}.al-a i{color:var(--text-accent)}
+.al-text{font-size:11px;line-height:1.5}
+.al-w .al-text{color:var(--text-warning)}.al-d .al-text{color:var(--text-danger)}.al-s .al-text{color:var(--text-success)}.al-a .al-text{color:var(--text-accent)}
+.fg{display:flex;flex-direction:column;gap:3px;margin-bottom:10px}
+.fg label{font-size:11px;color:var(--text-muted)}
+.fg input,.fg select,.fg textarea{border:0.5px solid var(--border-strong);border-radius:var(--radius);padding:7px 9px;font-size:12px;background:var(--surface-1);color:var(--text-primary);font-family:var(--font-sans)}
+.fg input:focus,.fg select:focus,.fg textarea:focus{outline:none;border-color:var(--border-accent)}
+.fg textarea{resize:vertical;min-height:60px}
+.fgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.mech-row{display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:0.5px solid var(--border)}
+.mech-row:last-child{border:none}
+.tag{display:inline-flex;align-items:center;gap:3px;padding:2px 8px;border-radius:8px;font-size:10px;font-weight:500;background:var(--surface-1);color:var(--text-secondary);border:0.5px solid var(--border)}
+.fin-box{background:var(--surface-1);border-radius:var(--radius);padding:12px;margin-bottom:8px}
+.fin-label{font-size:10px;color:var(--text-muted);margin-bottom:3px}
+.fin-value{font-size:18px;font-weight:500}
+.fin-pct{font-size:10px;color:var(--text-muted)}
+.timeline{display:flex;flex-direction:column;gap:0}
+.tl-item{display:flex;gap:12px;padding-bottom:14px;position:relative}
+.tl-item:last-child{padding-bottom:0}
+.tl-line{display:flex;flex-direction:column;align-items:center;flex-shrink:0}
+.tl-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;margin-top:2px}
+.tl-bar{width:1px;flex:1;background:var(--border);margin-top:3px}
+.tl-item:last-child .tl-bar{display:none}
+.tl-content{flex:1;padding-bottom:2px}
+.tl-title{font-size:12px;font-weight:500;margin-bottom:2px}
+.tl-desc{font-size:11px;color:var(--text-muted)}
+.wiki-card{background:var(--surface-1);border-radius:var(--radius);padding:12px;margin-bottom:8px;border:0.5px solid var(--border)}
+.wiki-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:8px}
+.wiki-title{font-size:12px;font-weight:500}
+.wiki-meta{font-size:10px;color:var(--text-muted);margin-top:2px}
+.tool-chip{display:inline-flex;align-items:center;gap:4px;padding:3px 8px;border-radius:var(--radius);font-size:10px;background:var(--bg-warning);color:var(--text-warning);margin:2px;border:0.5px solid var(--border-warning)}
+.cal-hdr{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;margin-bottom:3px}
+.cal-dh{text-align:center;font-size:9px;color:var(--text-muted);font-weight:500;padding:3px 0;text-transform:uppercase}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px}
+.cal-day{min-height:52px;border-radius:var(--radius);border:0.5px solid var(--border);padding:4px;background:var(--surface-1);cursor:pointer;transition:.1s}
+.cal-day:hover{border-color:var(--border-accent)}
+.cal-day.today{border-color:var(--fill-accent);background:var(--bg-accent)}
+.cal-day.today .cal-num{color:var(--text-accent);font-weight:600}
+.cal-day.empty{background:transparent;border-color:transparent;cursor:default}
+.cal-num{font-size:10px;margin-bottom:2px}
+.cal-ev{font-size:8px;background:var(--fill-accent);color:#fff;border-radius:2px;padding:1px 3px;margin-bottom:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cal-ev.ev-g{background:var(--fill-success)}
+.cal-ev.ev-o{background:var(--fill-warning)}
+.eco-bar{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:0.5px solid var(--border)}
+.eco-bar:last-child{border:none}
+.pred-box{background:var(--bg-accent);border:0.5px solid var(--border-accent);border-radius:var(--radius);padding:10px;margin-bottom:8px}
+.pred-title{font-size:11px;font-weight:500;color:var(--text-accent);margin-bottom:4px}
+.pred-sub{font-size:10px;color:var(--text-accent);opacity:.8}
+.section-label{font-size:11px;font-weight:500;color:var(--text-secondary);margin:14px 0 8px;text-transform:uppercase;letter-spacing:.04em}
+</style>
+
+<div class="app">
+<div class="sidebar">
+  <div class="logo">
+    <div class="logo-icon"><i class="ti ti-tool" style="font-size:16px;color:#fff" aria-hidden="true"></i></div>
+    <div><div class="logo-title">MecánicaPro</div><div class="logo-sub">SaaS · Taller Santiago</div></div>
+  </div>
+  <nav class="nav">
+    <div class="ns">Principal</div>
+    <div class="ni active" onclick="nav('dashboard',this)"><i class="ti ti-layout-dashboard"></i>Dashboard</div>
+    <div class="ni" onclick="nav('agenda',this)"><i class="ti ti-calendar"></i>Agenda<span class="nbadge">4</span></div>
+    <div class="ns">Taller</div>
+    <div class="ni" onclick="nav('ot',this)"><i class="ti ti-clipboard-list"></i>Órdenes de trabajo<span class="nbadge">7</span></div>
+    <div class="ni" onclick="nav('clientes',this)"><i class="ti ti-users"></i>Clientes y vehículos</div>
+    <div class="ni" onclick="nav('wiki',this)"><i class="ti ti-book-2"></i>Wiki técnica<span class="nbadge-warn">Nuevo</span></div>
+    <div class="ns">Inventario</div>
+    <div class="ni" onclick="nav('inventario',this)"><i class="ti ti-package"></i>Repuestos<span class="nbadge">2</span></div>
+    <div class="ni" onclick="nav('proveedores',this)"><i class="ti ti-truck"></i>Proveedores</div>
+    <div class="ni" onclick="nav('residuos',this)"><i class="ti ti-leaf"></i>Residuos ecológicos</div>
+    <div class="ns">Finanzas</div>
+    <div class="ni" onclick="nav('contable',this)"><i class="ti ti-calculator"></i>Motor contable</div>
+    <div class="ni" onclick="nav('facturacion',this)"><i class="ti ti-receipt"></i>Facturación</div>
+    <div class="ns">Marketing</div>
+    <div class="ni" onclick="nav('fidelizacion',this)"><i class="ti ti-heart"></i>Fidelización</div>
+    <div class="ni" onclick="nav('redes',this)"><i class="ti ti-brand-instagram"></i>Redes sociales</div>
+    <div class="ns">Admin</div>
+    <div class="ni" onclick="nav('reportes',this)"><i class="ti ti-chart-bar"></i>Reportes</div>
+    <div class="ni" onclick="nav('config',this)"><i class="ti ti-settings"></i>Configuración</div>
+  </nav>
+  <div class="sf">
+    <div class="urow">
+      <div class="av">CM</div>
+      <div><div style="font-size:12px;font-weight:500">Carlos M.</div><div style="font-size:10px;color:var(--text-muted)">Administrador</div></div>
+    </div>
+  </div>
+</div>
+
+<div class="main">
+  <div class="topbar">
+    <div class="pt" id="ptitle">Dashboard</div>
+    <div class="tact">
+      <button class="btn" onclick="nav('ot',null)"><i class="ti ti-plus"></i>Nueva OT</button>
+      <button class="btn"><i class="ti ti-bell"></i></button>
+      <button class="btn"><i class="ti ti-help-circle"></i></button>
+    </div>
+  </div>
+  <div class="content">
+
+  <!-- ===== DASHBOARD ===== -->
+  <div class="page active" id="pg-dashboard">
+    <div class="kgrid">
+      <div class="kcard"><div class="kl">OT activas</div><div class="kv">12</div><div class="ks ku"><i class="ti ti-arrow-up" style="font-size:9px"></i> 3 más que ayer</div></div>
+      <div class="kcard"><div class="kl">Ingresos del mes</div><div class="kv">$4.2M</div><div class="ks ku"><i class="ti ti-arrow-up" style="font-size:9px"></i> +18% vs mayo</div></div>
+      <div class="kcard"><div class="kl">Vehículos en taller</div><div class="kv">8</div><div class="ks" style="color:var(--text-muted)">3 listos para entrega</div></div>
+      <div class="kcard"><div class="kl">Rentabilidad/hora</div><div class="kv">$9.400</div><div class="ks ku"><i class="ti ti-arrow-up" style="font-size:9px"></i> mejor marca del mes</div></div>
+    </div>
+    <div class="g2">
+      <div class="card">
+        <div class="ch"><span class="ct">Órdenes activas</span><button class="btn" style="font-size:11px;padding:4px 8px" onclick="nav('ot',null)">Ver todas</button></div>
+        <table class="tbl">
+          <thead><tr><th>OT</th><th>Vehículo</th><th>Mecánico</th><th>Tiempo</th><th>Estado</th></tr></thead>
+          <tbody>
+            <tr><td style="font-weight:500;color:var(--text-accent)">#0041</td><td>Toyota Corolla '22</td><td>Pedro R.</td><td>2h 15m</td><td><span class="st s-prog"><span class="dot"></span>En proceso</span></td></tr>
+            <tr><td style="font-weight:500;color:var(--text-accent)">#0040</td><td>Ford F-150 '20</td><td>Javier M.</td><td>4h 00m</td><td><span class="st s-done"><span class="dot"></span>Terminado</span></td></tr>
+            <tr><td style="font-weight:500;color:var(--text-accent)">#0039</td><td>Chevrolet Cruze '19</td><td>Pedro R.</td><td>1h 30m</td><td><span class="st s-wait"><span class="dot"></span>Esperando repuesto</span></td></tr>
+            <tr><td style="font-weight:500;color:var(--text-accent)">#0038</td><td>Honda Civic '21</td><td>Luis G.</td><td>0h 20m</td><td><span class="st s-new"><span class="dot"></span>Agendado</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="card">
+        <div class="ch"><span class="ct">Alertas del sistema</span></div>
+        <div class="al al-d"><i class="ti ti-alert-triangle"></i><div class="al-text"><strong>Stock crítico:</strong> Filtro aceite 5W-30 (2 unidades) — mínimo requerido: 5</div></div>
+        <div class="al al-w"><i class="ti ti-alert-triangle"></i><div class="al-text"><strong>Stock bajo:</strong> Pastillas freno delantero Brembo (4 unidades)</div></div>
+        <div class="al al-a"><i class="ti ti-car"></i><div class="al-text"><strong>Fidelización:</strong> 3 clientes alcanzan su km de mantenimiento esta semana</div></div>
+        <div class="al al-s"><i class="ti ti-leaf"></i><div class="al-text"><strong>Residuos:</strong> Retiro de aceite quemado programado para el viernes</div></div>
+        <div class="div"></div>
+        <div class="ch"><span class="ct">Carga de mecánicos</span></div>
+        <div class="mech-row"><div class="av" style="width:24px;height:24px;font-size:9px">PR</div><div style="flex:1"><div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:3px"><span>Pedro Ramírez</span><span style="color:var(--text-danger)">4 OT — al tope</span></div><div class="pbar"><div class="pfill" style="width:90%;background:var(--fill-danger)"></div></div></div></div>
+        <div class="mech-row"><div class="av" style="width:24px;height:24px;font-size:9px">JM</div><div style="flex:1"><div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:3px"><span>Javier Muñoz</span><span style="color:var(--text-warning)">3 OT</span></div><div class="pbar"><div class="pfill" style="width:65%;background:var(--fill-warning)"></div></div></div></div>
+        <div class="mech-row"><div class="av" style="width:24px;height:24px;font-size:9px">LG</div><div style="flex:1"><div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:3px"><span>Luis González</span><span style="color:var(--text-success)">2 OT</span></div><div class="pbar"><div class="pfill" style="width:40%;background:var(--fill-success)"></div></div></div></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="ch"><span class="ct">Rentabilidad por procedimiento (top 5 del mes)</span><button class="btn" style="font-size:11px;padding:4px 8px" onclick="nav('reportes',null)">Ver reportes</button></div>
+      <table class="tbl">
+        <thead><tr><th>Servicio</th><th>Marca/Modelo frecuente</th><th>OTs</th><th>Tiempo prom.</th><th>Ingreso prom.</th><th>Rent./hora</th></tr></thead>
+        <tbody>
+          <tr><td>Cambio de embrague</td><td>JAC/Chevrolet</td><td>8</td><td>3h 20m</td><td>$320.000</td><td style="font-weight:500;color:var(--text-success)">$96.000/h</td></tr>
+          <tr><td>Diagnóstico scanner</td><td>Toyota/Hyundai</td><td>14</td><td>45m</td><td>$45.000</td><td style="font-weight:500;color:var(--text-success)">$60.000/h</td></tr>
+          <tr><td>Cambio de frenos</td><td>Ford/Kia</td><td>11</td><td>1h 30m</td><td>$85.000</td><td style="font-weight:500;color:var(--text-success)">$56.667/h</td></tr>
+          <tr><td>Mantención 10.000 km</td><td>Toyota/Honda</td><td>18</td><td>1h 15m</td><td>$65.000</td><td style="font-weight:500;color:var(--text-warning)">$52.000/h</td></tr>
+          <tr><td>Alineación/Balanceo</td><td>Varios</td><td>9</td><td>45m</td><td>$35.000</td><td style="font-weight:500;color:var(--text-danger)">$46.667/h</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ===== NUEVA OT ===== -->
+  <div class="page" id="pg-ot">
+    <div style="display:flex;gap:6px;margin-bottom:14px">
+      <button class="btn bpa"><i class="ti ti-plus"></i>Nueva OT</button>
+      <button class="btn"><i class="ti ti-filter"></i>Filtrar</button>
+      <div style="margin-left:auto;display:flex;gap:4px">
+        <span class="st s-new" style="cursor:pointer">Agendado (3)</span>
+        <span class="st s-prog" style="cursor:pointer">En proceso (4)</span>
+        <span class="st s-wait" style="cursor:pointer">Esperando (2)</span>
+        <span class="st s-done" style="cursor:pointer">Terminado (5)</span>
+        <span class="st s-paid" style="cursor:pointer">Pagado (8)</span>
+      </div>
+    </div>
+    <div class="sb"><i class="ti ti-search" style="color:var(--text-muted);font-size:15px"></i><input placeholder="Buscar por patente, cliente, N° OT…"></div>
+    <div class="g2">
+      <div class="card" style="padding:0;overflow:hidden">
+        <div style="padding:10px 14px;border-bottom:0.5px solid var(--border);background:var(--surface-1)"><span class="ct">Lista de órdenes</span></div>
+        <div id="ot-rows"></div>
+      </div>
+      <div class="card">
+        <div class="ch"><span class="ct">Crear nueva OT</span></div>
+        <div class="al al-a" style="margin-bottom:12px"><i class="ti ti-scan"></i><div class="al-text"><strong>Auto-relleno por patente:</strong> Ingresa la patente y el sistema consulta el Registro Vehicular Chile automáticamente</div></div>
+        <div class="fg"><label>Patente del vehículo</label>
+          <div style="display:flex;gap:6px">
+            <input id="pat-input" placeholder="Ej: ABCD12" style="flex:1;text-transform:uppercase;font-weight:500;font-size:14px" oninput="this.value=this.value.toUpperCase()">
+            <button class="btn bpa" onclick="buscarPatente()"><i class="ti ti-search"></i>Consultar</button>
+          </div>
+        </div>
+        <div id="pat-result" style="display:none">
+          <div class="al al-s" style="margin-bottom:10px"><i class="ti ti-check"></i><div class="al-text" id="pat-text"></div></div>
+          <div class="fgrid">
+            <div class="fg"><label>Marca</label><input id="p-marca" readonly></div>
+            <div class="fg"><label>Modelo</label><input id="p-modelo" readonly></div>
+            <div class="fg"><label>Año</label><input id="p-anio" readonly></div>
+            <div class="fg"><label>Motor</label><input id="p-motor" readonly></div>
+          </div>
+          <div class="div"></div>
+          <div class="fgrid">
+            <div class="fg"><label>Nombre cliente</label><input placeholder="Nombre completo"></div>
+            <div class="fg"><label>Teléfono WhatsApp</label><input placeholder="+56 9 XXXX XXXX"></div>
+            <div class="fg"><label>Correo</label><input placeholder="correo@ejemplo.cl"></div>
+            <div class="fg"><label>Kilometraje ingreso</label><input placeholder="Ej: 45200" type="number"></div>
+          </div>
+          <div class="fg"><label>Servicio solicitado</label><select><option>Mantención 10.000 km</option><option>Cambio de embrague</option><option>Diagnóstico scanner</option><option>Cambio de frenos</option><option>Alineación y balanceo</option><option>Otro (especificar)</option></select></div>
+          <div class="fg"><label>Técnico asignado</label><select><option>Pedro Ramírez</option><option>Javier Muñoz</option><option>Luis González</option><option>Roberto Araya</option></select></div>
+          <div class="fg"><label>Notas adicionales</label><textarea placeholder="Observaciones del cliente o diagnóstico inicial…"></textarea></div>
+          <div class="div"></div>
+          <div class="al al-w"><i class="ti ti-sparkles"></i><div class="al-text"><strong>Pre-cotización sugerida:</strong> Basada en historial de este modelo: Filtro aceite $4.500 · Aceite 4L $24.800 · Filtro aire $12.000 · M. obra $35.000. <strong>Total est.: $76.300</strong></div></div>
+          <div class="al al-a"><i class="ti ti-tool"></i><div class="al-text"><strong>Wiki técnica:</strong> Para este modelo la comunidad sugiere: Llave torx T45 · Dado 19mm · Torquímetro</div></div>
+          <button class="btn bpa" style="width:100%;justify-content:center;margin-top:10px"><i class="ti ti-clipboard-plus"></i>Crear orden de trabajo</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== CLIENTES ===== -->
+  <div class="page" id="pg-clientes">
+    <div style="display:flex;gap:6px;margin-bottom:14px">
+      <button class="btn bpa"><i class="ti ti-user-plus"></i>Nuevo cliente</button>
+    </div>
+    <div class="sb"><i class="ti ti-search" style="color:var(--text-muted);font-size:15px"></i><input placeholder="Buscar por nombre, RUT, patente o teléfono…"></div>
+    <div class="g2">
+      <div class="card">
+        <div class="ch">
+          <div style="display:flex;align-items:center;gap:10px">
+            <div class="av" style="width:36px;height:36px;font-size:13px">MS</div>
+            <div><div style="font-size:13px;font-weight:500">María Soto</div><div style="font-size:11px;color:var(--text-muted)">RUT: 12.345.678-9 · Cliente desde jun 2024</div></div>
+          </div>
+          <span class="st s-done"><span class="dot"></span>Al día</span>
+        </div>
+        <div style="display:flex;gap:14px;font-size:11px;color:var(--text-muted);margin-bottom:10px">
+          <span><i class="ti ti-phone" style="font-size:12px;vertical-align:-2px"></i> +56 9 8765 4321</span>
+          <span><i class="ti ti-mail" style="font-size:12px;vertical-align:-2px"></i> m.soto@email.cl</span>
+          <span><i class="ti ti-brand-whatsapp" style="font-size:12px;vertical-align:-2px;color:#25d366"></i> WhatsApp activo</span>
+        </div>
+        <div class="div"></div>
+        <div style="font-size:11px;font-weight:500;color:var(--text-secondary);margin-bottom:8px">KGSJK9 — Kia Sportage 2023 · 28.450 km</div>
+        <div class="pred-box">
+          <div class="pred-title"><i class="ti ti-robot" style="font-size:11px"></i> Predicción de kilometraje</div>
+          <div class="pred-sub">Km promedio diario: 42 km/día · Próxima mantención (38.000 km) estimada para el <strong>15 de septiembre 2026</strong>. Alerta automática programada por WhatsApp.</div>
+        </div>
+        <div style="font-size:11px;color:var(--text-muted);margin-bottom:6px">Historial de servicios</div>
+        <table class="tbl">
+          <thead><tr><th>OT</th><th>Fecha</th><th>Servicio</th><th>Total</th></tr></thead>
+          <tbody>
+            <tr><td style="color:var(--text-accent)">#0041</td><td>25 jun '26</td><td>Mantención 10k km</td><td>$76.300</td></tr>
+            <tr><td style="color:var(--text-accent)">#0021</td><td>10 ene '26</td><td>Cambio de frenos</td><td>$95.000</td></tr>
+            <tr><td style="color:var(--text-accent)">#0008</td><td>3 ago '25</td><td>Mantención 20k km</td><td>$82.000</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="card">
+        <div class="ch">
+          <div style="display:flex;align-items:center;gap:10px">
+            <div class="av" style="width:36px;height:36px;font-size:13px;background:var(--bg-success);color:var(--text-success)">JF</div>
+            <div><div style="font-size:13px;font-weight:500">Jorge Fuentes</div><div style="font-size:11px;color:var(--text-muted)">RUT: 9.876.543-2 · Cliente desde mar 2025</div></div>
+          </div>
+          <span class="st s-prog"><span class="dot"></span>Mantención pronto</span>
+        </div>
+        <div style="display:flex;gap:14px;font-size:11px;color:var(--text-muted);margin-bottom:10px">
+          <span><i class="ti ti-phone" style="font-size:12px;vertical-align:-2px"></i> +56 9 2345 6789</span>
+          <span><i class="ti ti-mail" style="font-size:12px;vertical-align:-2px"></i> jorge.f@gmail.com</span>
+        </div>
+        <div class="div"></div>
+        <div style="font-size:11px;font-weight:500;color:var(--text-secondary);margin-bottom:8px">GHJK45 — VW Golf 2021 · 41.200 km</div>
+        <div class="pred-box">
+          <div class="pred-title"><i class="ti ti-robot" style="font-size:11px"></i> Predicción de kilometraje</div>
+          <div class="pred-sub">Km promedio diario: 68 km/día · Solo 1 servicio registrado → <strong>Regla de 180 días aplicada</strong>. Próxima alerta: 15 de agosto 2026.</div>
+        </div>
+        <div style="font-size:11px;color:var(--text-muted);margin-bottom:6px">Historial de servicios</div>
+        <table class="tbl">
+          <thead><tr><th>OT</th><th>Fecha</th><th>Servicio</th><th>Total</th></tr></thead>
+          <tbody>
+            <tr><td style="color:var(--text-accent)">#0038</td><td>15 feb '26</td><td>Revisión de frenos</td><td>$68.000</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== WIKI TÉCNICA ===== -->
+  <div class="page" id="pg-wiki">
+    <div class="al al-a" style="margin-bottom:14px"><i class="ti ti-world"></i><div class="al-text"><strong>Base de conocimiento colaborativa:</strong> Todos los talleres de Chile que usan la plataforma contribuyen a esta enciclopedia técnica. Los datos se indexan por Marca / Modelo / Año.</div></div>
+    <div class="sb"><i class="ti ti-search" style="color:var(--text-muted);font-size:15px"></i><input placeholder="Buscar por vehículo, procedimiento o herramienta…"></div>
+    <div class="g2">
+      <div>
+        <div class="wiki-card">
+          <div class="wiki-header">
+            <div><div class="wiki-title">Cambio de embrague — Chevrolet Sail 2018</div><div class="wiki-meta">Indexado por 14 talleres · Última actualización: hace 3 días</div></div>
+            <span class="st s-done" style="flex-shrink:0">Verificado ✓</span>
+          </div>
+          <div style="font-size:11px;color:var(--text-muted);margin-bottom:6px">Herramientas sugeridas por la comunidad:</div>
+          <div><span class="tool-chip"><i class="ti ti-tool" style="font-size:10px"></i>Dado 21mm</span><span class="tool-chip"><i class="ti ti-tool" style="font-size:10px"></i>Torx T45</span><span class="tool-chip"><i class="ti ti-tool" style="font-size:10px"></i>Extractor de volante</span><span class="tool-chip"><i class="ti ti-tool" style="font-size:10px"></i>Gato hidráulico</span></div>
+          <div class="div"></div>
+          <div style="font-size:11px;color:var(--text-muted)">N° de parte frecuente: <span style="color:var(--text-primary);font-weight:500">CHV-SAL-EMB-0021</span> · Tiempo estimado: <strong>3h 20m</strong></div>
+        </div>
+        <div class="wiki-card">
+          <div class="wiki-header">
+            <div><div class="wiki-title">Tapón de cárter — Toyota Corolla 2020-2023</div><div class="wiki-meta">Indexado por 22 talleres · Última actualización: hace 1 semana</div></div>
+            <span class="st s-done">Verificado ✓</span>
+          </div>
+          <div style="font-size:11px;color:var(--text-muted);margin-bottom:6px">Herramientas sugeridas:</div>
+          <div><span class="tool-chip"><i class="ti ti-tool" style="font-size:10px"></i>Dado 17mm</span><span class="tool-chip"><i class="ti ti-tool" style="font-size:10px"></i>Torquímetro 25 Nm</span></div>
+          <div class="div"></div>
+          <div style="font-size:11px;color:var(--text-muted)">N° de parte: <span style="color:var(--text-primary);font-weight:500">TOY-COR-TAP-014</span> · Tiempo estimado: <strong>15m</strong></div>
+        </div>
+        <button class="btn bpa" style="width:100%;justify-content:center" onclick="sendPrompt('Quiero agregar un nuevo procedimiento a la wiki técnica para un vehículo específico')"><i class="ti ti-plus"></i>Aportar nuevo procedimiento ↗</button>
+      </div>
+      <div class="card">
+        <div class="ch"><span class="ct">Alerta activa en pantalla</span></div>
+        <div class="al al-a"><i class="ti ti-sparkles"></i><div class="al-text"><strong>OT #0041 — Toyota Corolla 2022 / Mantención 10k km</strong><br>Herramientas sugeridas por la comunidad: Dado 17mm · Torquímetro 25 Nm · Embudo de aceite</div></div>
+        <div class="div"></div>
+        <div class="ch"><span class="ct" style="font-size:12px">Estadísticas de la wiki</span></div>
+        <div class="kgrid" style="grid-template-columns:1fr 1fr;gap:8px;margin:0">
+          <div class="kcard"><div class="kl">Procedimientos</div><div class="kv" style="font-size:18px">1.847</div></div>
+          <div class="kcard"><div class="kl">Talleres activos</div><div class="kv" style="font-size:18px">134</div></div>
+          <div class="kcard"><div class="kl">Herramientas indexadas</div><div class="kv" style="font-size:18px">6.421</div></div>
+          <div class="kcard"><div class="kl">N° de partes</div><div class="kv" style="font-size:18px">4.832</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== INVENTARIO ===== -->
+  <div class="page" id="pg-inventario">
+    <div style="display:flex;gap:6px;margin-bottom:14px">
+      <button class="btn bpa"><i class="ti ti-plus"></i>Agregar repuesto</button>
+      <button class="btn"><i class="ti ti-truck"></i>Registrar entrada</button>
+    </div>
+    <div class="sb"><i class="ti ti-search" style="color:var(--text-muted);font-size:15px"></i><input placeholder="Buscar por código, nombre, marca o ubicación en bodega…"></div>
+    <div id="inv-cards"></div>
+  </div>
+
+  <!-- ===== CONTABLE ===== -->
+  <div class="page" id="pg-contable">
+    <div class="al al-a" style="margin-bottom:14px"><i class="ti ti-calculator"></i><div class="al-text"><strong>Motor contable automatizado:</strong> Al pasar una OT a estado "Pagado", el sistema distribuye los fondos automáticamente en 4 cuentas digitales según los porcentajes configurados por el dueño.</div></div>
+    <div class="g2">
+      <div class="card">
+        <div class="ch"><span class="ct">Cierre OT #0040 — Ford F-150</span><span class="st s-paid"><span class="dot"></span>Pagado</span></div>
+        <div class="fin-box"><div class="fin-label">Valor bruto cobrado</div><div class="fin-value">$220.000</div><div class="fin-pct">Incluye IVA</div></div>
+        <div style="display:flex;gap:4px;align-items:center;margin:8px 0"><div style="flex:1;height:0.5px;background:var(--border)"></div><span style="font-size:10px;color:var(--text-muted)">Distribución automática</span><div style="flex:1;height:0.5px;background:var(--border)"></div></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+          <div class="fin-box" style="border-left:3px solid var(--fill-danger)"><div class="fin-label">Retención IVA 19%</div><div class="fin-value" style="font-size:15px;color:var(--text-danger)">- $35.126</div><div class="fin-pct">Para SII / Boleta electrónica</div></div>
+          <div class="fin-box" style="border-left:3px solid var(--fill-warning)"><div class="fin-label">Gastos fijos (43%)</div><div class="fin-value" style="font-size:15px;color:var(--text-warning)">$79.500</div><div class="fin-pct">Arriendo, luz, agua, etc.</div></div>
+          <div class="fin-box" style="border-left:3px solid var(--fill-accent)"><div class="fin-label">Pago técnico asignado</div><div class="fin-value" style="font-size:15px;color:var(--text-accent)">$37.100</div><div class="fin-pct">Javier Muñoz — 20%</div></div>
+          <div class="fin-box" style="border-left:3px solid var(--fill-pro)"><div class="fin-label">Fondo reinversión</div><div class="fin-value" style="font-size:15px;color:var(--text-pro)">$18.550</div><div class="fin-pct">10% del neto</div></div>
+        </div>
+        <div class="fin-box" style="background:var(--bg-success);border:0.5px solid var(--border-success);margin-top:8px"><div class="fin-label" style="color:var(--text-success)">Utilidad líquida para el dueño</div><div class="fin-value" style="color:var(--text-success)">$49.724</div><div class="fin-pct" style="color:var(--text-success)">27% del neto · Depositado en cuenta #4</div></div>
+      </div>
+      <div class="card">
+        <div class="ch"><span class="ct">Resumen del mes</span></div>
+        <div class="kgrid" style="grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">
+          <div class="kcard"><div class="kl">Ingresos brutos</div><div class="kv" style="font-size:16px">$4.2M</div></div>
+          <div class="kcard"><div class="kl">IVA retenido</div><div class="kv" style="font-size:16px;color:var(--text-danger)">$671K</div></div>
+          <div class="kcard"><div class="kl">Gastos fijos 43%</div><div class="kv" style="font-size:16px;color:var(--text-warning)">$1.52M</div></div>
+          <div class="kcard"><div class="kl">Utilidad dueño</div><div class="kv" style="font-size:16px;color:var(--text-success)">$882K</div></div>
+        </div>
+        <div class="div"></div>
+        <div class="ch" style="margin-bottom:8px"><span class="ct" style="font-size:12px">Métodos de pago integrados</span></div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap">
+          <span class="tag"><i class="ti ti-credit-card" style="font-size:11px"></i>MercadoPago</span>
+          <span class="tag"><i class="ti ti-credit-card" style="font-size:11px"></i>WebPay</span>
+          <span class="tag"><i class="ti ti-credit-card" style="font-size:11px"></i>Flow</span>
+          <span class="tag"><i class="ti ti-device-mobile" style="font-size:11px"></i>Haulmer / TUU</span>
+          <span class="tag"><i class="ti ti-cash" style="font-size:11px"></i>Efectivo</span>
+          <span class="tag"><i class="ti ti-building-bank" style="font-size:11px"></i>Transferencia</span>
+        </div>
+        <div class="div"></div>
+        <button class="btn" style="width:100%;justify-content:center;font-size:11px"><i class="ti ti-file-invoice"></i>Sincronizar con Haulmer (SII)</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== FIDELIZACIÓN ===== -->
+  <div class="page" id="pg-fidelizacion">
+    <div class="al al-a" style="margin-bottom:14px"><i class="ti ti-robot"></i><div class="al-text"><strong>Algoritmo de kilometraje predictivo:</strong> El sistema calcula automáticamente cuándo cada cliente llegará a su próximo intervalo de mantenimiento usando su historial de uso real. Si solo hay 1 registro, aplica la regla de 180 días.</div></div>
+    <div class="g2">
+      <div class="card">
+        <div class="ch"><span class="ct">Clientes próximos a mantenimiento</span><button class="btn bpa" style="font-size:11px;padding:4px 8px"><i class="ti ti-send"></i>Enviar alertas masivas</button></div>
+        <table class="tbl">
+          <thead><tr><th>Cliente</th><th>Vehículo</th><th>Km/día</th><th>Próxima alerta</th><th>Lógica</th><th>Acción</th></tr></thead>
+          <tbody>
+            <tr><td>María Soto</td><td>Kia Sportage '23</td><td>42 km</td><td style="color:var(--text-success);font-weight:500">15 sep</td><td><span class="tag">Lógica A</span></td><td><button class="btn" style="font-size:10px;padding:3px 7px"><i class="ti ti-brand-whatsapp" style="color:#25d366;font-size:11px"></i>WA</button></td></tr>
+            <tr><td>Jorge Fuentes</td><td>VW Golf '21</td><td>—</td><td style="color:var(--text-warning);font-weight:500">15 ago</td><td><span class="tag">180 días</span></td><td><button class="btn" style="font-size:10px;padding:3px 7px"><i class="ti ti-brand-whatsapp" style="color:#25d366;font-size:11px"></i>WA</button></td></tr>
+            <tr><td>Ana Rojas</td><td>Hyundai Tucson '20</td><td>55 km</td><td style="color:var(--text-danger);font-weight:500">2 jul ⚠</td><td><span class="tag">Lógica A</span></td><td><button class="btn bpa" style="font-size:10px;padding:3px 7px"><i class="ti ti-brand-whatsapp" style="font-size:11px"></i>Enviar ya</button></td></tr>
+            <tr><td>Pedro Silva</td><td>Honda Civic '21</td><td>78 km</td><td style="color:var(--text-danger);font-weight:500">28 jun ⚠</td><td><span class="tag">Lógica A</span></td><td><button class="btn bpa" style="font-size:10px;padding:3px 7px"><i class="ti ti-brand-whatsapp" style="font-size:11px"></i>Enviar ya</button></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="card">
+        <div class="ch"><span class="ct">Template de mensaje WhatsApp</span></div>
+        <div style="background:var(--surface-1);border-radius:var(--radius);padding:12px;font-size:12px;line-height:1.6;border:0.5px solid var(--border);margin-bottom:10px">
+          Hola <strong>María</strong> 👋 Te escribimos desde <strong>AutoTaller Santiago</strong>.<br><br>
+          Tu <strong>Kia Sportage KGSJK9</strong> está aproximándose a su intervalo de mantención programado. Estimamos que ya llevas alrededor de <strong>37.800 km</strong> recorridos.<br><br>
+          Agenda tu hora aquí 👇<br>
+          <span style="color:var(--text-accent)">plataforma.cl/agenda/autotaller-santiago</span><br><br>
+          ¡Nos vemos pronto! 🔧
+        </div>
+        <div class="div"></div>
+        <div class="ch" style="margin-bottom:8px"><span class="ct" style="font-size:12px">Template email HTML</span></div>
+        <div style="background:var(--surface-1);border-radius:var(--radius);padding:10px;font-size:11px;color:var(--text-muted)">Plantilla personalizada con logo del taller, datos del vehículo y botón de agendamiento. Enviada automáticamente a medianoche vía Wati / Twilio / Zenvia.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== RESIDUOS ===== -->
+  <div class="page" id="pg-residuos">
+    <div class="al al-s" style="margin-bottom:14px"><i class="ti ti-leaf"></i><div class="al-text"><strong>Módulo de gestión ecológica:</strong> Registro obligatorio de residuos peligrosos. Si no tienes contrato vigente, el sistema muestra empresas autorizadas por el Ministerio de Salud de Chile.</div></div>
+    <div class="g2">
+      <div class="card">
+        <div class="ch"><span class="ct">Registro de residuos</span><button class="btn bpa" style="font-size:11px;padding:4px 8px"><i class="ti ti-plus"></i>Nuevo registro</button></div>
+        <div class="eco-bar"><div style="width:28px;height:28px;border-radius:6px;background:var(--bg-warning);display:flex;align-items:center;justify-content:center;flex-shrink:0"><i class="ti ti-droplet" style="font-size:14px;color:var(--text-warning)"></i></div><div style="flex:1;margin-left:8px"><div style="font-size:12px;font-weight:500">Aceite quemado</div><div style="font-size:10px;color:var(--text-muted)">48 litros acumulados · Retiro: 28 jun · ECORILES SPA</div></div><span class="st s-prog"><span class="dot"></span>Programado</span></div>
+        <div class="eco-bar"><div style="width:28px;height:28px;border-radius:6px;background:var(--bg-danger);display:flex;align-items:center;justify-content:center;flex-shrink:0"><i class="ti ti-battery" style="font-size:14px;color:var(--text-danger)"></i></div><div style="flex:1;margin-left:8px"><div style="font-size:12px;font-weight:500">Baterías usadas</div><div style="font-size:10px;color:var(--text-muted)">6 unidades · Empresa: RECICLAJE METÁLICO LTDA</div></div><span class="st s-done"><span class="dot"></span>Retirado</span></div>
+        <div class="eco-bar"><div style="width:28px;height:28px;border-radius:6px;background:var(--bg-accent);display:flex;align-items:center;justify-content:center;flex-shrink:0"><i class="ti ti-components" style="font-size:14px;color:var(--text-accent)"></i></div><div style="flex:1;margin-left:8px"><div style="font-size:12px;font-weight:500">Filtros usados</div><div style="font-size:10px;color:var(--text-muted)">23 unidades · Sin empresa asignada</div></div><span class="st s-crit"><span class="dot"></span>Sin contrato</span></div>
+        <div class="div"></div>
+        <div class="al al-w"><i class="ti ti-alert-triangle"></i><div class="al-text"><strong>Sin contrato para filtros:</strong> El sistema encontró 3 empresas autorizadas por MINSAL cerca de tu taller</div></div>
+        <button class="btn" style="width:100%;justify-content:center;font-size:11px"><i class="ti ti-map-pin"></i>Ver empresas autorizadas cerca de mi taller</button>
+      </div>
+      <div class="card">
+        <div class="ch"><span class="ct">Certificados de disposición final</span></div>
+        <div style="display:flex;flex-direction:column;gap:6px">
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:8px;background:var(--surface-1);border-radius:var(--radius)">
+            <div><div style="font-size:12px;font-weight:500"><i class="ti ti-file-certificate" style="font-size:12px;color:var(--text-success)"></i> Cert. Aceite Q1 2026</div><div style="font-size:10px;color:var(--text-muted)">ECORILES SPA · mar 2026</div></div>
+            <button class="btn" style="font-size:10px;padding:3px 7px"><i class="ti ti-download"></i>PDF</button>
+          </div>
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:8px;background:var(--surface-1);border-radius:var(--radius)">
+            <div><div style="font-size:12px;font-weight:500"><i class="ti ti-file-certificate" style="font-size:12px;color:var(--text-success)"></i> Cert. Baterías 2025</div><div style="font-size:10px;color:var(--text-muted)">RECICLAJE METÁLICO · dic 2025</div></div>
+            <button class="btn" style="font-size:10px;padding:3px 7px"><i class="ti ti-download"></i>PDF</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== AGENDA ===== -->
+  <div class="page" id="pg-agenda">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+      <button class="btn bpa"><i class="ti ti-plus"></i>Nueva cita</button>
+      <div style="display:flex;gap:6px;align-items:center">
+        <button class="btn"><i class="ti ti-chevron-left"></i></button>
+        <span style="font-size:13px;font-weight:500">Junio 2026</span>
+        <button class="btn"><i class="ti ti-chevron-right"></i></button>
+      </div>
+    </div>
+    <div class="card">
+      <div class="cal-hdr"><div class="cal-dh">Lun</div><div class="cal-dh">Mar</div><div class="cal-dh">Mié</div><div class="cal-dh">Jue</div><div class="cal-dh">Vie</div><div class="cal-dh">Sáb</div><div class="cal-dh">Dom</div></div>
+      <div class="cal-grid" id="cal-g"></div>
+    </div>
+    <div style="margin-top:10px;display:flex;gap:8px;font-size:10px;color:var(--text-muted)">
+      <span><span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:var(--fill-accent);margin-right:3px"></span>Cita confirmada</span>
+      <span><span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:var(--fill-success);margin-right:3px"></span>Completada</span>
+      <span><span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:var(--fill-warning);margin-right:3px"></span>Pendiente</span>
+    </div>
+  </div>
+
+  <!-- ===== REDES ===== -->
+  <div class="page" id="pg-redes">
+    <div class="g2">
+      <div class="card">
+        <div class="ch"><span class="ct">Crear publicación</span></div>
+        <div style="display:flex;gap:6px;margin-bottom:12px">
+          <button class="btn" style="flex:1;justify-content:center"><i class="ti ti-brand-instagram" style="color:#e1306c"></i>Instagram</button>
+          <button class="btn" style="flex:1;justify-content:center"><i class="ti ti-brand-facebook" style="color:#1877f2"></i>Facebook</button>
+          <button class="btn" style="flex:1;justify-content:center"><i class="ti ti-brand-whatsapp" style="color:#25d366"></i>WhatsApp</button>
+        </div>
+        <div class="fg"><label>Texto del post</label><textarea rows="4">🔧 ¡Esta semana: cambio de aceite + revisión frenos con 15% de descuento! Agenda tu hora ahora. #Taller #Automotriz #Santiago</textarea></div>
+        <div class="fg"><label>Programar publicación</label><input type="datetime-local" value="2026-06-28T10:00"></div>
+        <button class="btn bpa" style="width:100%;justify-content:center" onclick="sendPrompt('Genera 3 ideas de posts para redes sociales para mi taller automotriz en Chile')"><i class="ti ti-sparkles"></i>Generar ideas con IA ↗</button>
+      </div>
+      <div class="card">
+        <div class="ch"><span class="ct">Publicaciones programadas</span></div>
+        <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:12px">
+          <div style="padding:9px;background:var(--surface-1);border-radius:var(--radius);border-left:2px solid #e1306c"><div style="display:flex;justify-content:space-between;font-size:10px;margin-bottom:3px"><span style="color:#e1306c;font-weight:500"><i class="ti ti-brand-instagram"></i> Instagram</span><span style="color:var(--text-muted)">28 jun · 10:00</span></div><div style="font-size:11px;color:var(--text-secondary)">🔧 ¡Esta semana: cambio de aceite + revisión frenos…</div></div>
+          <div style="padding:9px;background:var(--surface-1);border-radius:var(--radius);border-left:2px solid #1877f2"><div style="display:flex;justify-content:space-between;font-size:10px;margin-bottom:3px"><span style="color:#1877f2;font-weight:500"><i class="ti ti-brand-facebook"></i> Facebook</span><span style="color:var(--text-muted)">30 jun · 09:00</span></div><div style="font-size:11px;color:var(--text-secondary)">¿Tu auto necesita atención? En AutoTaller te atendemos…</div></div>
+        </div>
+        <div class="div"></div>
+        <div class="ch" style="margin-bottom:8px"><span class="ct" style="font-size:12px">Link de agendamiento del taller</span></div>
+        <div style="background:var(--surface-1);border-radius:var(--radius);padding:9px;font-size:12px;color:var(--text-accent);font-weight:500;border:0.5px solid var(--border)"><i class="ti ti-link" style="font-size:12px"></i> plataforma.cl/agenda/autotaller-santiago</div>
+        <div class="div"></div>
+        <button class="btn" style="width:100%;justify-content:center;font-size:11px"><i class="ti ti-star" style="color:#f59e0b"></i>Solicitar reseña Google al cliente</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== REPORTES ===== -->
+  <div class="page" id="pg-reportes">
+    <div class="kgrid5">
+      <div class="kcard"><div class="kl">OTs completadas</div><div class="kv">47</div><div class="ks ku">+12 vs mayo</div></div>
+      <div class="kcard"><div class="kl">Ingresos del mes</div><div class="kv">$4.2M</div><div class="ks ku">+18%</div></div>
+      <div class="kcard"><div class="kl">Clientes nuevos</div><div class="kv">14</div><div class="ks ku">+3</div></div>
+      <div class="kcard"><div class="kl">Rent. promedio/hora</div><div class="kv">$9.4K</div><div class="ks ku">mejor mes</div></div>
+      <div class="kcard"><div class="kl">Satisfacción</div><div class="kv">4.8 ★</div><div class="ks" style="color:var(--text-muted)">32 reseñas</div></div>
+    </div>
+    <div class="g2">
+      <div class="card">
+        <div class="ch"><span class="ct">Servicios más rentables</span></div>
+        <table class="tbl">
+          <thead><tr><th>Servicio</th><th>OTs</th><th>Ingreso total</th><th>Rent./hora</th></tr></thead>
+          <tbody>
+            <tr><td>Cambio embrague</td><td>8</td><td>$2.56M</td><td style="color:var(--text-success);font-weight:500">$96K/h</td></tr>
+            <tr><td>Diagnóstico scanner</td><td>14</td><td>$630K</td><td style="color:var(--text-success);font-weight:500">$60K/h</td></tr>
+            <tr><td>Cambio frenos</td><td>11</td><td>$935K</td><td style="color:var(--text-success);font-weight:500">$57K/h</td></tr>
+            <tr><td>Mantención 10k km</td><td>18</td><td>$1.17M</td><td style="color:var(--text-warning);font-weight:500">$52K/h</td></tr>
+          </tbody>
+        </table>
+        <div class="div"></div>
+        <div style="display:flex;gap:6px">
+          <button class="btn" style="flex:1;justify-content:center;font-size:11px"><i class="ti ti-download"></i>Exportar PDF</button>
+          <button class="btn" style="flex:1;justify-content:center;font-size:11px"><i class="ti ti-download"></i>Exportar Excel</button>
+        </div>
+      </div>
+      <div class="card">
+        <div class="ch"><span class="ct">Rendimiento por mecánico</span></div>
+        <table class="tbl">
+          <thead><tr><th>Mecánico</th><th>OTs</th><th>Ingresos</th><th>Nota</th></tr></thead>
+          <tbody>
+            <tr><td>Pedro Ramírez</td><td>18</td><td>$1.6M</td><td>4.9 ★</td></tr>
+            <tr><td>Javier Muñoz</td><td>15</td><td>$1.3M</td><td>4.7 ★</td></tr>
+            <tr><td>Luis González</td><td>9</td><td>$820K</td><td>4.8 ★</td></tr>
+            <tr><td>Roberto Araya</td><td>5</td><td>$480K</td><td>4.6 ★</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== PROVEEDORES ===== -->
+  <div class="page" id="pg-proveedores">
+    <div style="display:flex;gap:6px;margin-bottom:14px"><button class="btn bpa"><i class="ti ti-plus"></i>Agregar proveedor</button></div>
+    <div class="g3">
+      <div class="card"><div class="ch"><span class="ct">Repuestos Chile</span><span class="st s-done"><span class="dot"></span>Activo</span></div><div style="font-size:11px;color:var(--text-muted)">Vendedor: Carlos Vega<br>Categoría: Filtros, aceites, frenos<br>API: Cotización automática activa</div><div class="div"></div><button class="btn" style="width:100%;justify-content:center;font-size:11px"><i class="ti ti-external-link"></i>Cotizar en línea</button></div>
+      <div class="card"><div class="ch"><span class="ct">AutoPartes SUR</span><span class="st s-done"><span class="dot"></span>Activo</span></div><div style="font-size:11px;color:var(--text-muted)">Vendedor: Ana Torres<br>Categoría: Motor, suspensión, transmisión<br>API: Solo consulta web</div><div class="div"></div><button class="btn" style="width:100%;justify-content:center;font-size:11px"><i class="ti ti-external-link"></i>Ir al catálogo</button></div>
+      <div class="card"><div class="ch"><span class="ct">BREMBO Chile</span><span class="st s-wait"><span class="dot"></span>Sin API</span></div><div style="font-size:11px;color:var(--text-muted)">Contacto: 9 4523 1122<br>Categoría: Frenos y embragues<br>API: No disponible</div><div class="div"></div><button class="btn" style="width:100%;justify-content:center;font-size:11px"><i class="ti ti-phone"></i>Llamar</button></div>
+    </div>
+  </div>
+
+  <!-- ===== FACTURACIÓN ===== -->
+  <div class="page" id="pg-facturacion">
+    <div class="kgrid">
+      <div class="kcard"><div class="kl">Ingresos junio</div><div class="kv">$4.2M</div><div class="ks ku">+18%</div></div>
+      <div class="kcard"><div class="kl">Por cobrar</div><div class="kv">$380K</div><div class="ks kd">3 facturas pendientes</div></div>
+      <div class="kcard"><div class="kl">Ticket promedio</div><div class="kv">$148K</div><div class="ks ku">+5%</div></div>
+      <div class="kcard"><div class="kl">Boletas SII</div><div class="kv">47</div><div class="ks" style="color:var(--text-muted)">Vía Haulmer</div></div>
+    </div>
+    <div class="card">
+      <div class="ch"><span class="ct">Facturas del mes</span><button class="btn bpa" style="font-size:11px;padding:4px 8px"><i class="ti ti-plus"></i>Nueva factura</button></div>
+      <table class="tbl">
+        <thead><tr><th>N°</th><th>Cliente</th><th>OT</th><th>Fecha</th><th>Total</th><th>Método</th><th>Estado</th><th></th></tr></thead>
+        <tbody>
+          <tr><td style="color:var(--text-accent)">#F-089</td><td>María Soto</td><td>#0041</td><td>25 jun</td><td>$185.000</td><td><span class="tag">Tarjeta</span></td><td><span class="st s-paid"><span class="dot"></span>Pagada</span></td><td><button class="btn" style="font-size:10px;padding:2px 6px"><i class="ti ti-download"></i></button></td></tr>
+          <tr><td style="color:var(--text-accent)">#F-088</td><td>Jorge Fuentes</td><td>#0040</td><td>24 jun</td><td>$220.000</td><td><span class="tag">Transfer.</span></td><td><span class="st s-pend"><span class="dot"></span>Pendiente</span></td><td><button class="btn" style="font-size:10px;padding:2px 6px"><i class="ti ti-download"></i></button></td></tr>
+          <tr><td style="color:var(--text-accent)">#F-087</td><td>Ana Rojas</td><td>#0039</td><td>23 jun</td><td>$95.000</td><td><span class="tag">Efectivo</span></td><td><span class="st s-paid"><span class="dot"></span>Pagada</span></td><td><button class="btn" style="font-size:10px;padding:2px 6px"><i class="ti ti-download"></i></button></td></tr>
+          <tr><td style="color:var(--text-accent)">#F-086</td><td>Pedro Silva</td><td>#0038</td><td>22 jun</td><td>$160.000</td><td><span class="tag">WebPay</span></td><td><span class="st s-crit"><span class="dot"></span>Vencida</span></td><td><button class="btn" style="font-size:10px;padding:2px 6px"><i class="ti ti-download"></i></button></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ===== CONFIG ===== -->
+  <div class="page" id="pg-config">
+    <div class="g2">
+      <div class="card">
+        <div class="ch"><span class="ct">Datos del taller</span></div>
+        <div class="fg"><label>Nombre del taller</label><input value="AutoTaller Santiago"></div>
+        <div class="fg"><label>RUT empresa</label><input value="76.543.210-8"></div>
+        <div class="fg"><label>Dirección</label><input value="Av. Providencia 1234, Santiago"></div>
+        <div class="fg"><label>Link de agendamiento</label><input value="plataforma.cl/agenda/autotaller-santiago" readonly></div>
+        <div class="div"></div>
+        <div class="ch" style="margin-bottom:8px"><span class="ct" style="font-size:12px">Distribución financiera (%)</span></div>
+        <div class="fgrid">
+          <div class="fg"><label>Gastos fijos</label><input type="number" value="43"></div>
+          <div class="fg"><label>Pago técnico</label><input type="number" value="20"></div>
+          <div class="fg"><label>Reinversión</label><input type="number" value="10"></div>
+          <div class="fg"><label>Utilidad dueño</label><input type="number" value="27" readonly></div>
+        </div>
+        <button class="btn bpa" style="margin-top:6px"><i class="ti ti-device-floppy"></i>Guardar cambios</button>
+      </div>
+      <div class="card">
+        <div class="ch"><span class="ct">Integraciones API</span></div>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:9px;background:var(--surface-1);border-radius:var(--radius)"><div><div style="font-size:12px;font-weight:500"><i class="ti ti-car" style="font-size:12px"></i> API Patentes Chile</div><div style="font-size:10px;color:var(--text-muted)">Auto-relleno de datos vehiculares</div></div><span class="st s-done"><span class="dot"></span>Activa</span></div>
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:9px;background:var(--surface-1);border-radius:var(--radius)"><div><div style="font-size:12px;font-weight:500"><i class="ti ti-brand-whatsapp" style="font-size:12px;color:#25d366"></i> Wati / WhatsApp API</div><div style="font-size:10px;color:var(--text-muted)">Mensajes automáticos de fidelización</div></div><span class="st s-done"><span class="dot"></span>Activa</span></div>
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:9px;background:var(--surface-1);border-radius:var(--radius)"><div><div style="font-size:12px;font-weight:500"><i class="ti ti-receipt" style="font-size:12px"></i> Haulmer / SII</div><div style="font-size:10px;color:var(--text-muted)">Boletas y facturas electrónicas</div></div><span class="st s-done"><span class="dot"></span>Activa</span></div>
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:9px;background:var(--surface-1);border-radius:var(--radius)"><div><div style="font-size:12px;font-weight:500"><i class="ti ti-credit-card" style="font-size:12px"></i> WebPay / Flow / MercadoPago</div><div style="font-size:10px;color:var(--text-muted)">Pagos digitales</div></div><span class="st s-done"><span class="dot"></span>Activa</span></div>
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:9px;background:var(--surface-1);border-radius:var(--radius)"><div><div style="font-size:12px;font-weight:500"><i class="ti ti-map-pin" style="font-size:12px"></i> Geolocalización MINSAL</div><div style="font-size:10px;color:var(--text-muted)">Empresas autorizadas de residuos</div></div><span class="st s-wait"><span class="dot"></span>Pendiente</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  </div>
+</div>
+</div>
+
+<script>
+const titles={dashboard:'Dashboard',ot:'Órdenes de trabajo',clientes:'Clientes y vehículos',wiki:'Wiki técnica colaborativa',inventario:'Inventario de repuestos',proveedores:'Proveedores',residuos:'Residuos ecológicos',contable:'Motor contable',facturacion:'Facturación',fidelizacion:'Fidelización automática',redes:'Redes sociales',reportes:'Reportes',agenda:'Agenda',config:'Configuración'};
+function nav(p,el){
+  document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));
+  document.querySelectorAll('.ni').forEach(x=>x.classList.remove('active'));
+  const pg=document.getElementById('pg-'+p);
+  if(pg)pg.classList.add('active');
+  if(el)el.classList.add('active');
+  else document.querySelectorAll('.ni').forEach(n=>{if((n.getAttribute('onclick')||'').includes("'"+p+"'"))n.classList.add('active')});
+  document.getElementById('ptitle').textContent=titles[p]||p;
+}
+const ots=[
+  {id:'#0041',f:'25 jun',c:'María Soto',v:"Toyota Corolla '22",s:'Mantención 10k km',m:'Pedro R.',e:'prog',et:'En proceso',t:'$76.300'},
+  {id:'#0040',f:'24 jun',c:'Jorge Fuentes',v:"Ford F-150 '20",s:'Cambio de frenos',m:'Javier M.',e:'done',et:'Terminado',t:'$220.000'},
+  {id:'#0039',f:'24 jun',c:'Ana Rojas',v:"Chevrolet Cruze '19",s:'Cambio aceite',m:'Pedro R.',e:'wait',et:'Esp. repuesto',t:'$95.000'},
+  {id:'#0038',f:'23 jun',c:'Pedro Silva',v:"Honda Civic '21",s:'Diagnóstico motor',m:'Luis G.',e:'new',et:'Agendado',t:'—'},
+  {id:'#0037',f:'22 jun',c:'Laura Méndez',v:"Suzuki Swift '18",s:'Alineación',m:'Javier M.',e:'done',et:'Terminado',t:'$65.000'},
+];
+const ob=document.getElementById('ot-rows');
+if(ob)ots.forEach(o=>{const d=document.createElement('div');d.style.cssText='padding:9px 14px;display:grid;grid-template-columns:60px 70px 1fr 1fr 1fr 90px 90px 70px;gap:6px;align-items:center;font-size:11px;border-bottom:0.5px solid var(--border);cursor:pointer';d.innerHTML=`<span style="font-weight:500;color:var(--text-accent)">${o.id}</span><span style="color:var(--text-muted)">${o.f}</span><span>${o.c}</span><span>${o.v}</span><span style="color:var(--text-secondary)">${o.s}</span><span>${o.m}</span><span class="st s-${o.e}"><span class="dot"></span>${o.et}</span><span style="font-weight:500">${o.t}</span>`;d.onmouseover=()=>d.style.background='var(--surface-1)';d.onmouseout=()=>d.style.background='';ob.appendChild(d);});
+const inv=[
+  {c:'FIL-5W30',n:'Filtro aceite 5W-30',m:'Bosch',ub:'Estante A, Fila 1',st:2,mn:5,p:'$4.500',e:'crit',et:'Crítico'},
+  {c:'PAS-DEL',n:'Pastillas freno delantero',m:'Brembo',ub:'Estante B, Fila 3',st:4,mn:6,p:'$28.000',e:'prog',et:'Bajo'},
+  {c:'ACE-5W40',n:'Aceite motor 5W-40 1L',m:'Mobil 1',ub:'Estante A, Fila 2',st:24,mn:10,p:'$6.200',e:'done',et:'OK'},
+  {c:'FIL-AIR',n:'Filtro de aire universal',m:'Mann',ub:'Estante C, Fila 1',st:8,mn:4,p:'$12.000',e:'done',et:'OK'},
+  {c:'COR-SER',n:'Correa distribución',m:'Gates',ub:'Estante D, Fila 2',st:2,mn:3,p:'$45.000',e:'crit',et:'Crítico'},
+];
+const ic=document.getElementById('inv-cards');
+if(ic){const h=document.createElement('div');h.style.cssText='background:var(--surface-2);border:0.5px solid var(--border);border-radius:12px;overflow:hidden';const hd=document.createElement('div');hd.style.cssText='padding:9px 14px;display:grid;grid-template-columns:80px 1fr 90px 70px 80px 70px 80px 60px;gap:8px;font-size:9px;color:var(--text-muted);font-weight:500;text-transform:uppercase;letter-spacing:.05em;border-bottom:0.5px solid var(--border);background:var(--surface-1)';hd.innerHTML='<span>Código</span><span>Descripción</span><span>Marca</span><span>Ubicación</span><span>Stock</span><span>Mín.</span><span>Precio</span><span>Estado</span>';h.appendChild(hd);inv.forEach(i=>{const r=document.createElement('div');r.style.cssText='padding:9px 14px;display:grid;grid-template-columns:80px 1fr 90px 70px 80px 70px 80px 60px;gap:8px;align-items:center;font-size:11px;border-bottom:0.5px solid var(--border)';r.innerHTML=`<span style="font-family:var(--font-mono);font-size:10px;color:var(--text-muted)">${i.c}</span><span>${i.n}</span><span style="color:var(--text-secondary)">${i.m}</span><span style="font-size:10px;color:var(--text-muted)">${i.ub}</span><span style="font-weight:500;${i.st<=i.mn?'color:var(--text-danger)':''}">${i.st}</span><span style="color:var(--text-muted)">${i.mn}</span><span>${i.p}</span><span class="st s-${i.e}"><span class="dot"></span>${i.et}</span>`;h.appendChild(r);});ic.appendChild(h);}
+const events={25:['09:00 María S.','14:00 Ana R.'],26:['11:00 Jorge F.'],28:['09:00 Pedro M.'],30:['14:00 Carmen L.'],3:['10:00 Roberto P.']};
+const cg=document.getElementById('cal-g');
+if(cg){for(let e=0;e<0;e++){const d=document.createElement('div');d.className='cal-day empty';cg.appendChild(d);}
+for(let day=1;day<=30;day++){const d=document.createElement('div');d.className='cal-day'+(day===25?' today':'');let h=`<div class="cal-num">${day}</div>`;if(events[day])events[day].forEach((ev,i)=>{h+=`<div class="cal-ev${i===1?' ev-g':''}">${ev}</div>`;});d.innerHTML=h;cg.appendChild(d);}};
+function buscarPatente(){
+  const p=document.getElementById('pat-input').value.toUpperCase();
+  if(p.length<5){alert('Ingresa una patente válida');return;}
+  const data={ABCD12:{marca:'Toyota',modelo:'Corolla',anio:'2022',motor:'1.8L Hybrid'},KGSJK9:{marca:'Kia',modelo:'Sportage',anio:'2023',motor:'2.0L GDI'},GHJK45:{marca:'Volkswagen',modelo:'Golf',anio:'2021',motor:'1.4L TSI'}};
+  const r=data[p]||{marca:'Honda',modelo:'Civic',anio:'2020',motor:'1.5L VTEC'};
+  document.getElementById('p-marca').value=r.marca;
+  document.getElementById('p-modelo').value=r.modelo;
+  document.getElementById('p-anio').value=r.anio;
+  document.getElementById('p-motor').value=r.motor;
+  document.getElementById('pat-text').innerHTML=`Vehículo encontrado: <strong>${r.marca} ${r.modelo} ${r.anio}</strong> — Motor ${r.motor}`;
+  document.getElementById('pat-result').style.display='block';
+}
+</script>

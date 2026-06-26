@@ -1,0 +1,59 @@
+Categoria,Procedimiento,Tiempo,Precio
+DIAGNOSTICO,Scanner Diagnostico ,1,25000
+DIAGNOSTICO,Diagnostico mecanico,1,10000
+MANTENIMIENTO,Matenimiento completo,2,40000
+MANTENIMIENTO,Cambio Aceite ,1,10000
+MANTENIMIENTO,Cambio Aceite de caja M,1,15000
+MANTENIMIENTO,Cambio Correa Acc ,1,10000
+MANTENIMIENTO,Cambio Tensor Correa ACC,"1,5",20000
+MANTENIMIENTO,Cambio Bujias S/Demosntar admisión ,1,10000
+MANTENIMIENTO,Cambio Filtro combustible - Fuera del tanque,1,10000
+MANTENIMIENTO,Cambio filtro combustible - Tanque con registro,2,25000
+FRENOS - INSPECCIÓN Y SERVICIO,Cambio pastillas freno ,1,10000
+FRENOS - INSPECCIÓN Y SERVICIO,Cambio discos de freno ,2,20000
+FRENOS - INSPECCIÓN Y SERVICIO,Cambio balatas de freno ,2,20000
+FRENOS - INSPECCIÓN Y SERVICIO,Cambio pastillas de freno ,2,25000
+FRENOS - INSPECCIÓN Y SERVICIO,Cambio discos de freno ,3,40000
+FRENOS - INSPECCIÓN Y SERVICIO,Regulación balatas Freno ,2,15000
+TREN DE SUSPENSIÓN COMPLETO,Cambio bandeja ,1,15000
+TREN DE SUSPENSIÓN COMPLETO,Cambio bandejas ,"1,5",30000
+TREN DE SUSPENSIÓN COMPLETO,Cambio terminal dirección ,"0,3",10000
+TREN DE SUSPENSIÓN COMPLETO,Cambio terminales de dirección ,"1,3",20000
+TREN DE SUSPENSIÓN COMPLETO,Cambio terminal axial ,1,10000
+TREN DE SUSPENSIÓN COMPLETO,Cambio terminal axial ,2,20000
+TREN DE SUSPENSIÓN COMPLETO,Cambio rodamiento y maza,2,20000
+TREN DE SUSPENSIÓN COMPLETO,Cambio rodamiento y maza,4,40000
+TREN DE SUSPENSIÓN COMPLETO,Cambio amortiguador delantero ,2,25000
+TREN DE SUSPENSIÓN COMPLETO,Cambio amortiguador delantero ,4,50000
+TREN DE SUSPENSIÓN COMPLETO,Cambio amortiguador delantero ,2,35000
+TREN DE SUSPENSIÓN COMPLETO,Cambio amortiguador delantero ,4,70000
+TREN DE SUSPENSIÓN COMPLETO,Cambio amortiguador Trasero,"1,5",15000
+TREN DE SUSPENSIÓN COMPLETO,Cambio amortiguador Trasero ,3,30000
+TREN DE SUSPENSIÓN COMPLETO,"Cambio Homocinetica ""Rueda""",2,25000
+TREN DE SUSPENSIÓN COMPLETO,"Cambio Homocinetica o Triceta ""Caja""","2,5",30000
+EMBRAGUE - CAMBIO / REPARACIÓN ,Cambio cilindro exclavo ,2,30000
+EMBRAGUE - CAMBIO / REPARACIÓN ,Cambio bomba embrague ,3,40000
+EMBRAGUE - CAMBIO / REPARACIÓN ,"Cambio kit embrague ""Tracción delantera 2WD""",8,150000
+EMBRAGUE - CAMBIO / REPARACIÓN ,"Cambio Kit embrague ""CLIENTES""",8,80000
+EMBRAGUE - CAMBIO / REPARACIÓN ,"Cambio Kit embrague ""Tracción delantera 4WD""",10,150000
+SISTEMA DE REFRIGUERACIÓN ,Cambio de electroventilador ,2,25000
+SISTEMA DE REFRIGUERACIÓN ,Cambio de radiador - Sin desmontar parachoque,2,40000
+SISTEMA DE REFRIGUERACIÓN ,Cambio radiador - Desmontando parachoque,"2,5",60000
+SISTEMA DE REFRIGUERACIÓN ,Cambio bomba de agua ,2,30000
+SISTEMA DE REFRIGUERACIÓN ,Cambio bomba de agua ,3,80000
+SELLOS Y CORRECIÓN DE FUGAS,Cambio empaquetadura tapa válvulas,1,20000
+SELLOS Y CORRECIÓN DE FUGAS,Sellado de fugas carter,4,35000
+ALIMENTACION Y COMBUSTIBLE,Cambio bomba de combustible,"1,5",20000
+ALIMENTACION Y COMBUSTIBLE,Cambio bomba de combustible,3,60000
+ALIMENTACION Y COMBUSTIBLE,Cambio filtro combustible ,2,25000
+ALIMENTACION Y COMBUSTIBLE,Cambio filtro combustible ,3,60000
+SCANNER Y REPROG.,Scanner Special Functions ,3,40000
+SCANNER Y REPROG.,Limpieza cuerpo de aceleración y Reprog,2,40000
+SCANNER Y REPROG.,Eliminación DTC ,1,200000
+SCANNER Y REPROG.,Repro. DPF; EGR;ADBLUE; UREA,16,250000
+DISTRIBUCION Y MECANICA DE MOTOR,Cambio correa distribución ,3,80000
+DISTRIBUCION Y MECANICA DE MOTOR,Cambio correa distribución ,4,100000
+DISTRIBUCION Y MECANICA DE MOTOR,Cambio Cadena distribución ,8,140000
+DISTRIBUCION Y MECANICA DE MOTOR,Cambio Empaquetadura de culata,16,140000
+DISTRIBUCION Y MECANICA DE MOTOR,Cambio Empaquetadura de culata,16,180000
+GARANTIA,GARANTIA,0,0

@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(mkdir -p \"C:\\\\Users\\\\camil\\\\Downloads\\\\Gestion de taller\\\\css\" \"C:\\\\Users\\\\camil\\\\Downloads\\\\Gestion de taller\\\\js\" \"C:\\\\Users\\\\camil\\\\Downloads\\\\Gestion de taller\\\\modules\")",
+      "mcp__Claude_Preview__preview_start",
+      "Bash(where node *)",
+      "Bash(where npx *)",
+      "Bash(where python *)",
+      "Bash(where python3 *)",
+      "Bash(git init *)"
+    ]
+  }
+}
