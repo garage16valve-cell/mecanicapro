@@ -72,19 +72,26 @@ async function consultarPatente(val) {
   for (const [proxyUrl, extractor] of PROXIES) {
     if (datos) break;
     try {
+      console.log('[patente] consultando →', proxyUrl);
       const ctrl  = new AbortController();
       const timer = setTimeout(() => ctrl.abort(), 9000);
       const resp  = await fetch(proxyUrl, { signal: ctrl.signal });
       clearTimeout(timer);
 
+      console.log('[patente] respuesta HTTP:', resp.status, resp.ok ? 'OK' : 'ERROR');
+
       const html = await extractor(resp);
-      if (!html || html.length < 200) continue;
+      console.log('[patente] contenido recibido: ' + (html ? html.length + ' chars' : 'null/vacío'));
+      if (html && html.length >= 200) console.log('[patente] primeros 400 chars:', html.slice(0, 400));
+
+      if (!html || html.length < 200) { console.log('[patente] descartado (muy corto o vacío)'); continue; }
 
       datos = _parsearPatente(html, pat);
+      console.log('[patente] resultado del parser:', datos);
       if (datos) fuenteDatos = 'API';
 
     } catch (e) {
-      if (e.name !== 'AbortError') console.warn('[patente] proxy falló:', proxyUrl, e.message);
+      console.warn('[patente] CATCH —', e.name, e.message, '| URL:', proxyUrl);
     }
   }
 
