@@ -83,10 +83,10 @@ nav { padding: 8px; flex: 1; }
 .av { width: 30px; height: 30px; border-radius: 50%; background: var(--bg-accent); display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 500; color: var(--text-accent); flex-shrink: 0; }
 
 /* MAIN */
-.main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+.main { flex: 1; display: flex; flex-direction: column; overflow: visible; }
 .topbar { padding: 12px 20px; border-bottom: 0.5px solid var(--border); display: flex; align-items: center; justify-content: space-between; background: var(--surface-2); flex-shrink: 0; }
 .pt { font-size: 15px; font-weight: 500; }
-.content { flex: 1; overflow-y: auto; padding: 20px; }
+.content { flex: 1; overflow-y: visible; padding: 20px; min-height: 0; }
 .page { display: none; }
 .page.active { display: block; }
 
@@ -212,3 +212,6 @@ nav { padding: 8px; flex: 1; }
 /* OT FORM */
 .step-num { background: var(--fill-accent); color: #fff; width: 18px; height: 18px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 9px; font-weight: 600; flex-shrink: 0; }
 .step-num-ok { background: var(--fill-success); }
+
+/* Scroll raíz — el scroll de página es de .app, no del área de contenido */
+.app { height: 100vh; overflow-y: auto; }
