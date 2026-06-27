@@ -46,43 +46,60 @@ async function consultarPatente(val) {
   let datos = null;
   let fuenteDatos = '';
 
-  // --- API boostr.cl (Registro Civil de Chile, sin proxy, sin scraping) ---
-  try {
-    const apiUrl = 'https://api.boostr.cl/vehicle/' + pat + '.json';
-    console.log('[patente] consultando API →', apiUrl);
+  // --- APIs en orden de preferencia ---
+  const APIS = [
+    {
+      url: 'https://api.vehiculos.cl/patente/' + pat,
+      map: d => ({
+        marca:  d.marca  || d.brand                           || '—',
+        modelo: d.modelo || d.model                          || '—',
+        anio:   String(d.anio || d.año || d.year             || '—'),
+        motor:  d.motor  || d.engine                         || '—',
+        comb:   d.combustible || d.fuel                      || '—',
+        tipo:   d.tipo   || d.type || d.carroceria           || '—',
+        vin:    d.vin    || d.chasis || d.chassis            || '—',
+        nmotor: d.nmotor || d.numero_motor || d.motor_number || '—',
+      }),
+    },
+    {
+      url: 'https://rut.buscador.cl/api/vehiculo?patente=' + pat,
+      map: d => ({
+        marca:  d.marca  || d.brand                           || '—',
+        modelo: d.modelo || d.model                          || '—',
+        anio:   String(d.anio || d.año || d.year             || '—'),
+        motor:  d.motor  || d.engine                         || '—',
+        comb:   d.combustible || d.fuel                      || '—',
+        tipo:   d.tipo   || d.type || d.carroceria           || '—',
+        vin:    d.vin    || d.chasis || d.chassis            || '—',
+        nmotor: d.nmotor || d.numero_motor || d.motor_number || '—',
+      }),
+    },
+  ];
 
-    const ctrl  = new AbortController();
-    const timer = setTimeout(() => ctrl.abort(), 9000);
-    const resp  = await fetch(apiUrl, { signal: ctrl.signal });
-    clearTimeout(timer);
+  for (const api of APIS) {
+    if (datos) break;
+    try {
+      console.log('[patente] consultando →', api.url);
+      const ctrl  = new AbortController();
+      const timer = setTimeout(() => ctrl.abort(), 8000);
+      const resp  = await fetch(api.url, { signal: ctrl.signal });
+      clearTimeout(timer);
+      console.log('[patente] HTTP', resp.status, api.url);
+      if (!resp.ok) continue;
 
-    console.log('[patente] respuesta HTTP:', resp.status, resp.ok ? 'OK' : 'ERROR');
-
-    if (resp.ok) {
       const json = await resp.json();
-      console.log('[patente] JSON recibido:', json);
+      console.log('[patente] JSON:', json);
 
-      // La API devuelve { status, data: { marca, modelo, anio, chasis, motor, ... } }
+      // Acepta { data: {...} } o la raíz directa
       const d = json.data || json;
-      if (d && (d.marca || d.brand || d.make)) {
-        datos = {
-          marca:  d.marca  || d.brand || d.make  || '—',
-          modelo: d.modelo || d.model           || '—',
-          anio:   String(d.anio || d.year || d.año || '—'),
-          motor:  d.motor  || d.engine          || '—',
-          comb:   d.combustible || d.fuel       || '—',
-          tipo:   d.tipo   || d.type || d.carroceria || '—',
-          vin:    d.vin    || d.chasis || d.chassis   || '—',
-          nmotor: d.nmotor || d.numero_motor || d.motor_number || '—',
-        };
+      if (d && (d.marca || d.brand || d.make || d.modelo || d.model)) {
+        datos = api.map(d);
         fuenteDatos = 'API';
         console.log('[patente] datos mapeados:', datos);
-      } else {
-        console.warn('[patente] respuesta OK pero sin campo data válido:', json);
       }
+    } catch (e) {
+      console.warn('[patente] CATCH', api.url, '—', e.name, e.message);
     }
-  } catch (e) {
-    console.warn('[patente] CATCH —', e.name, e.message);
   }
 
   // --- Fallback a datos demo ---
@@ -111,18 +128,24 @@ async function consultarPatente(val) {
     _mostrarPreCot(datos);
     _checkClienteExistente(pat);
   } else {
+    // --- Ambas APIs fallaron: mostrar formulario manual ---
     if (pi) {
-      pi.style.borderColor = 'var(--border-danger)';
-      pi.style.background  = 'var(--bg-danger)';
+      pi.style.borderColor = 'var(--border-warning)';
+      pi.style.background  = 'var(--surface-1)';
     }
     _setPatStatus('error',
-      'Patente <strong>' + pat + '</strong> no encontrada en el registro. ' +
-      'Ingresa los datos manualmente o usa una <a href="#" onclick="event.preventDefault();document.getElementById(\'vehiculo-datos\').style.display=\'block\'" style="color:var(--text-accent)">patente demo</a>.'
+      'No se encontraron datos para <strong>' + pat + '</strong>. ' +
+      'Ingresa los datos del vehículo manualmente.'
     );
 
+    // Mostrar sección de vehículo con campos desbloqueados para edición manual
     const vd = document.getElementById('vehiculo-datos');
     const cd = document.getElementById('cliente-datos');
-    if (vd) vd.style.display = 'none';
+    if (vd) {
+      vd.style.display = 'block';
+      // Desbloquear todos los campos del vehículo para ingreso manual
+      vd.querySelectorAll('input[readonly]').forEach(el => el.removeAttribute('readonly'));
+    }
     if (cd) cd.style.display = 'block';
   }
 }
