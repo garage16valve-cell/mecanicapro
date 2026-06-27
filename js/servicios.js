@@ -2,7 +2,8 @@
 // Catálogo → Admin > Configuración
 // Este módulo gestiona: Eficiencia por servicio + Proveedores
 
-let _svcProvEdit = null;
+let _svcProvEdit  = null;
+let _svcProvMarcas = [];
 
 // ===== INIT =====
 function init_servicios() {
@@ -18,9 +19,9 @@ function init_servicios() {
   }
 }
 
-// ===== TABS (efic | prov) =====
+// ===== TABS (efic | prov | conf) =====
 function svcSetTab(tab) {
-  ['efic','prov'].forEach(t => {
+  ['efic','prov','conf'].forEach(t => {
     const cnt = document.getElementById('svc-tab-' + t);
     const btn = document.getElementById('svc-tab-btn-' + t);
     if (cnt) cnt.style.display = t === tab ? '' : 'none';
@@ -106,9 +107,32 @@ function svcRenderProveedores() {
     return;
   }
 
-  const svcs = APP.lsGet('mp_servicios', []);
+  const CHIP_COLORS = [
+    '#3b82f6','#10b981','#f59e0b','#ef4444','#8b5cf6','#06b6d4','#ec4899','#84cc16'
+  ];
+  function chipColor(marca) {
+    let h = 0;
+    for (let i = 0; i < marca.length; i++) h = (h * 31 + marca.charCodeAt(i)) & 0xfffffff;
+    return CHIP_COLORS[h % CHIP_COLORS.length];
+  }
+
   lista.innerHTML = provs.map(p => {
-    const svcVinc = svcs.filter(s => (s.proveedoresIds||[]).includes(p.id));
+    const marcas = p.marcas || [];
+    const marcasChips = marcas.length
+      ? marcas.map(m => `<span style="display:inline-flex;align-items:center;gap:3px;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:500;color:#fff;background:${chipColor(m)}">${_esc(m)}</span>`).join('')
+      : '<span style="font-size:11px;color:var(--text-muted)">Sin marcas</span>';
+
+    const waHref = p.wz
+      ? (() => {
+          const cfg    = APP.lsGet('mp_taller_config', {});
+          const taller = cfg.nombre || 'Integral Automotriz';
+          const wz     = cfg.telefono || '+569 5165 5331';
+          const marcasStr = marcas.length ? marcas.join(', ') : 'vehículos varios';
+          const msg = `Hola ${p.nombre}, necesito cotización de repuestos para ${marcasStr} — ${taller} ${wz}`;
+          return `https://wa.me/${p.wz.replace(/\D/g,'')}?text=${encodeURIComponent(msg)}`;
+        })()
+      : null;
+
     return `<div class="card" style="margin-bottom:10px">
       <div class="ch" style="margin-bottom:8px">
         <div>
@@ -116,36 +140,29 @@ function svcRenderProveedores() {
           <div style="font-size:11px;color:var(--text-muted)">${_esc(p.rubro||'—')}</div>
         </div>
         <div style="display:flex;gap:6px;align-items:center">
-          ${p.wz ? `<a href="https://wa.me/${p.wz.replace(/\D/g,'')}" target="_blank" class="btn bpw" style="font-size:11px;padding:4px 10px"><i class="ti ti-brand-whatsapp"></i> WA</a>` : ''}
+          ${waHref ? `<a href="${waHref}" target="_blank" class="btn bpw" style="font-size:11px;padding:4px 10px"><i class="ti ti-brand-whatsapp"></i> WA</a>` : ''}
           <button class="btn" style="font-size:11px;padding:4px 9px" onclick="svcProvEditar('${p.id}')"><i class="ti ti-pencil"></i></button>
           <button class="btn" style="font-size:11px;padding:4px 7px;color:var(--text-danger)" onclick="svcProvEliminar('${p.id}')"><i class="ti ti-trash"></i></button>
         </div>
       </div>
-      <div style="margin-bottom:8px">
-        <div style="font-size:10px;color:var(--text-muted);font-weight:500;text-transform:uppercase;letter-spacing:.04em;margin-bottom:5px">Servicios que abastece</div>
-        <div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:6px">
-          ${svcVinc.map(s => `<span class="tag" style="font-size:10px">${_esc(s.nombre)} <span style="cursor:pointer;color:var(--text-danger)" onclick="svcProvDesvincular('${p.id}','${s.id}')">×</span></span>`).join('') || '<span style="font-size:11px;color:var(--text-muted)">Ninguno vinculado</span>'}
-        </div>
-        <div style="display:flex;gap:4px;align-items:center;flex-wrap:wrap">
-          <select id="svc-prov-link-${p.id}" style="font-size:11px;border:0.5px solid var(--border);border-radius:var(--radius);padding:4px 7px;background:var(--surface-1);color:var(--text-primary)">
-            <option value="">Vincular servicio…</option>
-            ${svcs.filter(s => !(s.proveedoresIds||[]).includes(p.id)).map(s => `<option value="${s.id}">${_esc(s.nombre)}</option>`).join('')}
-          </select>
-          <button class="btn" style="font-size:11px;padding:4px 9px" onclick="svcProvVincular('${p.id}')"><i class="ti ti-link"></i> Vincular</button>
-        </div>
+      <div>
+        <div style="font-size:10px;color:var(--text-muted);font-weight:500;text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">Marcas que abastece</div>
+        <div style="display:flex;flex-wrap:wrap;gap:5px">${marcasChips}</div>
       </div>
-      ${svcVinc.length ? `<button class="btn bpw" style="font-size:11px;padding:5px 12px" onclick="svcProvCotizarWA('${p.id}')">
-        <i class="ti ti-brand-whatsapp"></i> Cotizar todos los repuestos por WA
-      </button>` : ''}
     </div>`;
   }).join('');
 }
 
+// ===== FORMULARIO PROVEEDOR =====
 function svcProvNuevo() {
-  _svcProvEdit = null;
-  ['svc-prov-f-nombre','svc-prov-f-wz'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+  _svcProvEdit  = null;
+  _svcProvMarcas = [];
+  ['svc-prov-f-nombre','svc-prov-f-wz','svc-prov-f-marca-input'].forEach(id => {
+    const el = document.getElementById(id); if (el) el.value = '';
+  });
   const r = document.getElementById('svc-prov-f-rubro'); if (r) r.value = '';
   document.getElementById('svc-prov-panel-titulo').textContent = 'Nuevo proveedor';
+  _svcProvRenderMarcas();
   document.getElementById('svc-prov-panel').style.display = 'block';
   document.getElementById('svc-prov-panel').scrollIntoView({ behavior:'smooth', block:'nearest' });
 }
@@ -153,27 +170,32 @@ function svcProvNuevo() {
 function svcProvEditar(id) {
   const prov = APP.lsGet('mp_proveedores', []).find(p => p.id === id);
   if (!prov) return;
-  _svcProvEdit = id;
+  _svcProvEdit  = id;
+  _svcProvMarcas = [...(prov.marcas || [])];
   const s = (elId, v) => { const e = document.getElementById(elId); if (e) e.value = v||''; };
   s('svc-prov-f-nombre', prov.nombre);
   s('svc-prov-f-rubro',  prov.rubro);
   s('svc-prov-f-wz',     prov.wz);
+  const mi = document.getElementById('svc-prov-f-marca-input'); if (mi) mi.value = '';
   document.getElementById('svc-prov-panel-titulo').textContent = 'Editar: ' + prov.nombre;
+  _svcProvRenderMarcas();
   document.getElementById('svc-prov-panel').style.display = 'block';
   document.getElementById('svc-prov-panel').scrollIntoView({ behavior:'smooth', block:'nearest' });
 }
 
 function svcProvCerrarPanel() {
   document.getElementById('svc-prov-panel').style.display = 'none';
-  _svcProvEdit = null;
+  _svcProvEdit   = null;
+  _svcProvMarcas = [];
 }
 
 function svcProvGuardar() {
   const g = id => (document.getElementById(id)?.value||'').trim();
   const nombre = g('svc-prov-f-nombre');
   if (!nombre) { alert('Ingresa el nombre del proveedor.'); return; }
+  if (!_svcProvMarcas.length) { alert('Agrega al menos una marca que abastece el proveedor.'); return; }
   const provs = APP.lsGet('mp_proveedores', []);
-  const dato  = { nombre, rubro:g('svc-prov-f-rubro'), wz:g('svc-prov-f-wz') };
+  const dato  = { nombre, rubro:g('svc-prov-f-rubro'), wz:g('svc-prov-f-wz'), marcas:[..._svcProvMarcas] };
   if (_svcProvEdit) {
     const idx = provs.findIndex(p => p.id === _svcProvEdit);
     if (idx >= 0) provs[idx] = { ...provs[idx], ...dato };
@@ -188,70 +210,45 @@ function svcProvGuardar() {
 function svcProvEliminar(id) {
   if (!confirm('¿Eliminar este proveedor?')) return;
   APP.lsSet('mp_proveedores', APP.lsGet('mp_proveedores',[]).filter(p => p.id !== id));
-  const svcs = APP.lsGet('mp_servicios', []);
-  svcs.forEach(s => { if (s.proveedoresIds) s.proveedoresIds = s.proveedoresIds.filter(i => i !== id); });
-  APP.lsSet('mp_servicios', svcs);
   svcRenderProveedores();
 }
 
-function svcProvVincular(provId) {
-  const sel   = document.getElementById('svc-prov-link-' + provId);
-  const svcId = sel?.value;
-  if (!svcId) return;
-  const svcs = APP.lsGet('mp_servicios', []);
-  const idx  = svcs.findIndex(s => s.id === svcId);
-  if (idx < 0) return;
-  if (!svcs[idx].proveedoresIds) svcs[idx].proveedoresIds = [];
-  if (!svcs[idx].proveedoresIds.includes(provId)) svcs[idx].proveedoresIds.push(provId);
-  APP.lsSet('mp_servicios', svcs);
-  svcRenderProveedores();
-}
-
-function svcProvDesvincular(provId, svcId) {
-  const svcs = APP.lsGet('mp_servicios', []);
-  const idx  = svcs.findIndex(s => s.id === svcId);
-  if (idx >= 0 && svcs[idx].proveedoresIds) {
-    svcs[idx].proveedoresIds = svcs[idx].proveedoresIds.filter(i => i !== provId);
-    APP.lsSet('mp_servicios', svcs);
-    svcRenderProveedores();
+// ===== CHIPS DE MARCAS =====
+function svcProvMarcaAdd() {
+  const input = document.getElementById('svc-prov-f-marca-input');
+  const val   = (input?.value || '').trim();
+  if (!val) return;
+  if (_svcProvMarcas.map(m => m.toLowerCase()).includes(val.toLowerCase())) {
+    if (input) input.value = '';
+    return;
   }
+  _svcProvMarcas.push(val);
+  if (input) input.value = '';
+  _svcProvRenderMarcas();
 }
 
-function svcProvCotizarWA(provId) {
-  const prov = APP.lsGet('mp_proveedores', []).find(p => p.id === provId);
-  if (!prov || !prov.wz) { alert('Este proveedor no tiene WhatsApp configurado.'); return; }
-  const svcs = APP.lsGet('mp_servicios', []).filter(s => (s.proveedoresIds||[]).includes(provId));
-  if (!svcs.length) { alert('Sin servicios vinculados a este proveedor.'); return; }
+function svcProvMarcaElim(idx) {
+  _svcProvMarcas.splice(idx, 1);
+  _svcProvRenderMarcas();
+}
 
-  const items = [];
-  svcs.forEach(s => {
-    (s.repuestosSugeridos||[]).forEach(r => {
-      items.push(`• ${r.nombre} × ${r.cantidad} ${r.unidad} (${s.nombre})`);
-    });
-  });
-  if (!items.length) { alert('Los servicios vinculados no tienen repuestos sugeridos.'); return; }
-
-  const cfg    = APP.lsGet('mp_taller_config', {});
-  const taller = cfg.nombre || 'Integral Automotriz Spa';
-  const wz     = cfg.telefono || '+569 5165 5331';
-  const msg    = [
-    'Hola ' + prov.nombre + ',',
-    '',
-    'Necesitamos cotización para los siguientes repuestos:',
-    '',
-    ...items,
-    '',
-    'Por favor enviar precio y disponibilidad.',
-    '¡Gracias! — ' + taller + ' ' + wz,
-  ].join('\n');
-
-  window.open('https://wa.me/' + prov.wz.replace(/\D/g,'') + '?text=' + encodeURIComponent(msg), '_blank');
+function _svcProvRenderMarcas() {
+  const el = document.getElementById('svc-prov-f-marcas-lista');
+  if (!el) return;
+  if (!_svcProvMarcas.length) {
+    el.innerHTML = '<span style="font-size:10px;color:var(--text-muted)">Sin marcas agregadas</span>';
+    return;
+  }
+  el.innerHTML = _svcProvMarcas.map((m, i) =>
+    `<span style="display:inline-flex;align-items:center;gap:4px;padding:3px 8px 3px 10px;background:var(--bg-accent);border:0.5px solid var(--border-accent);border-radius:10px;font-size:11px;color:var(--text-accent)">
+      ${_esc(m)}
+      <span style="cursor:pointer;font-size:13px;line-height:1;color:var(--text-accent);opacity:.7" onclick="svcProvMarcaElim(${i})">×</span>
+    </span>`
+  ).join('');
 }
 
 // ===== INTEGRACIÓN CON FORMULARIO OT (parcha el select de servicio) =====
 function _svcPatchTallerSelect() {
-  // El nuevo formulario OT usa datalist (n-serv-lista), no un <select> fijo.
-  // Mantenemos compatibilidad con el selector legacy c-serv si existiera.
   const cServ = document.getElementById('c-serv');
   if (cServ && !cServ.dataset.svcPatched) {
     cServ.dataset.svcPatched = '1';
@@ -263,7 +260,6 @@ function _svcPatchTallerSelect() {
     dServ.dataset.svcPatched = '1';
     _svcUpdateTallerSelect(dServ);
   }
-  // Actualizar datalist de servicios en nueva OT
   _svcUpdateServDatalist();
 }
 

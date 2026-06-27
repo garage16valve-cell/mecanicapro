@@ -1,16 +1,6 @@
 <!-- SERVICIOS -->
 <div class="page active" id="pg-servicios">
 
-  <!-- Banner: catálogo movido a Admin -->
-  <div class="al al-a" style="margin-bottom:14px;display:flex;align-items:center;gap:10px">
-    <i class="ti ti-tools" style="font-size:16px"></i>
-    <span>El <strong>Catálogo de servicios</strong> y su configuración se gestionan en
-      <button class="btn bpa" onclick="nav('config',null)" style="font-size:11px;padding:3px 10px;margin:0 2px">
-        Admin &rsaquo; Configuración
-      </button>
-    </span>
-  </div>
-
   <!-- Tabs -->
   <div style="display:flex;gap:0;margin-bottom:16px;border-bottom:0.5px solid var(--border)">
     <button id="svc-tab-btn-efic" onclick="svcSetTab('efic')"
@@ -20,6 +10,10 @@
     <button id="svc-tab-btn-prov" onclick="svcSetTab('prov')"
       style="padding:9px 18px;font-size:12px;font-weight:500;background:transparent;border:none;border-bottom:2px solid transparent;color:var(--text-secondary);cursor:pointer;font-family:var(--font-sans)">
       <i class="ti ti-building-store" style="font-size:13px;vertical-align:-2px;margin-right:4px"></i>Proveedores
+    </button>
+    <button id="svc-tab-btn-conf" onclick="svcSetTab('conf')"
+      style="padding:9px 18px;font-size:12px;font-weight:500;background:transparent;border:none;border-bottom:2px solid transparent;color:var(--text-secondary);cursor:pointer;font-family:var(--font-sans)">
+      <i class="ti ti-settings" style="font-size:13px;vertical-align:-2px;margin-right:4px"></i>Configuración
     </button>
   </div>
 
@@ -77,7 +71,9 @@
             <span class="ct" id="svc-prov-panel-titulo">Nuevo proveedor</span>
             <button class="btn" onclick="svcProvCerrarPanel()" style="padding:3px 8px"><i class="ti ti-x"></i></button>
           </div>
+
           <div class="fg"><label>Nombre del proveedor</label><input id="svc-prov-f-nombre" placeholder="Ej: Repuestos Díaz"></div>
+
           <div class="fg">
             <label>Rubro</label>
             <select id="svc-prov-f-rubro" style="width:100%">
@@ -92,18 +88,53 @@
               <option>Otro</option>
             </select>
           </div>
+
           <div class="fg">
             <label>WhatsApp</label>
             <input id="svc-prov-f-wz" placeholder="+569XXXXXXXX" style="font-family:var(--font-mono)">
           </div>
-          <div style="margin-top:4px;padding:8px;background:var(--surface-1);border-radius:var(--radius);font-size:10px;color:var(--text-muted)">
-            Después de guardar, vincula el proveedor con los servicios que abastece para cotizar por WA con un clic.
+
+          <!-- Marcas que abastece -->
+          <div class="fg" style="margin-top:6px">
+            <label>Marcas que abastece <span style="color:var(--text-danger);font-size:10px">*</span></label>
+            <div style="display:flex;gap:6px;align-items:center">
+              <input id="svc-prov-f-marca-input" list="svc-prov-marcas-dl" placeholder="Ej: Toyota, Kia…"
+                style="flex:1;font-size:12px;border:0.5px solid var(--border);border-radius:var(--radius);padding:6px 9px;background:var(--surface-1);color:var(--text-primary)"
+                onkeydown="if(event.key==='Enter'){event.preventDefault();svcProvMarcaAdd()}">
+              <datalist id="svc-prov-marcas-dl">
+                <option>Toyota</option><option>Chevrolet</option><option>Nissan</option>
+                <option>Kia</option><option>Hyundai</option><option>Ford</option>
+                <option>Mazda</option><option>Suzuki</option><option>Mitsubishi</option>
+                <option>Honda</option><option>Volkswagen</option><option>Renault</option>
+                <option>Peugeot</option><option>Fiat</option><option>BMW</option>
+                <option>Mercedes-Benz</option><option>Audi</option><option>Subaru</option>
+                <option>Jeep</option><option>RAM</option><option>Great Wall</option>
+              </datalist>
+              <button class="btn" onclick="svcProvMarcaAdd()" style="flex-shrink:0"><i class="ti ti-plus"></i></button>
+            </div>
+            <div id="svc-prov-f-marcas-lista" style="display:flex;flex-wrap:wrap;gap:5px;margin-top:8px;min-height:22px"></div>
           </div>
-          <button class="btn bpa" style="width:100%;justify-content:center;margin-top:10px" onclick="svcProvGuardar()">
+
+          <button class="btn bpa" style="width:100%;justify-content:center;margin-top:12px" onclick="svcProvGuardar()">
             <i class="ti ti-device-floppy"></i> Guardar proveedor
           </button>
         </div>
       </div>
+    </div>
+  </div>
+
+  <!-- ===== TAB CONFIGURACIÓN ===== -->
+  <div id="svc-tab-conf" style="display:none">
+    <div class="card" style="text-align:center;padding:32px 24px">
+      <i class="ti ti-settings" style="font-size:36px;color:var(--text-muted);opacity:.4;display:block;margin-bottom:14px"></i>
+      <div style="font-size:14px;font-weight:500;margin-bottom:8px">Configuración del catálogo de servicios</div>
+      <div style="font-size:12px;color:var(--text-muted);margin-bottom:20px">
+        El catálogo de servicios (precios, horas estimadas, repuestos sugeridos) se gestiona en<br>
+        <strong>Admin &rsaquo; Configuración &rsaquo; Catálogo de servicios</strong>
+      </div>
+      <button class="btn bpa" onclick="nav('config',null)" style="margin:0 auto">
+        <i class="ti ti-arrow-right"></i> Ir a Configuración
+      </button>
     </div>
   </div>
 
