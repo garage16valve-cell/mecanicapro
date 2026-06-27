@@ -46,85 +46,43 @@ async function consultarPatente(val) {
   let datos = null;
   let fuenteDatos = '';
 
-  // --- Intentar API real via proxies CORS ---
-  // Cada entrada: [proxyUrl, fn para extraer texto del response]
-  const PROXIES = [
-    // corsproxy.io: responde con el HTML directo
-    [
-      'https://corsproxy.io/?' + encodeURIComponent('https://www.patentechile.com/patente/' + pat),
-      async r => r.ok ? await r.text() : null,
-    ],
-    [
-      'https://corsproxy.io/?' + encodeURIComponent('https://www.patentechile.com/' + pat),
-      async r => r.ok ? await r.text() : null,
-    ],
-    // allorigins: responde con { contents: "..." }
-    [
-      'https://api.allorigins.win/get?url=' + encodeURIComponent('https://www.patentechile.com/patente/' + pat),
-      async r => { if (!r.ok) return null; const j = await r.json(); return j.contents || null; },
-    ],
-    [
-      'https://api.allorigins.win/get?url=' + encodeURIComponent('https://www.patentechile.com/' + pat),
-      async r => { if (!r.ok) return null; const j = await r.json(); return j.contents || null; },
-    ],
-  ];
+  // --- API boostr.cl (Registro Civil de Chile, sin proxy, sin scraping) ---
+  try {
+    const apiUrl = 'https://api.boostr.cl/vehicle/' + pat + '.json';
+    console.log('[patente] consultando API →', apiUrl);
 
-  for (const [proxyUrl, extractor] of PROXIES) {
-    if (datos) break;
-    try {
-      console.log('[patente] consultando →', proxyUrl);
-      const ctrl  = new AbortController();
-      const timer = setTimeout(() => ctrl.abort(), 9000);
-      const resp  = await fetch(proxyUrl, { signal: ctrl.signal });
-      clearTimeout(timer);
+    const ctrl  = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 9000);
+    const resp  = await fetch(apiUrl, { signal: ctrl.signal });
+    clearTimeout(timer);
 
-      console.log('[patente] respuesta HTTP:', resp.status, resp.ok ? 'OK' : 'ERROR');
+    console.log('[patente] respuesta HTTP:', resp.status, resp.ok ? 'OK' : 'ERROR');
 
-      const html = await extractor(resp);
-      console.log('[patente] contenido recibido: ' + (html ? html.length + ' chars' : 'null/vacío'));
-      if (html && html.length >= 200) {
-        console.log('[patente] primeros 2000 chars:\n', html.slice(0, 2000));
+    if (resp.ok) {
+      const json = await resp.json();
+      console.log('[patente] JSON recibido:', json);
 
-        // Buscar campos clave en el HTML crudo
-        const docDbg = new DOMParser().parseFromString(html, 'text/html');
-        const keywords = ['marca','modelo','año','ano','chasis','vin','motor'];
-        console.log('[patente] === búsqueda de campos en el DOM ===');
-
-        // Todas las celdas td/th que contengan las palabras clave
-        docDbg.querySelectorAll('td, th').forEach(el => {
-          const t = el.textContent.trim().toLowerCase();
-          if (keywords.some(k => t.includes(k))) {
-            const next = el.nextElementSibling;
-            console.log('[patente] td/th encontrado:', JSON.stringify(el.textContent.trim()), '→ siguiente celda:', JSON.stringify(next ? next.textContent.trim() : '(ninguna)'));
-          }
-        });
-
-        // Spans y divs con esas palabras
-        docDbg.querySelectorAll('span, div, p, label, li').forEach(el => {
-          const t = el.textContent.trim().toLowerCase();
-          if (keywords.some(k => t.startsWith(k)) && el.textContent.trim().length < 120) {
-            console.log('[patente] span/div:', JSON.stringify(el.tagName), JSON.stringify(el.className), '→', JSON.stringify(el.textContent.trim()));
-          }
-        });
-
-        // Clases que suenan a resultado
-        ['.result','.results','.datos','.data','.vehicle','.vehiculo','.info','.car-info',
-         '.patente-result','.patente-datos','.ficha','.detalle','.plate-info']
-          .forEach(sel => {
-            const found = docDbg.querySelector(sel);
-            if (found) console.log('[patente] selector', sel, '→', JSON.stringify(found.textContent.trim().slice(0, 300)));
-          });
+      // La API devuelve { status, data: { marca, modelo, anio, chasis, motor, ... } }
+      const d = json.data || json;
+      if (d && (d.marca || d.brand || d.make)) {
+        datos = {
+          marca:  d.marca  || d.brand || d.make  || '—',
+          modelo: d.modelo || d.model           || '—',
+          anio:   String(d.anio || d.year || d.año || '—'),
+          motor:  d.motor  || d.engine          || '—',
+          comb:   d.combustible || d.fuel       || '—',
+          tipo:   d.tipo   || d.type || d.carroceria || '—',
+          vin:    d.vin    || d.chasis || d.chassis   || '—',
+          nmotor: d.nmotor || d.numero_motor || d.motor_number || '—',
+        };
+        fuenteDatos = 'API';
+        console.log('[patente] datos mapeados:', datos);
+      } else {
+        console.warn('[patente] respuesta OK pero sin campo data válido:', json);
       }
-
-      if (!html || html.length < 200) { console.log('[patente] descartado (muy corto o vacío)'); continue; }
-
-      datos = _parsearPatente(html, pat);
-      console.log('[patente] resultado del parser:', datos);
-      if (datos) fuenteDatos = 'API';
-
-    } catch (e) {
-      console.warn('[patente] CATCH —', e.name, e.message, '| URL:', proxyUrl);
     }
+  } catch (e) {
+    console.warn('[patente] CATCH —', e.name, e.message);
   }
 
   // --- Fallback a datos demo ---
@@ -169,85 +127,6 @@ async function consultarPatente(val) {
   }
 }
 
-// Extrae datos del HTML devuelto por patentechile.com
-function _parsearPatente(html, pat) {
-  try {
-    const doc = new DOMParser().parseFromString(html, 'text/html');
-
-    // ── Estrategia 1: buscar en elementos con data-label o th/td de tabla ──
-    const tbl = {};
-    doc.querySelectorAll('tr').forEach(r => {
-      const celdas = r.querySelectorAll('td, th');
-      if (celdas.length >= 2) {
-        const k = celdas[0].textContent.trim().toLowerCase();
-        const v = celdas[1].textContent.trim();
-        if (!v) return;
-        if (/marca/.test(k))                         tbl.marca  = tbl.marca  || v;
-        if (/modelo/.test(k))                        tbl.modelo = tbl.modelo || v;
-        if (/a[ñn]o/.test(k))                        tbl.anio   = tbl.anio   || v;
-        if (/motor/.test(k) && !/n[°º]/.test(k))    tbl.motor  = tbl.motor  || v;
-        if (/combust/.test(k))                       tbl.comb   = tbl.comb   || v;
-        if (/tipo/.test(k))                          tbl.tipo   = tbl.tipo   || v;
-        if (/vin|chasis/.test(k))                    tbl.vin    = tbl.vin    || v;
-        if (/n[°º\.]\s*motor|nro\s*motor/.test(k))  tbl.nmotor = tbl.nmotor || v;
-      }
-    });
-
-    // ── Estrategia 2: dl/dt-dd ──
-    doc.querySelectorAll('dl').forEach(dl => {
-      const dts = dl.querySelectorAll('dt');
-      const dds = dl.querySelectorAll('dd');
-      dts.forEach((dt, i) => {
-        const k = dt.textContent.trim().toLowerCase();
-        const v = (dds[i] || dds[i - 1] || {}).textContent?.trim() || '';
-        if (!v) return;
-        if (/marca/.test(k))                         tbl.marca  = tbl.marca  || v;
-        if (/modelo/.test(k))                        tbl.modelo = tbl.modelo || v;
-        if (/a[ñn]o/.test(k))                        tbl.anio   = tbl.anio   || v;
-        if (/motor/.test(k) && !/n[°º]/.test(k))    tbl.motor  = tbl.motor  || v;
-        if (/combust/.test(k))                       tbl.comb   = tbl.comb   || v;
-        if (/tipo/.test(k))                          tbl.tipo   = tbl.tipo   || v;
-        if (/vin|chasis/.test(k))                    tbl.vin    = tbl.vin    || v;
-        if (/n[°º\.]\s*motor|nro\s*motor/.test(k))  tbl.nmotor = tbl.nmotor || v;
-      });
-    });
-
-    // ── Estrategia 3: regex sobre texto plano ──
-    const txt = doc.body ? (doc.body.innerText || doc.body.textContent || '') : '';
-    const rx = (re) => {
-      const m = txt.match(re);
-      return (m && m[1] && m[1].trim().length > 1) ? m[1].trim() : null;
-    };
-    const marca  = tbl.marca  || rx(/marca\s*[:\-]\s*([A-Za-záéíóúÁÉÍÓÚ\w\s\-]{2,30}?)(?:\n|modelo|año)/i);
-    const modelo = tbl.modelo || rx(/modelo\s*[:\-]\s*([^\n]{2,40}?)(?:\n|año|motor)/i);
-    const anio   = tbl.anio   || rx(/a[ñn]o\s*[:\-]\s*(\d{4})/i);
-    const motor  = tbl.motor  || rx(/motor\s*[:\-]\s*([^\n]{2,50}?)(?:\n|combust|tipo)/i);
-    const comb   = tbl.comb   || rx(/combust[ible]*\s*[:\-]\s*([^\n]{2,30}?)(?:\n|tipo|vin)/i);
-    const tipo   = tbl.tipo   || rx(/tipo\s*[:\-]\s*([^\n]{2,30}?)(?:\n|vin|n[°º])/i);
-    const vin    = tbl.vin    || rx(/vin\s*[:\-]\s*([A-HJ-NPR-Z0-9]{17})/i);
-    const nmotor = tbl.nmotor || rx(/n[°º\.]\s*[Mm]otor\s*[:\-]\s*([^\n]{2,40}?)(?:\n|$)/i);
-
-    // Solo retornar si hay al menos marca o modelo
-    if (!marca && !modelo) return null;
-
-    // Verificar que la patente consultada aparece en el HTML (validación extra)
-    if (pat && !html.toUpperCase().includes(pat.toUpperCase())) return null;
-
-    return {
-      marca:  marca  || '—',
-      modelo: modelo || '—',
-      anio:   anio   || '—',
-      motor:  motor  || '—',
-      comb:   comb   || '—',
-      tipo:   tipo   || '—',
-      vin:    vin    || '—',
-      nmotor: nmotor || '—',
-    };
-  } catch (e) {
-    console.warn('[patente] error al parsear HTML:', e);
-    return null;
-  }
-}
 
 function _setPatStatus(type, msg) {
   const st = document.getElementById('pat-status');
