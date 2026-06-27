@@ -40,6 +40,53 @@
             <select id="c-tec"><option>Pedro Ramírez</option><option>Javier Muñoz</option><option>Luis González</option><option>Roberto Araya</option></select>
           </div>
         </div>
+        <!-- Cita -->
+        <div class="div" style="margin:10px 0 8px"></div>
+        <div style="font-size:11px;font-weight:500;color:var(--text-secondary);margin-bottom:8px;display:flex;align-items:center;gap:6px">
+          <span class="step-num">3</span> Cita y estado
+        </div>
+        <div class="fgrid2">
+          <div class="fg"><label>Fecha de cita</label><input type="date" id="c-fecha"></div>
+          <div class="fg"><label>Hora de cita</label><input type="time" id="c-hora"></div>
+        </div>
+
+        <!-- Dropdown estado de cita -->
+        <div class="fg" style="margin-top:8px;position:relative">
+          <label>Estado de cita</label>
+          <div style="display:flex;gap:6px;align-items:center">
+            <div id="estado-cita-badge" style="flex:1;padding:7px 10px;border-radius:var(--radius);border:0.5px solid var(--border);background:var(--surface-1);font-size:12px;font-weight:500">
+              📅 Agendado
+            </div>
+            <button class="btn" style="white-space:nowrap" onclick="toggleEstadoDropdown()">
+              <i class="ti ti-chevron-down"></i> Cambiar
+            </button>
+          </div>
+          <!-- Menú desplegable -->
+          <div id="estado-dropdown" style="display:none;position:absolute;top:100%;left:0;right:0;z-index:50;background:var(--surface-2);border:0.5px solid var(--border);border-radius:var(--radius);box-shadow:0 4px 16px rgba(0,0,0,.15);margin-top:3px;overflow:hidden">
+            <div class="edo-opt" onclick="seleccionarEstado('llego')"    style="padding:9px 12px;cursor:pointer;font-size:12px;display:flex;gap:8px;align-items:center">✅ <span><strong>Cliente llegó</strong><br><span style="font-size:10px;color:var(--text-muted)">Activa la OT y registra hora de entrada</span></span></div>
+            <div class="edo-opt" onclick="seleccionarEstado('nollego')"  style="padding:9px 12px;cursor:pointer;font-size:12px;display:flex;gap:8px;align-items:center;border-top:0.5px solid var(--border)">❌ <span><strong>Cliente no llegó</strong><br><span style="font-size:10px;color:var(--text-muted)">Cierra la OT y registra inasistencia</span></span></div>
+            <div class="edo-opt" onclick="seleccionarEstado('reagendar')" style="padding:9px 12px;cursor:pointer;font-size:12px;display:flex;gap:8px;align-items:center;border-top:0.5px solid var(--border)">📅 <span><strong>Reagendar</strong><br><span style="font-size:10px;color:var(--text-muted)">Ingresa nueva fecha y hora</span></span></div>
+            <div class="edo-opt" onclick="seleccionarEstado('cancelo')"  style="padding:9px 12px;cursor:pointer;font-size:12px;display:flex;gap:8px;align-items:center;border-top:0.5px solid var(--border)">🚫 <span><strong>Cliente canceló</strong><br><span style="font-size:10px;color:var(--text-muted)">Registra la cancelación</span></span></div>
+            <div class="edo-opt" onclick="seleccionarEstado('cotizacion')" style="padding:9px 12px;cursor:pointer;font-size:12px;display:flex;gap:8px;align-items:center;border-top:0.5px solid var(--border)">📋 <span><strong>Cotización</strong><br><span style="font-size:10px;color:var(--text-muted)">Activa modo cotización</span></span></div>
+          </div>
+        </div>
+
+        <!-- Panel reagendar -->
+        <div id="reagendar-panel" style="display:none;margin-top:8px;background:var(--surface-1);border:0.5px solid var(--border-warning,#d97706);border-radius:var(--radius);padding:10px">
+          <div style="font-size:11px;font-weight:500;margin-bottom:8px">📅 Nueva fecha de cita</div>
+          <div class="fgrid2">
+            <div class="fg"><label>Nueva fecha</label><input type="date" id="c-fecha-nueva"></div>
+            <div class="fg"><label>Nueva hora</label><input type="time" id="c-hora-nueva"></div>
+          </div>
+          <div class="fg"><label>Motivo de reagenda</label><input id="c-reagendar-motivo" placeholder="Ej: Cliente solicitó cambio de horario"></div>
+        </div>
+
+        <!-- Historial de estados (visible si hay entradas) -->
+        <div id="historial-estados" style="display:none;margin-top:8px">
+          <div style="font-size:10px;font-weight:500;color:var(--text-muted);margin-bottom:4px;text-transform:uppercase;letter-spacing:.05em">Historial de cita</div>
+          <div id="historial-lista" style="font-size:11px"></div>
+        </div>
+
         <div class="fg"><label>Servicio solicitado</label>
           <select id="c-serv"><option>Mantención 10.000 km</option><option>Cambio de embrague</option><option>Diagnóstico scanner</option><option>Cambio de frenos</option><option>Alineación y balanceo</option><option>Cambio aceite + filtros</option><option>Otro</option></select>
         </div>

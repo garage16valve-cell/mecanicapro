@@ -44,6 +44,101 @@ function _patSave(pat, datos) {
   APP.lsSet('mp_patentes', db);
 }
 
+// ===== ESTADO DE CITA =====
+const ESTADOS = {
+  agendado:   { emoji:'📅', label:'Agendado',        color:'var(--text-muted)' },
+  llego:      { emoji:'✅', label:'Cliente llegó',    color:'var(--text-success)' },
+  nollego:    { emoji:'❌', label:'Cliente no llegó', color:'var(--text-danger)' },
+  reagendar:  { emoji:'📅', label:'Reagendado',       color:'#d97706' },
+  cancelo:    { emoji:'🚫', label:'Cliente canceló',  color:'var(--text-danger)' },
+  cotizacion: { emoji:'📋', label:'Cotización',       color:'var(--text-accent)' },
+};
+
+let _estadoActual = 'agendado';
+let _historialTemp = []; // entradas antes de crear la OT
+
+function toggleEstadoDropdown() {
+  const dd = document.getElementById('estado-dropdown');
+  if (!dd) return;
+  dd.style.display = dd.style.display === 'none' ? 'block' : 'none';
+  // Cerrar al hacer click fuera
+  if (dd.style.display === 'block') {
+    setTimeout(() => {
+      const cerrar = e => { if (!dd.contains(e.target)) { dd.style.display = 'none'; document.removeEventListener('click', cerrar); } };
+      document.addEventListener('click', cerrar);
+    }, 0);
+  }
+}
+
+function seleccionarEstado(codigo) {
+  const dd = document.getElementById('estado-dropdown');
+  if (dd) dd.style.display = 'none';
+
+  const est = ESTADOS[codigo];
+  if (!est) return;
+
+  _estadoActual = codigo;
+
+  // Actualizar badge
+  const badge = document.getElementById('estado-cita-badge');
+  if (badge) {
+    badge.textContent = est.emoji + ' ' + est.label;
+    badge.style.color = est.color;
+    badge.style.borderColor = est.color;
+  }
+
+  // Mostrar/ocultar panel de reagenda
+  const rp = document.getElementById('reagendar-panel');
+  if (rp) rp.style.display = codigo === 'reagendar' ? 'block' : 'none';
+
+  // Registrar en historial temporal
+  const ahora = new Date();
+  const entrada = {
+    estado: codigo,
+    label: est.label,
+    emoji: est.emoji,
+    ts: ahora.toISOString(),
+    hora: ahora.toLocaleTimeString('es-CL', { hour:'2-digit', minute:'2-digit' }),
+    fecha: ahora.toLocaleDateString('es-CL'),
+  };
+
+  // Si es llegó, registrar hora de entrada exacta
+  if (codigo === 'llego') entrada.horaEntrada = entrada.hora;
+
+  _historialTemp.push(entrada);
+  _renderHistorialTemp();
+
+  // Acciones especiales
+  if (codigo === 'llego') {
+    _setPatStatus('ok', `✅ Cliente llegó — entrada registrada a las ${entrada.hora}`);
+  } else if (codigo === 'nollego') {
+    _setPatStatus('error', '❌ Inasistencia registrada a las ' + entrada.hora);
+  } else if (codigo === 'cancelo') {
+    _setPatStatus('error', '🚫 Cancelación registrada a las ' + entrada.hora);
+  } else if (codigo === 'cotizacion') {
+    _setPatStatus('ok', '📋 Modo cotización activado');
+  }
+}
+
+function _renderHistorialTemp() {
+  const wrap = document.getElementById('historial-estados');
+  const lista = document.getElementById('historial-lista');
+  if (!wrap || !lista) return;
+  if (_historialTemp.length === 0) { wrap.style.display = 'none'; return; }
+
+  wrap.style.display = 'block';
+  lista.innerHTML = _historialTemp.map(e =>
+    `<div style="display:flex;gap:8px;align-items:flex-start;padding:4px 0;border-bottom:0.5px solid var(--border)">
+      <span style="font-size:13px">${e.emoji}</span>
+      <div style="flex:1">
+        <span style="font-weight:500">${e.label}</span>
+        <span style="color:var(--text-muted);margin-left:6px;font-size:10px">${e.fecha} ${e.hora}</span>
+        ${e.motivo ? `<div style="font-size:10px;color:var(--text-muted)">${e.motivo}</div>` : ''}
+      </div>
+    </div>`
+  ).join('');
+}
+
 // ===== CONSULTA DE PATENTE =====
 function setPatente(pat) {
   const i = document.getElementById('pat-in');
@@ -181,10 +276,37 @@ function crearOT() {
   const rut    = (document.getElementById('c-rut')?.value     || '').trim();
   const wz     = (document.getElementById('c-wz')?.value      || '').trim();
   const mail   = (document.getElementById('c-mail')?.value    || '').trim();
-  const km     =  document.getElementById('c-km')?.value      || '';
-  const tecnico=  document.getElementById('c-tec')?.value     || '';
-  const serv   =  document.getElementById('c-serv')?.value    || '';
-  const notas  =  document.getElementById('c-notas')?.value   || '';
+  const km     =  document.getElementById('c-km')?.value        || '';
+  const tecnico=  document.getElementById('c-tec')?.value       || '';
+  const serv   =  document.getElementById('c-serv')?.value      || '';
+  const notas  =  document.getElementById('c-notas')?.value     || '';
+  const fecha  =  document.getElementById('c-fecha')?.value     || '';
+  const hora   =  document.getElementById('c-hora')?.value      || '';
+
+  // Si hay reagenda pendiente, capturar nueva fecha/hora y motivo
+  if (_estadoActual === 'reagendar') {
+    const fNueva = document.getElementById('c-fecha-nueva')?.value || '';
+    const hNueva = document.getElementById('c-hora-nueva')?.value  || '';
+    const motivo = document.getElementById('c-reagendar-motivo')?.value || '';
+    const last = _historialTemp[_historialTemp.length - 1];
+    if (last && last.estado === 'reagendar') {
+      last.nuevaFecha = fNueva;
+      last.nuevaHora  = hNueva;
+      last.motivo     = motivo;
+    }
+  }
+
+  // Primera entrada del historial: creación de la OT
+  const ahora = new Date();
+  const entradaCreacion = {
+    estado: 'creado',
+    label:  'OT creada',
+    emoji:  '📋',
+    ts:     ahora.toISOString(),
+    hora:   ahora.toLocaleTimeString('es-CL', { hour:'2-digit', minute:'2-digit' }),
+    fecha:  ahora.toLocaleDateString('es-CL'),
+  };
+  const historial = [entradaCreacion, ..._historialTemp];
   const marca  = (document.getElementById('v-marca')?.value   || '').trim();
   const modelo = (document.getElementById('v-modelo')?.value  || '').trim();
   const anio   = (document.getElementById('v-anio')?.value    || '').trim();
@@ -229,7 +351,13 @@ function crearOT() {
     id, num, patente: pat, marca, modelo, anio, motor, comb, tipo, vin, nmotor,
     clienteId: cli.id, clienteNombre: nombre, rut, wz, mail, km,
     tecnico, servicio: serv, notas,
-    estado: 'agendado',
+    fechaCita: fecha, horaCita: hora,
+    estadoCita: _estadoActual,
+    historial,
+    estado: _estadoActual === 'llego' ? 'en-proceso'
+          : _estadoActual === 'nollego' || _estadoActual === 'cancelo' ? 'cerrado'
+          : _estadoActual === 'cotizacion' ? 'cotizacion'
+          : 'agendado',
     creado: new Date().toISOString(),
   };
   ots.push(ot);
@@ -243,7 +371,8 @@ function crearOT() {
 }
 
 function _resetFormOT() {
-  ['c-nombre','c-rut','c-wz','c-mail','c-notas'].forEach(id => {
+  ['c-nombre','c-rut','c-wz','c-mail','c-notas',
+   'c-fecha','c-hora','c-fecha-nueva','c-hora-nueva','c-reagendar-motivo'].forEach(id => {
     const el = document.getElementById(id); if (el) el.value = '';
   });
   const km = document.getElementById('c-km'); if (km) km.value = '';
@@ -253,6 +382,15 @@ function _resetFormOT() {
   const vin = document.getElementById('v-vin'); if (vin) vin.textContent = '—';
   const pi  = document.getElementById('pat-in');
   if (pi) { pi.value = ''; pi.style.borderColor = ''; pi.style.background = ''; }
+
+  // Reset estado de cita
+  _estadoActual  = 'agendado';
+  _historialTemp = [];
+  const badge = document.getElementById('estado-cita-badge');
+  if (badge) { badge.textContent = '📅 Agendado'; badge.style.color = ''; badge.style.borderColor = ''; }
+  const rp = document.getElementById('reagendar-panel');    if (rp) rp.style.display = 'none';
+  const hs = document.getElementById('historial-estados');  if (hs) hs.style.display = 'none';
+  const hl = document.getElementById('historial-lista');    if (hl) hl.innerHTML = '';
 
   const vd = document.getElementById('vehiculo-datos'); if (vd) vd.style.display = 'none';
   const cd = document.getElementById('cliente-datos');  if (cd) cd.style.display  = 'none';
