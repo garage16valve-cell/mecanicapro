@@ -382,7 +382,7 @@ function _resetFormNuevaOT() {
   if (st) st.textContent = '';
   const ch = document.getElementById('crm-hist-box');
   if (ch) ch.style.display = 'none';
-  _nOTServsItems = [{ nombre: '' }];
+  _nOTServsItems = [{ nombre: '', horas: 0, valor: 0 }];
   _nOTRepsItems  = [];
   _nOTServRender();
   _nOTRepRender();
@@ -399,41 +399,84 @@ function _nOTServRender() {
   }
   const opts = svcs.map(s => `<option value="${_tallerEsc(s.nombre)}">`).join('');
   lista.innerHTML = _nOTServsItems.map((item, i) => `
-    <div style="display:flex;gap:4px;align-items:center">
-      <input list="n-sdl-${i}" value="${_tallerEsc(item.nombre)}" placeholder="Nombre del servicio…"
-        style="flex:1;font-size:11px;border:0.5px solid var(--border);border-radius:var(--radius);padding:4px 7px;background:var(--surface-1);color:var(--text-primary)"
-        oninput="_nOTServSync(${i},this.value)">
-      <datalist id="n-sdl-${i}">${opts}</datalist>
-      <button class="btn" style="padding:2px 5px;font-size:11px;flex-shrink:0" onclick="nOTServElim(${i})"><i class="ti ti-x"></i></button>
+    <div style="border:0.5px solid var(--border);border-radius:var(--radius);padding:8px;background:var(--surface-1);margin-bottom:6px">
+      <div style="display:flex;gap:4px;align-items:center;margin-bottom:6px">
+        <input list="n-sdl-${i}" value="${_tallerEsc(item.nombre)}" placeholder="Nombre del servicio…"
+          style="flex:1;font-size:11px;border:0.5px solid var(--border);border-radius:var(--radius);padding:4px 7px;background:var(--surface-0);color:var(--text-primary)"
+          oninput="_nOTServSync(${i},this.value)" onchange="_nOTServSync(${i},this.value)">
+        <datalist id="n-sdl-${i}">${opts}</datalist>
+        <button class="btn" style="padding:2px 5px;font-size:11px;flex-shrink:0" onclick="nOTServElim(${i})"><i class="ti ti-x"></i></button>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;font-size:11px">
+        <span style="color:var(--text-muted)">⏱ <span id="n-svc-h-${i}">${item.horas ? item.horas + 'h' : '—'}</span></span>
+        <span style="flex:1"></span>
+        <label style="color:var(--text-secondary);white-space:nowrap">Valor $</label>
+        <input type="number" id="n-svc-v-${i}" value="${item.valor || ''}" placeholder="0"
+          style="width:90px;font-size:11px;border:0.5px solid var(--border);border-radius:var(--radius);padding:3px 6px;background:var(--surface-0);color:var(--text-primary);text-align:right"
+          oninput="_nOTValorSync(${i},this.value)">
+      </div>
     </div>`).join('') || '<div style="color:var(--text-muted);font-size:10px;padding:4px 0">Sin servicios — usa el botón +.</div>';
+  _nOTRecalcTotal();
 }
 
 function _nOTServSync(i, val) {
   if (_nOTServsItems[i]) _nOTServsItems[i].nombre = val;
 
-  // Autocompletar repuestos sugeridos del catálogo al seleccionar un servicio
   const catalogo = APP.lsGet('mp_servicios', []);
   if (!catalogo.length) return;
   const svc = catalogo.find(s => s.nombre.trim().toLowerCase() === val.trim().toLowerCase());
-  if (!svc || !svc.repuestosSugeridos || !svc.repuestosSugeridos.length) return;
+  if (!svc) return;
 
-  // Agregar solo los repuestos que aún no están en la lista
+  // Autocompletar horas estimadas
+  if (svc.horasEst && _nOTServsItems[i]) {
+    _nOTServsItems[i].horas = svc.horasEst;
+    const hEl = document.getElementById('n-svc-h-' + i);
+    if (hEl) hEl.textContent = svc.horasEst + 'h';
+  }
+
+  // Autocompletar precio fijo del catálogo
+  const precio = svc.precioFijo || 0;
+  const precioFinal = (svc.precioConIva && precio) ? Math.round(precio * 1.19) : precio;
+  if (precioFinal && _nOTServsItems[i]) {
+    _nOTServsItems[i].valor = precioFinal;
+    const vEl = document.getElementById('n-svc-v-' + i);
+    if (vEl) vEl.value = precioFinal;
+    _nOTRecalcTotal();
+  }
+
+  // Autocompletar repuestos sugeridos
+  if (!svc.repuestosSugeridos || !svc.repuestosSugeridos.length) return;
   const existentes = _nOTRepsItems.map(r => (r.desc || '').trim().toLowerCase());
   let agregados = 0;
   svc.repuestosSugeridos.forEach(rep => {
     const nombre = (rep.nombre || '').trim();
-    if (!nombre) return;
-    if (!existentes.includes(nombre.toLowerCase())) {
-      _nOTRepsItems.push({ desc: nombre + (rep.cantidad && rep.cantidad !== 1 ? ' x' + rep.cantidad : ''), precio: 0 });
-      agregados++;
-    }
+    if (!nombre || existentes.includes(nombre.toLowerCase())) return;
+    _nOTRepsItems.push({ desc: nombre + (rep.cantidad && rep.cantidad !== 1 ? ' x' + rep.cantidad : ''), precio: 0 });
+    agregados++;
   });
   if (agregados > 0) _nOTRepRender();
 }
 
 function nOTServAdd() {
-  _nOTServsItems.push({ nombre: '' });
+  _nOTServsItems.push({ nombre: '', horas: 0, valor: 0 });
   _nOTServRender();
+}
+
+function _nOTValorSync(i, val) {
+  if (_nOTServsItems[i]) _nOTServsItems[i].valor = parseInt(val) || 0;
+  _nOTRecalcTotal();
+}
+
+function _nOTRecalcTotal() {
+  const total = _nOTServsItems.reduce((s, it) => s + (parseInt(it.valor) || 0), 0);
+  const el = document.getElementById('n-valor-total');
+  if (!el) return;
+  if (total > 0) {
+    el.textContent = 'Total M.O.: $' + total.toLocaleString('es-CL');
+    el.style.display = 'block';
+  } else {
+    el.style.display = 'none';
+  }
 }
 
 function nOTServElim(i) {
@@ -533,6 +576,7 @@ function crearOT() {
   // Build service string from items list
   const servsItems  = _nOTServsItems.filter(s => (s.nombre || '').trim());
   const servicioStr = servsItems.map(s => s.nombre).join(' · ');
+  const valorTotal  = servsItems.reduce((s, it) => s + (parseInt(it.valor) || 0), 0);
 
   // Build repuestos
   const repsItems   = _nOTRepsItems.filter(r => (r.desc || '').trim());
@@ -605,6 +649,7 @@ function crearOT() {
     id, num, patente: pat, marca, modelo, anio, color, motor: '', comb: '', tipo: '', vin: '—', nmotor: '',
     clienteId: cli.id, clienteNombre: nombre || cli.nombre, rut, wz, mail, km,
     tecnico, servicio: servicioStr, serviciosItems: servsItems,
+    valor: valorTotal || 0,
     notas, fechaCita: fecha, horaCita: hora,
     estadoCita: estadoSel, historial, estado,
     creado: ahora.toISOString(),
@@ -711,6 +756,27 @@ function renderListaOTs(filtro) {
 let _otDetalleId  = null;
 let _otEditando   = false;
 
+function _renderDetServicios(ot) {
+  const el = document.getElementById('det-serv-lista');
+  if (!el) return;
+  const items = (ot.serviciosItems && ot.serviciosItems.length)
+    ? ot.serviciosItems
+    : ot.servicio ? [{ nombre: ot.servicio, horas: ot.tiempoEstimado || 0, valor: ot.valor || 0 }] : [];
+  if (!items.length) { el.innerHTML = '<div style="color:var(--text-muted);font-size:11px;padding:4px 0">—</div>'; return; }
+  const totalMO = items.reduce((s, it) => s + (parseInt(it.valor) || 0), 0);
+  el.innerHTML = items.map(s => `
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:5px 0;border-bottom:0.5px solid var(--border)">
+      <span style="font-size:11px;font-weight:500">${_tallerEsc(s.nombre)}</span>
+      <div style="display:flex;gap:12px;align-items:center">
+        ${s.horas ? `<span style="font-size:10px;color:var(--text-muted)">⏱ ${s.horas}h</span>` : ''}
+        ${s.valor ? `<span style="font-size:11px;color:var(--text-accent)">$${Number(s.valor).toLocaleString('es-CL')}</span>` : ''}
+      </div>
+    </div>`).join('') +
+    (totalMO > 0 && items.length > 1
+      ? `<div style="font-size:11px;font-weight:600;color:var(--text-accent);text-align:right;padding-top:5px">Total M.O.: $${totalMO.toLocaleString('es-CL')}</div>`
+      : '');
+}
+
 function abrirDetalleOT(id) {
   const ots = APP.lsGet('mp_ots', []);
   const ot  = ots.find(o => o.id === id);
@@ -735,8 +801,7 @@ function abrirDetalleOT(id) {
 
   s('det-fecha', ot.fechaCita || '');
   s('det-hora',  ot.horaCita  || '');
-  const serv = document.getElementById('det-serv');
-  if (serv) { serv.value = ot.servicio || serv.options[0]?.value || ''; serv.disabled = true; }
+  _renderDetServicios(ot);
   s('det-notas',  ot.notas  || '');
   s('det-valor',  ot.valor  || '');
 
@@ -825,7 +890,6 @@ function toggleEditarOT() {
     if (_otEditando) el.removeAttribute('readonly'); else el.setAttribute('readonly','');
   });
   const tec  = document.getElementById('det-tec');  if (tec)  tec.disabled  = !_otEditando;
-  const serv = document.getElementById('det-serv'); if (serv) serv.disabled = !_otEditando;
 
   // Repuestos dinámicos
   _detRepEditing = _otEditando;
@@ -851,7 +915,6 @@ function guardarCambiosOT() {
 
   const g = id => (document.getElementById(id)?.value || '').trim();
   const tec  = document.getElementById('det-tec');
-  const serv = document.getElementById('det-serv');
 
   // Registrar cambios en historial
   const ahora = new Date();
@@ -901,7 +964,7 @@ function guardarCambiosOT() {
     comb:          g('det-comb'),   tipo:    g('det-tipo'),
     vin:           g('det-vin'),    nmotor:  g('det-nmotor'),
     fechaCita:     g('det-fecha'),  horaCita: g('det-hora'),
-    servicio:      serv?.value || ots[idx].servicio,
+    servicio:      ots[idx].servicio,
     notas:         g('det-notas'),
     valor:         g('det-valor'),
     repuestos:     repTexto,
@@ -1076,6 +1139,106 @@ function copiarCotizacion() {
 
 // ===== MÓDULO 6: CIERRE + INSTAGRAM =====
 function completarOT() {
+  abrirPanelPago();
+}
+
+// ===== PANEL DE PAGO =====
+let _pagoMetodo = null;
+
+function abrirPanelPago() {
+  if (!_otDetalleId) return;
+  const ots = APP.lsGet('mp_ots', []);
+  const ot  = ots.find(o => o.id === _otDetalleId);
+  if (!ot) return;
+
+  // Cerrar dropdown estado si está abierto
+  const dd = document.getElementById('det-estado-dd');
+  if (dd) dd.style.display = 'none';
+
+  _pagoMetodo = null;
+
+  // Reset UI
+  ['efectivo','tarjeta','transferencia','pendiente'].forEach(m => {
+    const c = document.getElementById('det-pago-campos-' + m); if (c) c.style.display = 'none';
+    const b = document.getElementById('det-pago-btn-' + m);   if (b) b.style.background = '';
+  });
+  ['det-pago-boleta','det-pago-voucher','det-pago-comprobante'].forEach(id => {
+    const el = document.getElementById(id); if (el) el.value = '';
+  });
+  const motivo = document.getElementById('det-pago-motivo'); if (motivo) motivo.value = '';
+
+  // Calcular totales
+  const items    = (ot.serviciosItems && ot.serviciosItems.length)
+    ? ot.serviciosItems
+    : ot.servicio ? [{ nombre: ot.servicio, horas: 0, valor: ot.valor || 0 }] : [];
+  const totalMO  = items.reduce((s, it) => s + (parseInt(it.valor) || 0), 0);
+  const reps     = (ot.repuestosItems || []).filter(r => (r.desc || '').trim());
+  const totalRep = reps.reduce((s, r) => s + (parseInt(r.precio) || 0), 0);
+  const totalFin = totalMO + totalRep;
+
+  // Resumen
+  const lineas = items.map(s =>
+    `<div style="display:flex;justify-content:space-between;padding:2px 0">
+       <span>• ${_tallerEsc(s.nombre)}</span>
+       <span>${s.valor ? '$' + Number(s.valor).toLocaleString('es-CL') : '—'}</span>
+     </div>`).join('');
+  const repLine = totalRep > 0
+    ? `<div style="display:flex;justify-content:space-between;padding:2px 0"><span>• Repuestos / materiales</span><span>$${totalRep.toLocaleString('es-CL')}</span></div>`
+    : '';
+  const sep   = '<div style="border-top:0.5px solid var(--border);margin:8px 0"></div>';
+  const total = `<div style="display:flex;justify-content:space-between;font-weight:600;font-size:14px">
+    <span>TOTAL A COBRAR</span><span style="color:var(--text-accent)">$${totalFin.toLocaleString('es-CL')}</span></div>`;
+
+  const numEl = document.getElementById('det-pago-ot-num');
+  if (numEl) numEl.textContent = ot.id;
+  const resEl = document.getElementById('det-pago-resumen');
+  if (resEl) resEl.innerHTML = lineas + repLine + sep + total;
+
+  const panel = document.getElementById('det-panel-pago');
+  if (panel) { panel.style.display = 'block'; panel.scrollIntoView({ behavior:'smooth', block:'start' }); }
+}
+
+function seleccionarMetodoPago(metodo) {
+  _pagoMetodo = metodo;
+  ['efectivo','tarjeta','transferencia','pendiente'].forEach(m => {
+    const b = document.getElementById('det-pago-btn-' + m);
+    const c = document.getElementById('det-pago-campos-' + m);
+    const activo = m === metodo;
+    if (b) b.style.background = activo ? 'var(--bg-accent)' : '';
+    if (c) c.style.display    = activo ? 'block' : 'none';
+  });
+}
+
+function confirmarPago() {
+  if (!_pagoMetodo) { alert('Selecciona un método de pago.'); return; }
+  const g = id => (document.getElementById(id)?.value || '').trim();
+  const datoPago = { metodo: _pagoMetodo };
+
+  if (_pagoMetodo === 'efectivo') {
+    if (!g('det-pago-boleta')) { alert('Ingresa el número de boleta.'); return; }
+    datoPago.boleta = g('det-pago-boleta');
+  } else if (_pagoMetodo === 'tarjeta') {
+    if (!g('det-pago-voucher')) { alert('Ingresa el número de voucher.'); return; }
+    datoPago.voucher     = g('det-pago-voucher');
+    datoPago.tipoTarjeta = g('det-pago-tipo-tarjeta');
+  } else if (_pagoMetodo === 'transferencia') {
+    if (!g('det-pago-comprobante')) { alert('Ingresa el número de comprobante.'); return; }
+    datoPago.comprobante = g('det-pago-comprobante');
+  } else if (_pagoMetodo === 'pendiente') {
+    datoPago.motivo = g('det-pago-motivo');
+  }
+
+  cerrarPanelPago();
+  _finalizarOT(datoPago);
+}
+
+function cerrarPanelPago() {
+  const panel = document.getElementById('det-panel-pago');
+  if (panel) panel.style.display = 'none';
+  _pagoMetodo = null;
+}
+
+function _finalizarOT(datoPago) {
   if (!_otDetalleId) return;
   const ahora = new Date();
   const ots   = APP.lsGet('mp_ots', []);
@@ -1085,22 +1248,23 @@ function completarOT() {
 
   const horaSalida = ahora.toLocaleTimeString('es-CL', { hour:'2-digit', minute:'2-digit' });
   let tiempoReal   = null;
-  if (ot.entrada_ts) {
-    tiempoReal = Math.round((ahora - new Date(ot.entrada_ts)) / 60000);
-  }
+  if (ot.entrada_ts) tiempoReal = Math.round((ahora - new Date(ot.entrada_ts)) / 60000);
 
+  const metodoLabel = { efectivo:'💵 Efectivo', tarjeta:'💳 Tarjeta', transferencia:'📲 Transferencia', pendiente:'⏳ Pendiente de pago' };
   const entrada = {
     estado:'completado', label:'Trabajo completado', emoji:'🏁',
     ts:    ahora.toISOString(),
     hora:  horaSalida,
     fecha: ahora.toLocaleDateString('es-CL'),
     horaSalida, tiempoReal,
+    detalle: datoPago ? (metodoLabel[datoPago.metodo] || datoPago.metodo) : null,
   };
 
   ots[idx] = {
     ...ot,
     estado:'completado', estadoCita:'completado',
     horaSalida, salida_ts: ahora.toISOString(), tiempoReal,
+    pago: datoPago,
     historial: [...(ot.historial || []), entrada],
   };
   APP.lsSet('mp_ots', ots);
@@ -1395,6 +1559,8 @@ function _upsellingRender(patente, servicioActual) {
 
 // ===== CONTROL PANELES SEGÚN ESTADO =====
 function _actualizarPanelesDet(ot) {
+  const pPago = document.getElementById('det-panel-pago');
+  if (pPago) pPago.style.display = 'none';
   // Panel 5 — Cotización
   const pCot = document.getElementById('det-panel-cotizacion');
   if (pCot) {

@@ -122,7 +122,8 @@
                 <i class="ti ti-plus"></i> Agregar
               </button>
             </label>
-            <div id="n-serv-lista" style="display:flex;flex-direction:column;gap:4px;margin-top:4px"></div>
+            <div id="n-serv-lista" style="display:flex;flex-direction:column;gap:0;margin-top:4px"></div>
+            <div id="n-valor-total" style="display:none;font-size:11px;font-weight:600;color:var(--text-accent);text-align:right;margin-top:6px;padding-top:6px;border-top:0.5px solid var(--border)"></div>
           </div>
 
           <!-- Repuestos requeridos -->
@@ -238,12 +239,8 @@
             <div class="fg"><label>Hora entrega real <span style="font-size:9px;opacity:.55">(admin)</span></label><input type="time" id="det-hora-salida" readonly oninput="detCalcTiempo()"></div>
           </div>
           <div id="det-calc-tiempo" style="font-size:11px;color:var(--text-success);padding:0 0 4px;display:none"></div>
-          <div class="fg"><label>Servicio</label>
-            <select id="det-serv" disabled>
-              <option>Mantención 10.000 km</option><option>Cambio de embrague</option>
-              <option>Diagnóstico scanner</option><option>Cambio de frenos</option>
-              <option>Alineación y balanceo</option><option>Cambio aceite + filtros</option><option>Otro</option>
-            </select>
+          <div class="fg"><label>Servicios</label>
+            <div id="det-serv-lista" style="margin-top:4px;min-height:20px"></div>
           </div>
           <div class="fg"><label>Notas</label><textarea id="det-notas" readonly style="min-height:60px"></textarea></div>
           <div class="fg"><label>Valor ($)</label><input id="det-valor" type="number" readonly placeholder="0"></div>
@@ -318,6 +315,53 @@
         </div>
       </div>
     </div>
+
+    <!-- PANEL DE PAGO -->
+    <div id="det-panel-pago" style="display:none;margin-top:14px">
+      <div class="card">
+        <div class="ch">
+          <span class="ct">💵 Cobro — <span id="det-pago-ot-num"></span></span>
+          <button class="btn" onclick="cerrarPanelPago()" style="padding:4px 9px"><i class="ti ti-x"></i></button>
+        </div>
+        <div id="det-pago-resumen" style="background:var(--surface-1);border-radius:var(--radius);padding:12px;margin-bottom:14px;font-size:12px"></div>
+        <div style="margin-bottom:12px">
+          <div style="font-size:11px;font-weight:500;color:var(--text-secondary);margin-bottom:8px;text-transform:uppercase;letter-spacing:.04em">Método de pago</div>
+          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px">
+            <button id="det-pago-btn-efectivo"      class="btn" onclick="seleccionarMetodoPago('efectivo')"      style="flex-direction:column;padding:10px 6px;font-size:11px;gap:3px;justify-content:center"><span style="font-size:20px">💵</span>Efectivo</button>
+            <button id="det-pago-btn-tarjeta"       class="btn" onclick="seleccionarMetodoPago('tarjeta')"       style="flex-direction:column;padding:10px 6px;font-size:11px;gap:3px;justify-content:center"><span style="font-size:20px">💳</span>Tarjeta</button>
+            <button id="det-pago-btn-transferencia" class="btn" onclick="seleccionarMetodoPago('transferencia')" style="flex-direction:column;padding:10px 6px;font-size:11px;gap:3px;justify-content:center"><span style="font-size:20px">📲</span>Transf.</button>
+            <button id="det-pago-btn-pendiente"     class="btn" onclick="seleccionarMetodoPago('pendiente')"     style="flex-direction:column;padding:10px 6px;font-size:11px;gap:3px;justify-content:center"><span style="font-size:20px">⏳</span>Pendiente</button>
+          </div>
+        </div>
+        <div id="det-pago-campos-efectivo" style="display:none">
+          <div class="fg"><label>N° de boleta / recibo</label><input id="det-pago-boleta" type="number" placeholder="Ingresa el número de boleta"></div>
+          <button class="btn bpa" style="width:100%;justify-content:center;margin-top:10px" onclick="confirmarPago()"><i class="ti ti-check"></i> Confirmar pago en efectivo</button>
+        </div>
+        <div id="det-pago-campos-tarjeta" style="display:none">
+          <div class="fgrid2">
+            <div class="fg"><label>N° de voucher</label><input id="det-pago-voucher" type="number" placeholder="Ingresa el número de voucher"></div>
+            <div class="fg"><label>Tipo</label>
+              <select id="det-pago-tipo-tarjeta" style="width:100%">
+                <option value="">Seleccionar…</option>
+                <option value="debito">Débito</option>
+                <option value="credito">Crédito</option>
+              </select>
+            </div>
+          </div>
+          <button class="btn bpa" style="width:100%;justify-content:center;margin-top:10px" onclick="confirmarPago()"><i class="ti ti-check"></i> Confirmar pago con tarjeta</button>
+        </div>
+        <div id="det-pago-campos-transferencia" style="display:none">
+          <div class="fg"><label>N° de voucher / comprobante</label><input id="det-pago-comprobante" type="number" placeholder="Ingresa el número de comprobante"></div>
+          <button class="btn bpa" style="width:100%;justify-content:center;margin-top:10px" onclick="confirmarPago()"><i class="ti ti-check"></i> Confirmar transferencia</button>
+        </div>
+        <div id="det-pago-campos-pendiente" style="display:none">
+          <div class="fg"><label>Motivo / nota <span style="font-weight:400;color:var(--text-muted)">(opcional)</span></label>
+            <textarea id="det-pago-motivo" placeholder="Ej: Cliente pagará el viernes" style="min-height:60px"></textarea>
+          </div>
+          <button class="btn" style="width:100%;justify-content:center;margin-top:10px;border-color:#d97706;color:#d97706" onclick="confirmarPago()"><i class="ti ti-clock"></i> Marcar como pendiente de pago</button>
+        </div>
+      </div>
+    </div><!-- /#det-panel-pago -->
 
     <!-- MÓDULO 7: TIEMPO Y RENTABILIDAD -->
     <div id="det-panel-tiempo" style="display:none;margin-top:14px">
