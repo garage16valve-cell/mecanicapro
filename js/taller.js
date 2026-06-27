@@ -354,13 +354,18 @@ let _nOTRepsItems  = [];
 
 function abrirFormNuevaOT() {
   _resetFormNuevaOT();
+  const listado = document.getElementById('ot-listado');
+  if (listado) listado.style.display = 'none';
   const el = document.getElementById('ot-nueva');
-  if (el) { el.style.display = 'block'; el.scrollTop = 0; }
+  if (el) { el.style.display = 'block'; window.scrollTo(0, 0); }
 }
 
 function cerrarFormNuevaOT() {
   const el = document.getElementById('ot-nueva');
   if (el) el.style.display = 'none';
+  const listado = document.getElementById('ot-listado');
+  if (listado) listado.style.display = '';
+  window.scrollTo(0, 0);
 }
 
 function _resetFormNuevaOT() {
@@ -758,15 +763,20 @@ function abrirDetalleOT(id) {
   // Upselling inteligente
   _upsellingRender(ot.patente, ot.servicio);
 
-  // Mostrar overlay
+  // Mostrar detalle, ocultar listado
+  const listado = document.getElementById('ot-listado');
+  if (listado) listado.style.display = 'none';
   document.getElementById('ot-detalle').style.display = 'block';
-  document.getElementById('ot-detalle').scrollTop = 0;
+  window.scrollTo(0, 0);
 }
 
 function volverListaOT() {
   _otDetalleId = null;
   _otEditando  = false;
   document.getElementById('ot-detalle').style.display = 'none';
+  const listado = document.getElementById('ot-listado');
+  if (listado) listado.style.display = '';
+  window.scrollTo(0, 0);
   renderListaOTs();
 }
 
