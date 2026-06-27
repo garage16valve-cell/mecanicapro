@@ -409,3 +409,53 @@ nav { padding: 8px; flex: 1; }
 .ss-item.ss-empty { color: var(--text-muted); cursor: default; font-size: 11px; }
 .ss-meta { margin-left: auto; font-size: 10px; color: var(--text-muted); white-space: nowrap; flex-shrink: 0; }
 @media (max-width: 768px) { .ss-item { min-height: 48px; } }
+
+/* ── Smart Select ─────────────────────────────────────────────────────── */
+.smart-select { position: relative; width: 100%; }
+.smart-select-input {
+  width: 100%; min-height: 44px; padding: 10px 36px 10px 12px;
+  background: var(--surface-0); border: 1px solid var(--border);
+  border-radius: 8px; cursor: pointer; display: flex;
+  align-items: center; justify-content: space-between;
+  font-size: 14px; color: var(--text-primary); user-select: none;
+}
+.smart-select-input:hover { border-color: var(--border-strong); }
+.smart-select-input.open  { border-color: var(--border-accent, #3b82f6); }
+.smart-select-dropdown {
+  position: absolute; top: calc(100% + 4px); left: 0; right: 0;
+  background: var(--surface-1); border: 1px solid var(--border-strong);
+  border-radius: 8px; z-index: 500; max-height: 280px;
+  display: flex; flex-direction: column;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+  animation: dropdownIn 0.15s ease;
+}
+@keyframes dropdownIn {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.smart-select-search { padding: 8px; border-bottom: 1px solid var(--border); flex-shrink: 0; }
+.smart-select-search input {
+  width: 100%; padding: 8px 12px; background: var(--surface-0);
+  border: 1px solid var(--border); border-radius: 6px;
+  font-size: 14px; color: var(--text-primary);
+}
+.smart-select-options { overflow-y: auto; flex: 1; }
+.smart-select-option {
+  padding: 10px 14px; cursor: pointer; font-size: 14px;
+  color: var(--text-primary); display: flex; align-items: center;
+  gap: 8px; min-height: 44px;
+}
+.smart-select-option:hover   { background: var(--surface-0); }
+.smart-select-option.selected { color: #3b82f6; font-weight: 500; }
+.smart-select-add {
+  padding: 10px 14px; cursor: pointer; font-size: 14px; color: #3b82f6;
+  border-top: 1px solid var(--border); display: flex; align-items: center;
+  gap: 6px; min-height: 44px; flex-shrink: 0;
+}
+.smart-select-empty {
+  padding: 16px; text-align: center;
+  color: var(--text-secondary); font-size: 13px;
+}
+@media (max-width: 768px) {
+  .smart-select-option, .smart-select-add { min-height: 52px; font-size: 15px; }
+}
