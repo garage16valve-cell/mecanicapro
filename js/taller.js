@@ -393,6 +393,10 @@ function _nOTServRender() {
   const lista = document.getElementById('n-serv-lista');
   if (!lista) return;
   const svcs = APP.lsGet('mp_servicios', []);
+  if (!svcs.length && !_nOTServsItems.length) {
+    lista.innerHTML = '<div style="font-size:10px;color:var(--text-muted);padding:4px 0">No hay servicios configurados. Ve a <strong>Admin &rsaquo; Configuración</strong> para agregarlos.</div>';
+    return;
+  }
   const opts = svcs.map(s => `<option value="${_tallerEsc(s.nombre)}">`).join('');
   lista.innerHTML = _nOTServsItems.map((item, i) => `
     <div style="display:flex;gap:4px;align-items:center">
@@ -406,6 +410,25 @@ function _nOTServRender() {
 
 function _nOTServSync(i, val) {
   if (_nOTServsItems[i]) _nOTServsItems[i].nombre = val;
+
+  // Autocompletar repuestos sugeridos del catálogo al seleccionar un servicio
+  const catalogo = APP.lsGet('mp_servicios', []);
+  if (!catalogo.length) return;
+  const svc = catalogo.find(s => s.nombre.trim().toLowerCase() === val.trim().toLowerCase());
+  if (!svc || !svc.repuestosSugeridos || !svc.repuestosSugeridos.length) return;
+
+  // Agregar solo los repuestos que aún no están en la lista
+  const existentes = _nOTRepsItems.map(r => (r.desc || '').trim().toLowerCase());
+  let agregados = 0;
+  svc.repuestosSugeridos.forEach(rep => {
+    const nombre = (rep.nombre || '').trim();
+    if (!nombre) return;
+    if (!existentes.includes(nombre.toLowerCase())) {
+      _nOTRepsItems.push({ desc: nombre + (rep.cantidad && rep.cantidad !== 1 ? ' x' + rep.cantidad : ''), precio: 0 });
+      agregados++;
+    }
+  });
+  if (agregados > 0) _nOTRepRender();
 }
 
 function nOTServAdd() {

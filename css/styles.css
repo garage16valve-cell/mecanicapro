@@ -66,7 +66,8 @@ body { font-family: var(--font-sans); background: var(--surface-0); color: var(-
 .app { display: flex; height: 100vh; }
 
 /* SIDEBAR */
-.sidebar { width: 230px; background: var(--surface-2); border-right: 0.5px solid var(--border); display: flex; flex-direction: column; flex-shrink: 0; overflow-y: auto; }
+.sidebar { width: 230px; background: var(--surface-2); border-right: 0.5px solid var(--border); display: flex; flex-direction: column; flex-shrink: 0; overflow-y: visible; height: 100%; }
+.sf { margin-top: auto; }
 .logo { padding: 16px 14px; border-bottom: 0.5px solid var(--border); display: flex; align-items: center; gap: 10px; }
 .logo-icon { width: 32px; height: 32px; background: var(--fill-accent); border-radius: 8px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
 .logo-title { font-size: 14px; font-weight: 500; }
