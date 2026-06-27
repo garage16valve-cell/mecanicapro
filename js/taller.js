@@ -266,7 +266,7 @@ function consultarPatente(val) {
     if (vd) {
       vd.style.display = 'block';
       vd.querySelectorAll('input').forEach(el => { el.removeAttribute('readonly'); el.value = ''; });
-      const vinEl = vd.querySelector('#v-vin'); if (vinEl) vinEl.textContent = '—';
+      // v-vin ya es un input, queda vacío con el bucle anterior
     }
     const cd = document.getElementById('cliente-datos');
     if (cd) cd.style.display = 'block';
@@ -298,7 +298,7 @@ function _llenarVehiculo(d) {
   set('v-tipo',   d.tipo);
   set('v-nmotor', d.nmotor);
   const vin = document.getElementById('v-vin');
-  if (vin) vin.textContent = d.vin || '—';
+  if (vin) vin.value = d.vin !== '—' ? (d.vin || '') : '';
 }
 
 function _mostrarPreCot(d) {
@@ -392,7 +392,7 @@ function crearOT() {
   const comb   = (document.getElementById('v-comb')?.value    || '').trim();
   const tipo   = (document.getElementById('v-tipo')?.value    || '').trim();
   const nmotor = (document.getElementById('v-nmotor')?.value  || '').trim();
-  const vin    =  document.getElementById('v-vin')?.textContent?.trim() || '—';
+  const vin    = (document.getElementById('v-vin')?.value || '').trim() || '—';
 
   // Guardar datos del vehículo en BD local de patentes
   if (pat && marca) {
@@ -457,7 +457,7 @@ function _resetFormOT() {
   ['v-marca','v-modelo','v-anio','v-motor','v-comb','v-tipo','v-nmotor'].forEach(id => {
     const el = document.getElementById(id); if (el) { el.value = ''; el.setAttribute('readonly', ''); }
   });
-  const vin = document.getElementById('v-vin'); if (vin) vin.textContent = '—';
+  const vin = document.getElementById('v-vin'); if (vin) vin.value = '';
   const pi  = document.getElementById('pat-in');
   if (pi) { pi.value = ''; pi.style.borderColor = ''; pi.style.background = ''; }
 
