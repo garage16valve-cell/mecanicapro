@@ -11,6 +11,14 @@
       style="padding:9px 18px;font-size:12px;font-weight:500;background:transparent;border:none;border-bottom:2px solid transparent;color:var(--text-secondary);cursor:pointer;font-family:var(--font-sans)">
       <i class="ti ti-package" style="font-size:13px;vertical-align:-2px;margin-right:4px"></i>Repuestos por OT
     </button>
+    <button id="svc-tab-btn-efic" onclick="svcSetTab('efic')"
+      style="padding:9px 18px;font-size:12px;font-weight:500;background:transparent;border:none;border-bottom:2px solid transparent;color:var(--text-secondary);cursor:pointer;font-family:var(--font-sans)">
+      <i class="ti ti-chart-bar" style="font-size:13px;vertical-align:-2px;margin-right:4px"></i>Eficiencia
+    </button>
+    <button id="svc-tab-btn-prov" onclick="svcSetTab('prov')"
+      style="padding:9px 18px;font-size:12px;font-weight:500;background:transparent;border:none;border-bottom:2px solid transparent;color:var(--text-secondary);cursor:pointer;font-family:var(--font-sans)">
+      <i class="ti ti-building-store" style="font-size:13px;vertical-align:-2px;margin-right:4px"></i>Proveedores
+    </button>
   </div>
 
   <!-- ===== TAB CATÁLOGO ===== -->
@@ -24,7 +32,6 @@
         <span id="svc-count" style="font-size:11px;color:var(--text-muted);white-space:nowrap"></span>
       </div>
       <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-        <!-- Tarifa hora global -->
         <div style="display:flex;align-items:center;gap:6px;background:var(--surface-2);border:0.5px solid var(--border);border-radius:var(--radius);padding:5px 10px">
           <i class="ti ti-currency-dollar" style="font-size:14px;color:var(--text-muted)"></i>
           <span style="font-size:11px;color:var(--text-muted);white-space:nowrap">Tarifa/hora global:</span>
@@ -49,10 +56,7 @@
             <button class="btn" onclick="svcCerrarPanel()" style="padding:3px 8px"><i class="ti ti-x"></i></button>
           </div>
 
-          <div class="fg">
-            <label>Nombre del servicio</label>
-            <input id="svc-f-nombre" placeholder="Ej: Mantención 10.000 km">
-          </div>
+          <div class="fg"><label>Nombre del servicio</label><input id="svc-f-nombre" placeholder="Ej: Mantención 10.000 km"></div>
           <div class="fg">
             <label>Categoría</label>
             <select id="svc-f-cat">
@@ -75,28 +79,42 @@
           </div>
 
           <div class="fg">
-            <label>Valor mano de obra (calculado)</label>
-            <input id="svc-f-valor" type="number" readonly placeholder="—" style="font-weight:600">
+            <label>Valor M.O. (calculado)</label>
+            <input id="svc-f-valor" type="number" readonly placeholder="—" style="font-weight:600;background:var(--surface-2)">
             <span style="font-size:10px;color:var(--text-muted);margin-top:2px;display:block">Tarifa/hora × horas estimadas</span>
+          </div>
+
+          <div style="margin-top:4px;padding-top:10px;border-top:0.5px solid var(--border)">
+            <div style="font-size:11px;font-weight:500;color:var(--text-secondary);margin-bottom:8px"><i class="ti ti-currency-dollar" style="font-size:12px;vertical-align:-2px"></i> Precio y rentabilidad</div>
+            <div class="fgrid3">
+              <div class="fg">
+                <label>Precio fijo de venta ($)</label>
+                <input id="svc-f-precio" type="number" min="0" step="1000" placeholder="0">
+                <span style="font-size:10px;color:var(--text-muted);margin-top:2px;display:block">0 = usar cálculo por horas</span>
+              </div>
+              <div class="fg">
+                <label>Costo rep. estimado ($)</label>
+                <input id="svc-f-costo-reps" type="number" min="0" step="1000" placeholder="0">
+              </div>
+              <div class="fg">
+                <label>Precio mín./hora ($)</label>
+                <input id="svc-f-precio-min-h" type="number" min="0" step="1000" placeholder="0">
+                <span style="font-size:10px;color:var(--text-muted);margin-top:2px;display:block">Alerta si rent. cae bajo esto</span>
+              </div>
+            </div>
           </div>
 
           <div class="div"></div>
 
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
             <span style="font-size:11px;font-weight:500;color:var(--text-secondary)">Repuestos sugeridos</span>
-            <button class="btn" onclick="svcAgregarRepuestoFila()" style="font-size:11px;padding:3px 8px">
-              <i class="ti ti-plus"></i>Agregar
-            </button>
+            <button class="btn" onclick="svcAgregarRepuestoFila()" style="font-size:11px;padding:3px 8px"><i class="ti ti-plus"></i>Agregar</button>
           </div>
           <div id="svc-rep-lista" style="margin-bottom:10px"></div>
 
           <div style="display:flex;gap:8px">
-            <button class="btn bpa" style="flex:1;justify-content:center" onclick="svcGuardar()">
-              <i class="ti ti-device-floppy"></i> Guardar
-            </button>
-            <button class="btn" id="svc-btn-del" style="display:none;color:var(--text-danger);border-color:var(--border-danger)" onclick="svcEliminar()">
-              <i class="ti ti-trash"></i>
-            </button>
+            <button class="btn bpa" style="flex:1;justify-content:center" onclick="svcGuardar()"><i class="ti ti-device-floppy"></i> Guardar</button>
+            <button class="btn" id="svc-btn-del" style="display:none;color:var(--text-danger);border-color:var(--border-danger)" onclick="svcEliminar()"><i class="ti ti-trash"></i></button>
           </div>
         </div>
       </div>
@@ -106,7 +124,6 @@
   <!-- ===== TAB REPUESTOS POR OT ===== -->
   <div id="svc-tab-ot" style="display:none">
     <div class="g2">
-      <!-- Lista OTs activas -->
       <div class="card" style="height:fit-content">
         <div class="ch"><span class="ct"><i class="ti ti-clipboard-list" style="font-size:13px"></i> OTs activas</span>
           <button class="btn" onclick="svcRenderOTLista()" style="padding:3px 8px;font-size:11px"><i class="ti ti-refresh"></i></button>
@@ -114,17 +131,13 @@
         <div id="svc-ot-lista" style="font-size:12px"></div>
       </div>
 
-      <!-- Panel repuestos de la OT seleccionada -->
       <div id="svc-ot-panel" style="display:none">
-        <!-- Info + repuestos -->
         <div class="card" style="margin-bottom:14px">
           <div class="ch">
             <span class="ct" id="svc-ot-titulo">Repuestos — OT</span>
             <button class="btn bpg" onclick="svcOTGuardar()" style="font-size:11px"><i class="ti ti-device-floppy"></i> Guardar</button>
           </div>
           <div id="svc-ot-info" style="font-size:11px;color:var(--text-muted);margin-bottom:10px;display:flex;flex-wrap:wrap;gap:4px;align-items:center"></div>
-
-          <!-- % ganancia global para esta OT -->
           <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;padding:8px 10px;background:var(--surface-1);border-radius:var(--radius);border:0.5px solid var(--border)">
             <i class="ti ti-percentage" style="font-size:14px;color:var(--text-muted)"></i>
             <span style="font-size:11px;color:var(--text-muted)">% ganancia sobre repuestos:</span>
@@ -133,29 +146,99 @@
               placeholder="30" oninput="svcOTRecalc()">
             <span style="font-size:11px;color:var(--text-muted)">%</span>
           </div>
-
           <div id="svc-ot-repuestos-lista"></div>
-
-          <button class="btn" style="width:100%;justify-content:center;margin-top:4px" onclick="svcOTAgregarFila()">
-            <i class="ti ti-plus"></i> Agregar repuesto
-          </button>
-
+          <button class="btn" style="width:100%;justify-content:center;margin-top:4px" onclick="svcOTAgregarFila()"><i class="ti ti-plus"></i> Agregar repuesto</button>
           <div class="div"></div>
-
-          <!-- Totales -->
           <div id="svc-ot-totales"></div>
-
-          <button class="btn bpa" style="width:100%;justify-content:center;margin-top:10px" onclick="svcOTAplicarTotal()">
-            <i class="ti ti-calculator"></i> Aplicar total repuestos a OT
-          </button>
+          <button class="btn bpa" style="width:100%;justify-content:center;margin-top:10px" onclick="svcOTAplicarTotal()"><i class="ti ti-calculator"></i> Aplicar total repuestos a OT</button>
         </div>
+        <div class="card">
+          <div class="ch"><span class="ct"><i class="ti ti-brand-whatsapp" style="font-size:13px"></i> Pedir a proveedores (WA)</span></div>
+          <div id="svc-ot-wa-panel"></div>
+        </div>
+      </div>
+    </div>
+  </div>
 
-        <!-- Mensajes WA por proveedor (consolidado) -->
+  <!-- ===== TAB EFICIENCIA ===== -->
+  <div id="svc-tab-efic" style="display:none">
+    <div class="card">
+      <div class="ch">
+        <span class="ct"><i class="ti ti-chart-bar" style="font-size:13px"></i> Reporte de eficiencia por servicio</span>
+        <button class="btn" onclick="svcRenderEficiencia()" style="font-size:11px;padding:4px 9px"><i class="ti ti-refresh"></i> Actualizar</button>
+      </div>
+      <div style="font-size:11px;color:var(--text-muted);margin-bottom:12px">
+        Compara el tiempo estimado del catálogo vs. el tiempo real registrado en OTs completadas.
+        La tendencia compara la primera y segunda mitad de las ejecuciones históricas.
+      </div>
+      <div style="overflow-x:auto">
+        <table class="tbl" style="min-width:560px">
+          <thead>
+            <tr>
+              <th>Servicio</th>
+              <th style="text-align:center">Ejecuciones</th>
+              <th>T.est catálogo</th>
+              <th>T.real promedio</th>
+              <th style="text-align:center">Eficiencia %</th>
+              <th>Tendencia</th>
+            </tr>
+          </thead>
+          <tbody id="svc-efic-tbody">
+            <tr><td colspan="6" style="text-align:center;color:var(--text-muted);padding:20px;font-size:11px">Cargando…</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div style="margin-top:12px;padding:10px;background:var(--surface-1);border-radius:var(--radius);font-size:10px;color:var(--text-muted)">
+        <strong>Eficiencia</strong> = tiempo estimado / tiempo real × 100. &gt;95% = excelente, 75–95% = normal, &lt;75% = revisar proceso.
+        <strong>Sparkline</strong>: últimas 5 ejecuciones (verde = sobre 95%, amarillo = 75–95%, rojo = bajo 75%).
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== TAB PROVEEDORES ===== -->
+  <div id="svc-tab-prov" style="display:none">
+    <div class="g2">
+      <!-- Lista proveedores -->
+      <div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+          <span style="font-size:12px;font-weight:500">Proveedores del taller</span>
+          <button class="btn bpa" onclick="svcProvNuevo()"><i class="ti ti-plus"></i> Agregar proveedor</button>
+        </div>
+        <div id="svc-prov-lista"></div>
+      </div>
+
+      <!-- Formulario proveedor -->
+      <div id="svc-prov-panel" style="display:none">
         <div class="card">
           <div class="ch">
-            <span class="ct"><i class="ti ti-brand-whatsapp" style="font-size:13px"></i> Pedir a proveedores (WA)</span>
+            <span class="ct" id="svc-prov-panel-titulo">Nuevo proveedor</span>
+            <button class="btn" onclick="svcProvCerrarPanel()" style="padding:3px 8px"><i class="ti ti-x"></i></button>
           </div>
-          <div id="svc-ot-wa-panel"></div>
+          <div class="fg"><label>Nombre del proveedor</label><input id="svc-prov-f-nombre" placeholder="Ej: Repuestos Díaz"></div>
+          <div class="fg">
+            <label>Rubro</label>
+            <select id="svc-prov-f-rubro" style="width:100%">
+              <option value="">Seleccionar…</option>
+              <option>Repuestos generales</option>
+              <option>Lubricantes y fluidos</option>
+              <option>Frenos y suspensión</option>
+              <option>Electricidad automotriz</option>
+              <option>Neumáticos</option>
+              <option>Carrocería y pintura</option>
+              <option>Herramientas</option>
+              <option>Otro</option>
+            </select>
+          </div>
+          <div class="fg">
+            <label>WhatsApp</label>
+            <input id="svc-prov-f-wz" placeholder="+569XXXXXXXX" style="font-family:var(--font-mono)">
+          </div>
+          <div style="margin-top:4px;padding:8px;background:var(--surface-1);border-radius:var(--radius);font-size:10px;color:var(--text-muted)">
+            Después de guardar, vincula al proveedor con los servicios que abastece para poder cotizar por WA con un clic.
+          </div>
+          <button class="btn bpa" style="width:100%;justify-content:center;margin-top:10px" onclick="svcProvGuardar()">
+            <i class="ti ti-device-floppy"></i> Guardar proveedor
+          </button>
         </div>
       </div>
     </div>
