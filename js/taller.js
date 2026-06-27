@@ -11,11 +11,16 @@ function init_taller() {
       'BCDF34': { marca:'Honda',      modelo:'Civic',     anio:'2021', motor:'1.5L VTEC Turbo L15B7',comb:'Bencina',  tipo:'Sedán',     vin:'2HGFC2F59MH552143', nmotor:'L15B7-0183920'    },
     });
   }
-  // El pg-ot necesita position:relative para que el overlay absoluto funcione
-  const pgOt = document.getElementById('pg-ot');
-  if (pgOt) pgOt.style.position = 'relative';
   renderListaOTs();
   renderClientes();
+  // ESC cierra modales de OT
+  document.addEventListener('keydown', e => {
+    if (e.key !== 'Escape') return;
+    const nueva = document.getElementById('ot-nueva');
+    if (nueva && nueva.style.display === 'flex') { cerrarFormNuevaOT(); return; }
+    const det = document.getElementById('ot-detalle');
+    if (det && det.style.display === 'flex') { volverListaOT(); }
+  });
 }
 
 // ===== MÓDULO CLIENTES (renderizado dinámico desde mp_clientes) =====
@@ -357,7 +362,7 @@ function abrirFormNuevaOT() {
   const listado = document.getElementById('ot-listado');
   if (listado) listado.style.display = 'none';
   const el = document.getElementById('ot-nueva');
-  if (el) { el.style.display = 'block'; window.scrollTo(0, 0); }
+  if (el) { el.style.display = 'flex'; }
 }
 
 function cerrarFormNuevaOT() {
@@ -553,7 +558,7 @@ function crearOT() {
   const nombre = g('n-nombre');
 
   if (!pat && !nombre) {
-    alert('Ingresa al menos la patente o el nombre del cliente.');
+    APP.toast.show('⚠️ Ingresa al menos la patente o el nombre del cliente.', 'warning');
     return;
   }
 
@@ -664,6 +669,7 @@ function crearOT() {
 
   cerrarFormNuevaOT();
   renderListaOTs();
+  APP.toast.show('✓ OT ' + id + ' creada correctamente', 'success');
   abrirDetalleOT(id);
 }
 
@@ -854,8 +860,7 @@ function abrirDetalleOT(id) {
   // Mostrar detalle, ocultar listado
   const listado = document.getElementById('ot-listado');
   if (listado) listado.style.display = 'none';
-  document.getElementById('ot-detalle').style.display = 'block';
-  window.scrollTo(0, 0);
+  document.getElementById('ot-detalle').style.display = 'flex';
 }
 
 function volverListaOT() {
@@ -979,6 +984,7 @@ function guardarCambiosOT() {
 
   APP.lsSet('mp_ots', ots);
   _otEditando = false;
+  APP.toast.show('✓ Cambios guardados', 'success');
   abrirDetalleOT(_otDetalleId); // refresca la vista
 }
 
@@ -1134,7 +1140,7 @@ function enviarCotizacionWA() {
 
 function copiarCotizacion() {
   const texto = document.getElementById('det-cot-texto')?.value || '';
-  navigator.clipboard.writeText(texto).then(() => alert('✓ Cotización copiada al portapapeles.\nPégala en un correo o WhatsApp.'));
+  navigator.clipboard.writeText(texto).then(() => APP.toast.show('✓ Cotización copiada al portapapeles', 'success'));
 }
 
 // ===== MÓDULO 6: CIERRE + INSTAGRAM =====
@@ -1210,19 +1216,19 @@ function seleccionarMetodoPago(metodo) {
 }
 
 function confirmarPago() {
-  if (!_pagoMetodo) { alert('Selecciona un método de pago.'); return; }
+  if (!_pagoMetodo) { APP.toast.show('⚠️ Selecciona un método de pago.', 'warning'); return; }
   const g = id => (document.getElementById(id)?.value || '').trim();
   const datoPago = { metodo: _pagoMetodo };
 
   if (_pagoMetodo === 'efectivo') {
-    if (!g('det-pago-boleta')) { alert('Ingresa el número de boleta.'); return; }
+    if (!g('det-pago-boleta')) { APP.toast.show('⚠️ Ingresa el número de boleta.', 'warning'); return; }
     datoPago.boleta = g('det-pago-boleta');
   } else if (_pagoMetodo === 'tarjeta') {
-    if (!g('det-pago-voucher')) { alert('Ingresa el número de voucher.'); return; }
+    if (!g('det-pago-voucher')) { APP.toast.show('⚠️ Ingresa el número de voucher.', 'warning'); return; }
     datoPago.voucher     = g('det-pago-voucher');
     datoPago.tipoTarjeta = g('det-pago-tipo-tarjeta');
   } else if (_pagoMetodo === 'transferencia') {
-    if (!g('det-pago-comprobante')) { alert('Ingresa el número de comprobante.'); return; }
+    if (!g('det-pago-comprobante')) { APP.toast.show('⚠️ Ingresa el número de comprobante.', 'warning'); return; }
     datoPago.comprobante = g('det-pago-comprobante');
   } else if (_pagoMetodo === 'pendiente') {
     datoPago.motivo = g('det-pago-motivo');
@@ -1298,7 +1304,7 @@ Confía en nosotros para mantener tu vehículo en óptimas condiciones. ¡Agenda
 
 function copiarPostIG() {
   const texto = document.getElementById('det-ig-texto')?.value || '';
-  navigator.clipboard.writeText(texto).then(() => alert('✓ Texto copiado.\nPégalo directamente en Instagram.'));
+  navigator.clipboard.writeText(texto).then(() => APP.toast.show('✓ Texto copiado — pégalo en Instagram', 'success'));
 }
 
 function previsualizarFoto(input) {

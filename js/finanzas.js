@@ -57,7 +57,7 @@ function agregarCuenta() {
 
 function eliminarCuenta(i) {
   const cuentas = getCuentas();
-  if (cuentas.length <= 1) { alert('Debe existir al menos una cuenta.'); return; }
+  if (cuentas.length <= 1) { APP.toast.show('⚠️ Debe existir al menos una cuenta.', 'warning'); return; }
   cuentas.splice(i, 1);
   saveCuentas(cuentas);
   renderCuentas();
@@ -113,7 +113,7 @@ function guardarCuentas() {
   const cuentas = getCuentas();
   const total = cuentas.reduce((s, c) => s + (parseFloat(c.pct) || 0), 0);
   if (Math.abs(total - 100) > 0.1) {
-    alert('La distribución debe sumar 100%.\nActual: ' + Math.round(total * 10) / 10 + '%');
+    APP.toast.show('⚠️ La distribución debe sumar 100%. Actual: ' + Math.round(total * 10) / 10 + '%', 'warning');
     return;
   }
   const bar = document.getElementById('total-bar');

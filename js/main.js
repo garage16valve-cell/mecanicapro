@@ -139,6 +139,65 @@ window.APP = {
   lsSet(key, val) {
     try { localStorage.setItem(key, JSON.stringify(val)); } catch (e) { console.error('localStorage error:', e); }
   },
+
+  // ── Toast notifications ──
+  toast: {
+    show(mensaje, tipo = 'success', duracion = 3000) {
+      let container = document.querySelector('.toast-container');
+      if (!container) {
+        container = document.createElement('div');
+        container.className = 'toast-container';
+        document.body.appendChild(container);
+      }
+      const t = document.createElement('div');
+      t.className = 'toast ' + tipo;
+      t.textContent = mensaje;
+      container.appendChild(t);
+      setTimeout(() => {
+        t.style.opacity = '0';
+        t.style.transition = 'opacity 0.3s';
+        setTimeout(() => t.remove(), 300);
+      }, duracion);
+    }
+  },
+
+  // ── Modales dinámicos (confirmaciones) ──
+  modal: {
+    abrir(htmlContenido, tamaño = 'mediano') {
+      this.cerrar();
+      const overlay = document.createElement('div');
+      overlay.className = 'modal-overlay';
+      overlay.id = 'app-modal-overlay';
+      const cls = tamaño === 'grande' ? 'modal-grande' : tamaño === 'pequeño' ? 'modal-peq' : 'modal-mediano';
+      overlay.innerHTML = `<div class="${cls}">${htmlContenido}</div>`;
+      overlay.addEventListener('click', e => { if (e.target === overlay) this.cerrar(); });
+      document.body.appendChild(overlay);
+      const escFn = e => { if (e.key === 'Escape') { this.cerrar(); document.removeEventListener('keydown', escFn); } };
+      document.addEventListener('keydown', escFn);
+      return overlay;
+    },
+    cerrar() {
+      const el = document.getElementById('app-modal-overlay');
+      if (el) el.remove();
+    },
+    confirmar(mensaje, onSi, textoSi = 'Sí, confirmar', textoNo = 'Cancelar') {
+      const html = `
+        <div class="modal-header">
+          <h2>¿Confirmar acción?</h2>
+          <button class="modal-close" onclick="APP.modal.cerrar()">×</button>
+        </div>
+        <div class="modal-body" style="padding:20px 20px 8px;font-size:13px;color:var(--text-primary)">${mensaje}</div>
+        <div class="modal-footer">
+          <button class="btn" onclick="APP.modal.cerrar()">${textoNo}</button>
+          <button class="btn bpa" id="app-modal-ok-btn">${textoSi}</button>
+        </div>`;
+      this.abrir(html, 'pequeño');
+      document.getElementById('app-modal-ok-btn').addEventListener('click', () => {
+        this.cerrar();
+        onSi();
+      });
+    }
+  },
 };
 
 // ===== INICIO =====

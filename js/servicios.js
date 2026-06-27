@@ -192,8 +192,8 @@ function svcProvCerrarPanel() {
 function svcProvGuardar() {
   const g = id => (document.getElementById(id)?.value||'').trim();
   const nombre = g('svc-prov-f-nombre');
-  if (!nombre) { alert('Ingresa el nombre del proveedor.'); return; }
-  if (!_svcProvMarcas.length) { alert('Agrega al menos una marca que abastece el proveedor.'); return; }
+  if (!nombre) { APP.toast.show('⚠️ Ingresa el nombre del proveedor.', 'warning'); return; }
+  if (!_svcProvMarcas.length) { APP.toast.show('⚠️ Agrega al menos una marca que abastece el proveedor.', 'warning'); return; }
   const provs = APP.lsGet('mp_proveedores', []);
   const dato  = { nombre, rubro:g('svc-prov-f-rubro'), wz:g('svc-prov-f-wz'), marcas:[..._svcProvMarcas] };
   if (_svcProvEdit) {
@@ -208,9 +208,10 @@ function svcProvGuardar() {
 }
 
 function svcProvEliminar(id) {
-  if (!confirm('¿Eliminar este proveedor?')) return;
-  APP.lsSet('mp_proveedores', APP.lsGet('mp_proveedores',[]).filter(p => p.id !== id));
-  svcRenderProveedores();
+  APP.modal.confirmar('¿Eliminar este proveedor? Esta acción no se puede deshacer.', () => {
+    APP.lsSet('mp_proveedores', APP.lsGet('mp_proveedores',[]).filter(p => p.id !== id));
+    svcRenderProveedores();
+  }, 'Eliminar', 'Cancelar');
 }
 
 // ===== CHIPS DE MARCAS =====

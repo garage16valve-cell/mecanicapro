@@ -108,7 +108,7 @@ function admCatCerrarPanel() {
 function admCatGuardar() {
   const g = id => (document.getElementById(id)?.value || '').trim();
   const nombre = g('adm-cat-f-nombre');
-  if (!nombre) { alert('Ingresa el nombre del servicio.'); return; }
+  if (!nombre) { APP.toast.show('⚠️ Ingresa el nombre del servicio.', 'warning'); return; }
   const dato = {
     nombre,
     categoria:     document.getElementById('adm-cat-f-cat')?.value || 'Otro',
@@ -130,9 +130,11 @@ function admCatGuardar() {
 }
 
 function admCatEliminar() {
-  if (!_admCatEditId || !confirm('¿Eliminar este servicio del catálogo?')) return;
-  APP.lsSet('mp_servicios', APP.lsGet('mp_servicios',[]).filter(s => s.id !== _admCatEditId));
-  _admCatRender(); admCatCerrarPanel(); _admPanelServicios();
+  if (!_admCatEditId) return;
+  APP.modal.confirmar('¿Eliminar este servicio del catálogo? Esta acción no se puede deshacer.', () => {
+    APP.lsSet('mp_servicios', APP.lsGet('mp_servicios',[]).filter(s => s.id !== _admCatEditId));
+    _admCatRender(); admCatCerrarPanel(); _admPanelServicios();
+  }, 'Eliminar', 'Cancelar');
 }
 
 function admCatAgregarRep() {
@@ -560,7 +562,7 @@ function admExportarPDF() {
   </body></html>`;
 
   const win = window.open('', '_blank');
-  if (!win) { alert('Permite ventanas emergentes para exportar el PDF.'); return; }
+  if (!win) { APP.toast.show('⚠️ Permite ventanas emergentes para exportar el PDF.', 'warning'); return; }
   win.document.write(html); win.document.close();
   setTimeout(() => win.print(), 600);
 }
@@ -748,9 +750,10 @@ function admToggleOperario(id) {
 }
 
 function admEliminarOperario(id) {
-  if (!confirm('¿Eliminar este operario?')) return;
-  APP.lsSet('mp_operarios', APP.lsGet('mp_operarios', []).filter(o => o.id !== id));
-  _admRenderOperarios();
+  APP.modal.confirmar('¿Eliminar este operario?', () => {
+    APP.lsSet('mp_operarios', APP.lsGet('mp_operarios', []).filter(o => o.id !== id));
+    _admRenderOperarios();
+  }, 'Eliminar', 'Cancelar');
 }
 
 function _admSyncColoresCalendario(ops) {
@@ -814,9 +817,10 @@ function admUpsellElim(i) {
 }
 
 function admUpsellReset() {
-  if (!confirm('¿Restaurar las reglas de upselling por defecto?')) return;
-  APP.lsSet('mp_upselling_rules', JSON.parse(JSON.stringify(_ADM_UPSELL_DEFAULT)));
-  _admRenderUpselling();
+  APP.modal.confirmar('¿Restaurar las reglas de upselling por defecto? Se perderán los cambios manuales.', () => {
+    APP.lsSet('mp_upselling_rules', JSON.parse(JSON.stringify(_ADM_UPSELL_DEFAULT)));
+    _admRenderUpselling();
+  }, 'Restaurar', 'Cancelar');
 }
 
 // ===== ALERTAS — CONFIG =====
@@ -1009,10 +1013,11 @@ function _admRenderLog() {
 }
 
 function admLimpiarLog() {
-  if (!confirm('¿Borrar todo el historial de alertas?')) return;
-  APP.lsSet('mp_alertas_log', []);
-  _admRenderLog();
-  _admScanPostServicio();
+  APP.modal.confirmar('¿Borrar todo el historial de alertas?', () => {
+    APP.lsSet('mp_alertas_log', []);
+    _admRenderLog();
+    _admScanPostServicio();
+  }, 'Borrar historial', 'Cancelar');
 }
 
 // ===== HELPERS =====
