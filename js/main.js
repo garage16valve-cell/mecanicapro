@@ -168,7 +168,7 @@ window.APP = {
       const overlay = document.createElement('div');
       overlay.className = 'modal-overlay';
       overlay.id = 'app-modal-overlay';
-      const cls = tamaño === 'grande' ? 'modal-grande' : tamaño === 'pequeño' ? 'modal-peq' : 'modal-mediano';
+      const cls = tamaño === 'grande' ? 'modal-grande' : (tamaño === 'pequeño' || tamaño === 'pequeno') ? 'modal-peq' : 'modal-mediano';
       overlay.innerHTML = `<div class="${cls}">${htmlContenido}</div>`;
       overlay.addEventListener('click', e => { if (e.target === overlay) this.cerrar(); });
       document.body.appendChild(overlay);
