@@ -1,16 +1,17 @@
 // ===== MÓDULO: TALLER (OT, Clientes, Wiki) =====
 function init_taller() {
-  // Sin inicialización al cargar; el formulario se activa con la patente
+  // Sembrar datos demo en localStorage si la BD de patentes está vacía
+  const db = APP.lsGet('mp_patentes', null);
+  if (!db) {
+    APP.lsSet('mp_patentes', {
+      'ABCD12': { marca:'Toyota',     modelo:'Corolla',   anio:'2022', motor:'1.8L Hybrid 2ZR-FXE', comb:'Híbrido',  tipo:'Sedán',     vin:'JTDL9RFU4N3088412', nmotor:'2ZR-FXE-K3820541' },
+      'KGSJK9': { marca:'Kia',        modelo:'Sportage',  anio:'2023', motor:'2.0L GDI MPI G4KD',   comb:'Bencina',  tipo:'SUV',       vin:'KNAPM815XN7394820', nmotor:'G4KD-N1052038'    },
+      'GHJK45': { marca:'Volkswagen', modelo:'Golf',      anio:'2021', motor:'1.4L TSI CZEA',        comb:'Bencina',  tipo:'Hatchback', vin:'WVWZZZ1KZMW123456', nmotor:'CZEA-B2019301'    },
+      'MNOP78': { marca:'Ford',       modelo:'F-150',     anio:'2020', motor:'3.5L EcoBoost V6',     comb:'Bencina',  tipo:'Pick-up',   vin:'1FTFW1ET1LFA12345', nmotor:'35EB-C1082930'    },
+      'BCDF34': { marca:'Honda',      modelo:'Civic',     anio:'2021', motor:'1.5L VTEC Turbo L15B7',comb:'Bencina',  tipo:'Sedán',     vin:'2HGFC2F59MH552143', nmotor:'L15B7-0183920'    },
+    });
+  }
 }
-
-// ===== BASE DE DATOS DE PATENTES (demo / fallback) =====
-const DB_PAT = {
-  'ABCD12': { marca:'Toyota',     modelo:'Corolla',   anio:'2022', motor:'1.8L Hybrid 2ZR-FXE', comb:'Híbrido',  tipo:'Sedán',     vin:'JTDL9RFU4N3088412', nmotor:'2ZR-FXE-K3820541' },
-  'KGSJK9': { marca:'Kia',        modelo:'Sportage',  anio:'2023', motor:'2.0L GDI MPI G4KD',   comb:'Bencina',  tipo:'SUV',       vin:'KNAPM815XN7394820', nmotor:'G4KD-N1052038'    },
-  'GHJK45': { marca:'Volkswagen', modelo:'Golf',      anio:'2021', motor:'1.4L TSI CZEA',        comb:'Bencina',  tipo:'Hatchback', vin:'WVWZZZ1KZMW123456', nmotor:'CZEA-B2019301'    },
-  'MNOP78': { marca:'Ford',       modelo:'F-150',     anio:'2020', motor:'3.5L EcoBoost V6',     comb:'Bencina',  tipo:'Pick-up',   vin:'1FTFW1ET1LFA12345', nmotor:'35EB-C1082930'    },
-  'BCDF34': { marca:'Honda',      modelo:'Civic',     anio:'2021', motor:'1.5L VTEC Turbo L15B7',comb:'Bencina',  tipo:'Sedán',     vin:'2HGFC2F59MH552143', nmotor:'L15B7-0183920'    },
-};
 
 // Pre-cotizaciones por marca
 const PRECOTS = {
@@ -21,13 +22,35 @@ const PRECOTS = {
   Honda:      { items:'Filtro aceite $5.800 · Aceite 0W-20 4L $28.000 · Filtro aire $13.500 · M.obra $35.000', total:'$82.300', h:'Dado 17mm · Torquímetro 25 Nm' },
 };
 
+// ===== BD LOCAL DE PATENTES =====
+function _patGet(pat) {
+  const db = APP.lsGet('mp_patentes', {});
+  return db[pat] || null;
+}
+
+function _patSave(pat, datos) {
+  if (!pat || !datos) return;
+  const db = APP.lsGet('mp_patentes', {});
+  db[pat] = {
+    marca:  datos.marca  || '—',
+    modelo: datos.modelo || '—',
+    anio:   datos.anio   || '—',
+    motor:  datos.motor  || '—',
+    comb:   datos.comb   || '—',
+    tipo:   datos.tipo   || '—',
+    vin:    datos.vin    || '—',
+    nmotor: datos.nmotor || '—',
+  };
+  APP.lsSet('mp_patentes', db);
+}
+
 // ===== CONSULTA DE PATENTE =====
 function setPatente(pat) {
   const i = document.getElementById('pat-in');
   if (i) { i.value = pat; consultarPatente(pat); }
 }
 
-async function consultarPatente(val) {
+function consultarPatente(val) {
   const pat = (typeof val === 'string' ? val : '')
     .toUpperCase().replace(/[^A-Z0-9]/g, '');
 
@@ -37,129 +60,57 @@ async function consultarPatente(val) {
   }
 
   const pi = document.getElementById('pat-in');
-  if (pi) {
-    pi.style.borderColor = 'var(--border-warning)';
-    pi.style.background  = 'var(--bg-warning)';
-  }
-  _setPatStatus('loading', 'Consultando registro… <span class="spin" style="display:inline-block;width:10px;height:10px;border:2px solid currentColor;border-top-color:transparent;border-radius:50%;animation:spin .7s linear infinite;vertical-align:-2px"></span>');
 
-  let datos = null;
-  let fuenteDatos = '';
+  // 1. Buscar en BD local (localStorage)
+  const datos = _patGet(pat);
 
-  // --- APIs en orden de preferencia ---
-  const APIS = [
-    {
-      url: 'https://api.vehiculos.cl/patente/' + pat,
-      map: d => ({
-        marca:  d.marca  || d.brand                           || '—',
-        modelo: d.modelo || d.model                          || '—',
-        anio:   String(d.anio || d.año || d.year             || '—'),
-        motor:  d.motor  || d.engine                         || '—',
-        comb:   d.combustible || d.fuel                      || '—',
-        tipo:   d.tipo   || d.type || d.carroceria           || '—',
-        vin:    d.vin    || d.chasis || d.chassis            || '—',
-        nmotor: d.nmotor || d.numero_motor || d.motor_number || '—',
-      }),
-    },
-    {
-      url: 'https://rut.buscador.cl/api/vehiculo?patente=' + pat,
-      map: d => ({
-        marca:  d.marca  || d.brand                           || '—',
-        modelo: d.modelo || d.model                          || '—',
-        anio:   String(d.anio || d.año || d.year             || '—'),
-        motor:  d.motor  || d.engine                         || '—',
-        comb:   d.combustible || d.fuel                      || '—',
-        tipo:   d.tipo   || d.type || d.carroceria           || '—',
-        vin:    d.vin    || d.chasis || d.chassis            || '—',
-        nmotor: d.nmotor || d.numero_motor || d.motor_number || '—',
-      }),
-    },
-  ];
-
-  for (const api of APIS) {
-    if (datos) break;
-    try {
-      console.log('[patente] consultando →', api.url);
-      const ctrl  = new AbortController();
-      const timer = setTimeout(() => ctrl.abort(), 8000);
-      const resp  = await fetch(api.url, { signal: ctrl.signal });
-      clearTimeout(timer);
-      console.log('[patente] HTTP', resp.status, api.url);
-      if (!resp.ok) continue;
-
-      const json = await resp.json();
-      console.log('[patente] JSON:', json);
-
-      // Acepta { data: {...} } o la raíz directa
-      const d = json.data || json;
-      if (d && (d.marca || d.brand || d.make || d.modelo || d.model)) {
-        datos = api.map(d);
-        fuenteDatos = 'API';
-        console.log('[patente] datos mapeados:', datos);
-      }
-    } catch (e) {
-      console.warn('[patente] CATCH', api.url, '—', e.name, e.message);
-    }
-  }
-
-  // --- Fallback a datos demo ---
-  if (!datos && DB_PAT[pat]) {
-    datos = DB_PAT[pat];
-    fuenteDatos = 'demo';
-  }
-
-  // --- Mostrar resultado ---
   if (datos) {
-    if (pi) {
-      pi.style.borderColor = 'var(--fill-success)';
-      pi.style.background  = 'var(--bg-success)';
-    }
-    const fuente = fuenteDatos === 'demo'
-      ? ' <span style="font-size:9px;opacity:.6">(datos demo)</span>'
-      : '';
-    _setPatStatus('ok', `Vehículo encontrado — <strong>${pat}</strong>${fuente}`);
+    // ── Encontrado en BD local: mostrar al instante ──
+    if (pi) { pi.style.borderColor = 'var(--fill-success)'; pi.style.background = 'var(--bg-success)'; }
+    _setPatStatus('ok', `Vehículo encontrado — <strong>${pat}</strong> <span style="font-size:9px;opacity:.6">(base local)</span>`);
     _llenarVehiculo(datos);
-
+    // Desbloquear campos para permitir correcciones
     const vd = document.getElementById('vehiculo-datos');
-    const cd = document.getElementById('cliente-datos');
-    if (vd) vd.style.display = 'block';
-    if (cd) cd.style.display = 'block';
-
-    _mostrarPreCot(datos);
-    _checkClienteExistente(pat);
-  } else {
-    // --- Ambas APIs fallaron: mostrar formulario manual ---
-    if (pi) {
-      pi.style.borderColor = 'var(--border-warning)';
-      pi.style.background  = 'var(--surface-1)';
-    }
-    _setPatStatus('error',
-      'No se encontraron datos para <strong>' + pat + '</strong>. ' +
-      'Ingresa los datos del vehículo manualmente.'
-    );
-
-    // Mostrar sección de vehículo con campos desbloqueados para edición manual
-    const vd = document.getElementById('vehiculo-datos');
-    const cd = document.getElementById('cliente-datos');
     if (vd) {
       vd.style.display = 'block';
-      // Desbloquear todos los campos del vehículo para ingreso manual
       vd.querySelectorAll('input[readonly]').forEach(el => el.removeAttribute('readonly'));
     }
+    const cd = document.getElementById('cliente-datos');
     if (cd) cd.style.display = 'block';
+    _mostrarPreCot(datos);
+    _checkClienteExistente(pat);
+
+  } else {
+    // 2. No encontrado: mostrar formulario manual
+    if (pi) { pi.style.borderColor = 'var(--border-warning)'; pi.style.background = 'var(--surface-1)'; }
+    _setPatStatus('warn',
+      `Patente <strong>${pat}</strong> no está en la base local. ` +
+      `Ingresa los datos del vehículo — quedarán guardados para la próxima vez.`
+    );
+
+    // Mostrar sección vehículo con campos vacíos y desbloqueados
+    const vd = document.getElementById('vehiculo-datos');
+    if (vd) {
+      vd.style.display = 'block';
+      vd.querySelectorAll('input').forEach(el => { el.removeAttribute('readonly'); el.value = ''; });
+      const vinEl = vd.querySelector('#v-vin'); if (vinEl) vinEl.textContent = '—';
+    }
+    const cd = document.getElementById('cliente-datos');
+    if (cd) cd.style.display = 'block';
+    const pb = document.getElementById('precot-box');
+    if (pb) pb.style.display = 'none';
   }
 }
-
 
 function _setPatStatus(type, msg) {
   const st = document.getElementById('pat-status');
   if (!st) return;
   const icons = {
-    loading: '',
-    ok:    '<i class="ti ti-circle-check" style="font-size:12px;vertical-align:-2px;margin-right:3px"></i>',
-    error: '<i class="ti ti-alert-circle"  style="font-size:12px;vertical-align:-2px;margin-right:3px"></i>',
+    ok:   '<i class="ti ti-circle-check" style="font-size:12px;vertical-align:-2px;margin-right:3px"></i>',
+    warn: '<i class="ti ti-info-circle"  style="font-size:12px;vertical-align:-2px;margin-right:3px"></i>',
+    error:'<i class="ti ti-alert-circle" style="font-size:12px;vertical-align:-2px;margin-right:3px"></i>',
   };
-  const colors = { loading:'var(--text-muted)', ok:'var(--text-success)', error:'var(--text-danger)' };
+  const colors = { ok:'var(--text-success)', warn:'var(--text-warning, #d97706)', error:'var(--text-danger)' };
   st.style.color = colors[type] || 'var(--text-muted)';
   st.innerHTML   = (icons[type] || '') + msg;
 }
@@ -189,7 +140,6 @@ function _mostrarPreCot(d) {
   const wt = document.getElementById('wiki-text');
   if (wt) wt.innerHTML = `<strong>Wiki técnica:</strong> Herramientas sugeridas para ${d.marca} ${d.modelo}: ${pc.h}`;
 
-  // Sugerir proveedor con esa marca desde localStorage
   const proveedores = APP.lsGet('mp_proveedores', [
     { nombre:'Repuestos Chile Ltda.', vendedor:'Carlos Vega',  pais:'+56', wzp:'9 4521 3322', marcas:['Toyota','Hyundai','Kia','Nissan'] },
     { nombre:'AutoPartes SUR',        vendedor:'Ana Torres',   pais:'+56', wzp:'9 8821 4400', marcas:['Chevrolet','Ford','Jeep'] },
@@ -235,10 +185,19 @@ function crearOT() {
   const tecnico=  document.getElementById('c-tec')?.value     || '';
   const serv   =  document.getElementById('c-serv')?.value    || '';
   const notas  =  document.getElementById('c-notas')?.value   || '';
-  const marca  =  document.getElementById('v-marca')?.value   || '';
-  const modelo =  document.getElementById('v-modelo')?.value  || '';
-  const anio   =  document.getElementById('v-anio')?.value    || '';
-  const vin    =  document.getElementById('v-vin')?.textContent || '—';
+  const marca  = (document.getElementById('v-marca')?.value   || '').trim();
+  const modelo = (document.getElementById('v-modelo')?.value  || '').trim();
+  const anio   = (document.getElementById('v-anio')?.value    || '').trim();
+  const motor  = (document.getElementById('v-motor')?.value   || '').trim();
+  const comb   = (document.getElementById('v-comb')?.value    || '').trim();
+  const tipo   = (document.getElementById('v-tipo')?.value    || '').trim();
+  const nmotor = (document.getElementById('v-nmotor')?.value  || '').trim();
+  const vin    =  document.getElementById('v-vin')?.textContent?.trim() || '—';
+
+  // Guardar datos del vehículo en BD local de patentes
+  if (pat && marca) {
+    _patSave(pat, { marca, modelo, anio, motor, comb, tipo, vin, nmotor });
+  }
 
   // Auto-crear o actualizar cliente (dedup por RUT o patente)
   const clientes = APP.lsGet('mp_clientes', []);
@@ -256,8 +215,8 @@ function crearOT() {
     clientes.push(cli);
   } else {
     cli.nombre = nombre;
-    if (rut) cli.rut = rut;
-    if (wz)  cli.wz  = wz;
+    if (rut)  cli.rut  = rut;
+    if (wz)   cli.wz   = wz;
     if (mail) cli.mail = mail;
     if (pat && !cli.patentes.includes(pat)) cli.patentes.push(pat);
   }
@@ -267,7 +226,7 @@ function crearOT() {
   const num = Math.max(41, ...ots.map(o => o.num || 0)) + 1;
   const id  = '#' + String(num).padStart(4, '0');
   const ot  = {
-    id, num, patente: pat, marca, modelo, anio, vin,
+    id, num, patente: pat, marca, modelo, anio, motor, comb, tipo, vin, nmotor,
     clienteId: cli.id, clienteNombre: nombre, rut, wz, mail, km,
     tecnico, servicio: serv, notas,
     estado: 'agendado',
@@ -289,7 +248,7 @@ function _resetFormOT() {
   });
   const km = document.getElementById('c-km'); if (km) km.value = '';
   ['v-marca','v-modelo','v-anio','v-motor','v-comb','v-tipo','v-nmotor'].forEach(id => {
-    const el = document.getElementById(id); if (el) el.value = '';
+    const el = document.getElementById(id); if (el) { el.value = ''; el.setAttribute('readonly', ''); }
   });
   const vin = document.getElementById('v-vin'); if (vin) vin.textContent = '—';
   const pi  = document.getElementById('pat-in');
@@ -299,7 +258,7 @@ function _resetFormOT() {
   const cd = document.getElementById('cliente-datos');  if (cd) cd.style.display  = 'none';
   const pb = document.getElementById('precot-box');     if (pb) pb.style.display  = 'none';
 
-  _setPatStatus('loading', 'Ingresa la patente para auto-completar datos del vehículo.');
+  _setPatStatus('ok', 'Ingresa la patente para auto-completar datos del vehículo.');
   const st = document.getElementById('pat-status');
   if (st) st.style.color = 'var(--text-muted)';
 }
