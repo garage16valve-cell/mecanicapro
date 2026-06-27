@@ -15,6 +15,80 @@ function init_taller() {
   const pgOt = document.getElementById('pg-ot');
   if (pgOt) pgOt.style.position = 'relative';
   renderListaOTs();
+  renderClientes();
+}
+
+// ===== MÓDULO CLIENTES (renderizado dinámico desde mp_clientes) =====
+function renderClientes(filtro = '') {
+  const grid = document.getElementById('clientes-grid');
+  const cnt  = document.getElementById('cli-count');
+  if (!grid) return;
+
+  const ots      = APP.lsGet('mp_ots', []);
+  const clientes = APP.lsGet('mp_clientes', []);
+
+  const q = (filtro || '').toLowerCase().trim();
+  const lista = q
+    ? clientes.filter(c =>
+        (c.nombre  || '').toLowerCase().includes(q) ||
+        (c.rut     || '').toLowerCase().includes(q) ||
+        (c.wz      || '').toLowerCase().includes(q) ||
+        (c.patentes || []).some(p => p.toLowerCase().includes(q))
+      )
+    : clientes;
+
+  if (cnt) cnt.textContent = lista.length + ' cliente' + (lista.length !== 1 ? 's' : '');
+
+  if (lista.length === 0) {
+    grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;color:var(--text-muted);padding:32px;font-size:12px">
+      <i class="ti ti-users" style="font-size:28px;display:block;margin-bottom:8px;opacity:.3"></i>
+      ${q ? 'Sin resultados para "' + filtro + '".' : 'Los clientes se crean automáticamente al generar una OT.<br><span style="font-size:11px">Ve a <strong>Órdenes de trabajo</strong> y crea una nueva OT para empezar.</span>'}
+    </div>`;
+    return;
+  }
+
+  grid.innerHTML = lista.map(c => {
+    const initials = (c.nombre || '??').split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
+    const otsCli   = ots.filter(o => o.clienteId === c.id);
+    const patentes = (c.patentes || []);
+
+    // Último vehículo conocido (de la última OT)
+    const ultimaOT = otsCli[otsCli.length - 1];
+    const vehiculo = ultimaOT
+      ? [ultimaOT.marca, ultimaOT.modelo, ultimaOT.anio].filter(Boolean).join(' ')
+      : null;
+
+    const otRows = otsCli.slice(-3).reverse().map(o =>
+      `<tr onclick="nav('ot',null);setTimeout(()=>abrirDetalleOT('${o.id}'),300)" style="cursor:pointer">
+        <td style="color:var(--text-accent);font-weight:500">${o.id}</td>
+        <td style="font-size:10px;color:var(--text-muted)">${new Date(o.creado).toLocaleDateString('es-CL')}</td>
+        <td>${o.servicio || '—'}</td>
+        <td>${o.valor ? '$' + Number(o.valor).toLocaleString('es-CL') : '—'}</td>
+      </tr>`
+    ).join('');
+
+    return `<div class="card">
+      <div class="ch">
+        <div style="display:flex;align-items:center;gap:10px">
+          <div class="av" style="width:36px;height:36px;font-size:13px">${initials}</div>
+          <div>
+            <div style="font-size:13px;font-weight:500">${c.nombre || '—'}</div>
+            <div style="font-size:11px;color:var(--text-muted)">${c.rut ? 'RUT: ' + c.rut : 'Sin RUT'}</div>
+          </div>
+        </div>
+        <span class="st ${otsCli.length ? 's-done' : 's-wait'}"><span class="dot"></span>${otsCli.length} OT${otsCli.length !== 1 ? 's' : ''}</span>
+      </div>
+      <div style="font-size:11px;color:var(--text-muted);margin-bottom:10px;display:flex;gap:14px;flex-wrap:wrap">
+        ${c.wz   ? `<span><i class="ti ti-brand-whatsapp" style="font-size:11px;vertical-align:-2px"></i> ${c.wz}</span>` : ''}
+        ${c.mail ? `<span><i class="ti ti-mail" style="font-size:11px;vertical-align:-2px"></i> ${c.mail}</span>` : ''}
+      </div>
+      ${patentes.length ? `<div style="margin-bottom:8px">${patentes.map(p => `<span class="tag" style="font-family:var(--font-mono);cursor:pointer" onclick="nav('ot',null);setTimeout(()=>setPatente('${p}'),300)">${p}</span>`).join(' ')}</div>` : ''}
+      ${vehiculo ? `<div style="font-size:11px;font-weight:500;color:var(--text-secondary);margin-bottom:8px">${vehiculo}${c.km ? ' · ' + Number(c.km).toLocaleString('es-CL') + ' km' : ''}</div>` : ''}
+      ${otsCli.length ? `<div class="div"></div>
+        <table class="tbl"><thead><tr><th>OT</th><th>Fecha</th><th>Servicio</th><th>Valor</th></tr></thead>
+        <tbody>${otRows}</tbody></table>` : ''}
+    </div>`;
+  }).join('');
 }
 
 // Pre-cotizaciones por marca
