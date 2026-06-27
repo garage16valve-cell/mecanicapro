@@ -220,8 +220,9 @@ function _renderHistorialTemp() {
 
 // ===== CONSULTA DE PATENTE =====
 function setPatente(pat) {
-  const i = document.getElementById('pat-in');
-  if (i) { i.value = pat; consultarPatente(pat); }
+  abrirFormNuevaOT();
+  const i = document.getElementById('n-patente');
+  if (i) { i.value = pat; consultarPatenteNueva(); }
 }
 
 function consultarPatente(val) {
@@ -347,80 +348,225 @@ function _checkClienteExistente(pat) {
   _setPatStatus('ok', `Vehículo encontrado — cliente existente: <strong>${cli.nombre}</strong>`);
 }
 
+// ===== NUEVA OT: overlay form state =====
+let _nOTServsItems = [];
+let _nOTRepsItems  = [];
+
+function abrirFormNuevaOT() {
+  _resetFormNuevaOT();
+  const el = document.getElementById('ot-nueva');
+  if (el) { el.style.display = 'block'; el.scrollTop = 0; }
+}
+
+function cerrarFormNuevaOT() {
+  const el = document.getElementById('ot-nueva');
+  if (el) el.style.display = 'none';
+}
+
+function _resetFormNuevaOT() {
+  ['n-patente','n-marca','n-modelo','n-anio','n-color','n-km',
+   'n-nombre','n-rut','n-wz','n-mail',
+   'n-fecha','n-hora','n-hora-entrada','n-hora-salida','n-notas'].forEach(id => {
+    const el = document.getElementById(id); if (el) el.value = '';
+  });
+  const tec = document.getElementById('n-tec');
+  if (tec) tec.selectedIndex = 0;
+  const est = document.getElementById('n-estado');
+  if (est) est.value = 'agendado';
+  const st = document.getElementById('n-pat-status');
+  if (st) st.textContent = '';
+  const ch = document.getElementById('crm-hist-box');
+  if (ch) ch.style.display = 'none';
+  _nOTServsItems = [{ nombre: '' }];
+  _nOTRepsItems  = [];
+  _nOTServRender();
+  _nOTRepRender();
+}
+
+// --- servicios en nueva OT ---
+function _nOTServRender() {
+  const lista = document.getElementById('n-serv-lista');
+  if (!lista) return;
+  const svcs = APP.lsGet('mp_servicios', []);
+  const opts = svcs.map(s => `<option value="${_tallerEsc(s.nombre)}">`).join('');
+  lista.innerHTML = _nOTServsItems.map((item, i) => `
+    <div style="display:flex;gap:4px;align-items:center">
+      <input list="n-sdl-${i}" value="${_tallerEsc(item.nombre)}" placeholder="Nombre del servicio…"
+        style="flex:1;font-size:11px;border:0.5px solid var(--border);border-radius:var(--radius);padding:4px 7px;background:var(--surface-1);color:var(--text-primary)"
+        oninput="_nOTServSync(${i},this.value)">
+      <datalist id="n-sdl-${i}">${opts}</datalist>
+      <button class="btn" style="padding:2px 5px;font-size:11px;flex-shrink:0" onclick="nOTServElim(${i})"><i class="ti ti-x"></i></button>
+    </div>`).join('') || '<div style="color:var(--text-muted);font-size:10px;padding:4px 0">Sin servicios — usa el botón +.</div>';
+}
+
+function _nOTServSync(i, val) {
+  if (_nOTServsItems[i]) _nOTServsItems[i].nombre = val;
+}
+
+function nOTServAdd() {
+  _nOTServsItems.push({ nombre: '' });
+  _nOTServRender();
+}
+
+function nOTServElim(i) {
+  _nOTServsItems.splice(i, 1);
+  _nOTServRender();
+}
+
+// --- repuestos en nueva OT ---
+function _nOTRepRender() {
+  const lista = document.getElementById('n-rep-lista');
+  if (!lista) return;
+  lista.innerHTML = _nOTRepsItems.map((item, i) => `
+    <div style="display:flex;gap:4px;align-items:center">
+      <input value="${_tallerEsc(item.desc)}" placeholder="Descripción"
+        style="flex:1;font-size:11px;border:0.5px solid var(--border);border-radius:var(--radius);padding:4px 7px;background:var(--surface-1);color:var(--text-primary)"
+        oninput="_nOTRepSync(${i},'desc',this.value)">
+      <input type="number" value="${item.precio || ''}" placeholder="$"
+        style="width:80px;font-size:11px;border:0.5px solid var(--border);border-radius:var(--radius);padding:4px 7px;background:var(--surface-1);color:var(--text-primary);text-align:right"
+        oninput="_nOTRepSync(${i},'precio',this.value)">
+      <button class="btn" style="padding:2px 5px;font-size:11px;flex-shrink:0" onclick="nOTRepElim(${i})"><i class="ti ti-x"></i></button>
+    </div>`).join('') || '<div style="color:var(--text-muted);font-size:10px;padding:4px 0">Sin repuestos.</div>';
+}
+
+function _nOTRepSync(i, campo, val) {
+  if (_nOTRepsItems[i]) _nOTRepsItems[i][campo] = campo === 'precio' ? (parseInt(val) || 0) : val;
+}
+
+function nOTRepAdd() {
+  _nOTRepsItems.push({ desc: '', precio: 0 });
+  _nOTRepRender();
+}
+
+function nOTRepElim(i) {
+  _nOTRepsItems.splice(i, 1);
+  _nOTRepRender();
+}
+
+// --- consultar patente desde nueva OT (no bloqueante) ---
+function consultarPatenteNueva() {
+  const pat = (document.getElementById('n-patente')?.value || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+  const st  = document.getElementById('n-pat-status');
+  if (!pat) { if (st) st.textContent = ''; return; }
+
+  const datos = _patGet(pat);
+  if (datos) {
+    const set = (id, v) => { const el = document.getElementById(id); if (el && !el.value) el.value = v || ''; };
+    set('n-marca',  datos.marca);
+    set('n-modelo', datos.modelo);
+    set('n-anio',   datos.anio);
+    if (st) { st.style.color = 'var(--text-success)'; st.textContent = '✓ Vehículo encontrado — datos auto-completados.'; }
+    _checkClienteExistenteNueva(pat);
+  } else {
+    if (st) { st.style.color = 'var(--text-muted)'; st.textContent = 'Patente no encontrada — rellena los datos manualmente.'; }
+  }
+  _crmRenderFormulario(pat);
+}
+
+function _checkClienteExistenteNueva(pat) {
+  const clientes = APP.lsGet('mp_clientes', []);
+  const cli = clientes.find(c => Array.isArray(c.patentes) && c.patentes.includes(pat));
+  if (!cli) return;
+  const fill = (id, val) => { const el = document.getElementById(id); if (el && !el.value) el.value = val || ''; };
+  fill('n-nombre', cli.nombre);
+  fill('n-rut',    cli.rut);
+  fill('n-wz',     cli.wz);
+  fill('n-mail',   cli.mail);
+}
+
 // ===== CREAR OT =====
 function crearOT() {
-  const nombre = (document.getElementById('c-nombre')?.value || '').trim();
-  if (!nombre) { alert('Ingresa el nombre del cliente.'); return; }
+  const g = id => (document.getElementById(id)?.value || '').trim();
 
-  const pat    = (document.getElementById('pat-in')?.value    || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
-  const rut    = (document.getElementById('c-rut')?.value     || '').trim();
-  const wz     = (document.getElementById('c-wz')?.value      || '').trim();
-  const mail   = (document.getElementById('c-mail')?.value    || '').trim();
-  const km     =  document.getElementById('c-km')?.value        || '';
-  const tecnico=  document.getElementById('c-tec')?.value       || '';
-  const serv   =  document.getElementById('c-serv')?.value      || '';
-  const notas  =  document.getElementById('c-notas')?.value     || '';
-  const fecha  =  document.getElementById('c-fecha')?.value     || '';
-  const hora   =  document.getElementById('c-hora')?.value      || '';
+  const pat    = g('n-patente').toUpperCase().replace(/[^A-Z0-9]/g, '');
+  const nombre = g('n-nombre');
 
-  // Si hay reagenda pendiente, capturar nueva fecha/hora y motivo
-  if (_estadoActual === 'reagendar') {
-    const fNueva = document.getElementById('c-fecha-nueva')?.value || '';
-    const hNueva = document.getElementById('c-hora-nueva')?.value  || '';
-    const motivo = document.getElementById('c-reagendar-motivo')?.value || '';
-    const last = _historialTemp[_historialTemp.length - 1];
-    if (last && last.estado === 'reagendar') {
-      last.nuevaFecha = fNueva;
-      last.nuevaHora  = hNueva;
-      last.motivo     = motivo;
-    }
+  if (!pat && !nombre) {
+    alert('Ingresa al menos la patente o el nombre del cliente.');
+    return;
   }
 
-  // Primera entrada del historial: creación de la OT
-  const ahora = new Date();
-  const entradaCreacion = {
-    estado: 'creado',
-    label:  'OT creada',
-    emoji:  '📋',
-    ts:     ahora.toISOString(),
-    hora:   ahora.toLocaleTimeString('es-CL', { hour:'2-digit', minute:'2-digit' }),
-    fecha:  ahora.toLocaleDateString('es-CL'),
-  };
-  const historial = [entradaCreacion, ..._historialTemp];
-  const marca  = (document.getElementById('v-marca')?.value   || '').trim();
-  const modelo = (document.getElementById('v-modelo')?.value  || '').trim();
-  const anio   = (document.getElementById('v-anio')?.value    || '').trim();
-  const motor  = (document.getElementById('v-motor')?.value   || '').trim();
-  const comb   = (document.getElementById('v-comb')?.value    || '').trim();
-  const tipo   = (document.getElementById('v-tipo')?.value    || '').trim();
-  const nmotor = (document.getElementById('v-nmotor')?.value  || '').trim();
-  const vin    = (document.getElementById('v-vin')?.value || '').trim() || '—';
+  const marca  = g('n-marca');
+  const modelo = g('n-modelo');
+  const anio   = g('n-anio');
+  const color  = g('n-color');
+  const km     = g('n-km');
+  const rut    = g('n-rut');
+  const wz     = g('n-wz');
+  const mail   = g('n-mail');
+  const tecnico     = document.getElementById('n-tec')?.value    || '';
+  const estadoSel   = document.getElementById('n-estado')?.value || 'agendado';
+  const fecha       = g('n-fecha');
+  const hora        = g('n-hora');
+  const horaEntrada = g('n-hora-entrada');
+  const horaSalida  = g('n-hora-salida');
+  const notas       = g('n-notas');
 
-  // Guardar datos del vehículo en BD local de patentes
+  // Build service string from items list
+  const servsItems  = _nOTServsItems.filter(s => (s.nombre || '').trim());
+  const servicioStr = servsItems.map(s => s.nombre).join(' · ');
+
+  // Build repuestos
+  const repsItems   = _nOTRepsItems.filter(r => (r.desc || '').trim());
+  const repuestosStr = repsItems.map(r => r.desc + (r.precio ? ' $' + Number(r.precio).toLocaleString('es-CL') : '')).join('\n');
+
+  // Save vehicle to local DB
   if (pat && marca) {
-    _patSave(pat, { marca, modelo, anio, motor, comb, tipo, vin, nmotor });
+    _patSave(pat, { marca, modelo, anio, motor: '', comb: '', tipo: '', vin: '—', nmotor: '' });
   }
 
-  // Auto-crear o actualizar cliente (dedup por RUT o patente)
+  // Dedup client by RUT or patente
   const clientes = APP.lsGet('mp_clientes', []);
   let cli = clientes.find(c =>
     (rut && c.rut === rut) ||
     (pat && Array.isArray(c.patentes) && c.patentes.includes(pat))
   );
   if (!cli) {
-    cli = {
-      id: 'cli-' + Date.now(), nombre, rut, wz, mail, km,
-      patentes: pat ? [pat] : [],
-      otIds: [],
-      creado: new Date().toISOString(),
-    };
+    cli = { id: 'cli-' + Date.now(), nombre, rut, wz, mail, km, patentes: pat ? [pat] : [], otIds: [], creado: new Date().toISOString() };
     clientes.push(cli);
   } else {
-    cli.nombre = nombre;
-    if (rut)  cli.rut  = rut;
-    if (wz)   cli.wz   = wz;
-    if (mail) cli.mail = mail;
+    if (nombre) cli.nombre = nombre;
+    if (rut)    cli.rut    = rut;
+    if (wz)     cli.wz     = wz;
+    if (mail)   cli.mail   = mail;
     if (pat && !cli.patentes.includes(pat)) cli.patentes.push(pat);
+  }
+
+  // Estado OT
+  const estado = estadoSel === 'en-proceso' ? 'en-proceso'
+               : estadoSel === 'cotizacion' ? 'cotizacion'
+               : 'agendado';
+
+  // Historial inicial
+  const ahora = new Date();
+  const historial = [{
+    estado: 'creado', label: 'OT creada', emoji: '📋',
+    ts:    ahora.toISOString(),
+    hora:  ahora.toLocaleTimeString('es-CL', { hour:'2-digit', minute:'2-digit' }),
+    fecha: ahora.toLocaleDateString('es-CL'),
+  }];
+  if (estadoSel === 'en-proceso') {
+    historial.push({ estado: 'llego', label: 'Cliente llegó', emoji: '✅',
+      ts: ahora.toISOString(),
+      hora: ahora.toLocaleTimeString('es-CL', { hour:'2-digit', minute:'2-digit' }),
+      fecha: ahora.toLocaleDateString('es-CL'),
+      horaEntrada: horaEntrada || ahora.toLocaleTimeString('es-CL', { hour:'2-digit', minute:'2-digit' }),
+    });
+  }
+
+  // Tiempos reales si se ingresaron horas
+  let entrada_ts = null, tiempoReal = null;
+  if (horaEntrada) {
+    const [hh, mm] = horaEntrada.split(':').map(Number);
+    const base = fecha ? new Date(fecha + 'T00:00') : new Date();
+    base.setHours(hh, mm, 0, 0);
+    entrada_ts = base.toISOString();
+  }
+  if (horaEntrada && horaSalida) {
+    const [eh, em] = horaEntrada.split(':').map(Number);
+    const [sh, sm] = horaSalida.split(':').map(Number);
+    const diff = (sh * 60 + sm) - (eh * 60 + em);
+    if (diff > 0) tiempoReal = diff;
   }
 
   // Crear OT
@@ -428,26 +574,24 @@ function crearOT() {
   const num = Math.max(41, ...ots.map(o => o.num || 0)) + 1;
   const id  = '#' + String(num).padStart(4, '0');
   const ot  = {
-    id, num, patente: pat, marca, modelo, anio, motor, comb, tipo, vin, nmotor,
-    clienteId: cli.id, clienteNombre: nombre, rut, wz, mail, km,
-    tecnico, servicio: serv, notas,
-    fechaCita: fecha, horaCita: hora,
-    estadoCita: _estadoActual,
-    historial,
-    estado: _estadoActual === 'llego' ? 'en-proceso'
-          : _estadoActual === 'nollego' || _estadoActual === 'cancelo' ? 'cerrado'
-          : _estadoActual === 'cotizacion' ? 'cotizacion'
-          : 'agendado',
-    creado: new Date().toISOString(),
+    id, num, patente: pat, marca, modelo, anio, color, motor: '', comb: '', tipo: '', vin: '—', nmotor: '',
+    clienteId: cli.id, clienteNombre: nombre || cli.nombre, rut, wz, mail, km,
+    tecnico, servicio: servicioStr, serviciosItems: servsItems,
+    notas, fechaCita: fecha, horaCita: hora,
+    estadoCita: estadoSel, historial, estado,
+    creado: ahora.toISOString(),
+    repuestos: repuestosStr, repuestosItems: repsItems,
+    entrada_ts, horaEntrada, horaSalida, tiempoReal,
   };
+
   ots.push(ot);
   cli.otIds = [...(cli.otIds || []), id];
-
   APP.lsSet('mp_ots', ots);
   APP.lsSet('mp_clientes', clientes);
 
-  alert(`✓ OT ${id} creada\nVehículo: ${marca} ${modelo} ${anio}\nCliente: ${nombre}\nTécnico: ${tecnico}`);
-  _resetFormOT();
+  cerrarFormNuevaOT();
+  renderListaOTs();
+  abrirDetalleOT(id);
 }
 
 function _resetFormOT() {
@@ -494,28 +638,42 @@ const OT_ESTADO_LABEL = {
   completado: 'Completado',
 };
 
-function renderListaOTs() {
+function renderListaOTs(filtro) {
   const tbody = document.getElementById('ots-tbody');
   const cnt   = document.getElementById('ots-count');
   if (!tbody) return;
 
-  const ots = APP.lsGet('mp_ots', []);
+  let ots = APP.lsGet('mp_ots', []);
+  const q = (filtro || '').toLowerCase().trim();
+  if (q) {
+    ots = ots.filter(o =>
+      (o.id            || '').toLowerCase().includes(q) ||
+      (o.patente       || '').toLowerCase().includes(q) ||
+      (o.clienteNombre || '').toLowerCase().includes(q) ||
+      (o.servicio      || '').toLowerCase().includes(q) ||
+      (o.tecnico       || '').toLowerCase().includes(q)
+    );
+  }
+
   if (cnt) cnt.textContent = ots.length + ' orden' + (ots.length !== 1 ? 'es' : '');
 
   if (ots.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--text-muted);padding:20px;font-size:11px">No hay órdenes de trabajo. Crea la primera usando el formulario.</td></tr>';
+    tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;color:var(--text-muted);padding:28px;font-size:11px">${q ? 'Sin resultados para "' + filtro + '".' : 'No hay órdenes de trabajo. Crea la primera con "+ Nueva OT".'}</td></tr>`;
     return;
   }
 
   tbody.innerHTML = [...ots].reverse().map(o => {
     const css   = OT_ESTADO_CSS[o.estado]   || 's-wait';
     const label = OT_ESTADO_LABEL[o.estado] || o.estado;
-    const cita  = o.fechaCita ? o.fechaCita + (o.horaCita ? ' ' + o.horaCita : '') : '—';
+    const cita  = o.fechaCita || '—';
+    const serv  = (o.servicio || '—').substring(0, 40) + (o.servicio && o.servicio.length > 40 ? '…' : '');
     return `<tr style="cursor:pointer" onclick="abrirDetalleOT('${o.id}')" onmouseover="this.style.background='var(--surface-1)'" onmouseout="this.style.background=''">
-      <td style="color:var(--text-accent);font-weight:500">${o.id}</td>
-      <td style="font-family:var(--font-mono);font-size:10px">${o.patente || '—'}</td>
+      <td style="color:var(--text-accent);font-weight:500;white-space:nowrap">${o.id}</td>
+      <td style="font-family:var(--font-mono);font-size:10px;white-space:nowrap">${o.patente || '—'}</td>
       <td>${o.clienteNombre || '—'}</td>
-      <td style="font-size:10px;color:var(--text-muted)">${cita}</td>
+      <td style="font-size:11px;color:var(--text-muted);max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${serv}</td>
+      <td style="font-size:11px;white-space:nowrap">${cita}</td>
+      <td style="font-size:11px">${o.tecnico || '—'}</td>
       <td><span class="st ${css}"><span class="dot"></span>${label}</span></td>
     </tr>`;
   }).join('');

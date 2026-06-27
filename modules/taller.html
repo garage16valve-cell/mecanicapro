@@ -1,135 +1,160 @@
-<!-- Keyframe para spinner de búsqueda de patente -->
+<!-- Keyframe spinner -->
 <style>@keyframes spin{to{transform:rotate(360deg)}}</style>
 
 <!-- ÓRDENES DE TRABAJO -->
 <div class="page active" id="pg-ot">
-  <div class="g2">
-    <div class="card">
-      <div class="ch"><span class="ct">Crear nueva OT</span></div>
-      <div style="background:var(--surface-1);border-radius:var(--radius);padding:12px;margin-bottom:12px;border:0.5px solid var(--border)">
-        <div style="font-size:11px;font-weight:500;color:var(--text-secondary);margin-bottom:8px;display:flex;align-items:center;gap:6px"><span class="step-num">1</span> Consulta por patente</div>
-        <div class="pat-field">
-          <input type="text" id="pat-in" maxlength="6" placeholder="ABCD12" style="border:0.5px solid var(--border-strong);border-radius:var(--radius);padding:7px 9px;font-size:15px;background:var(--surface-1);color:var(--text-primary);font-family:var(--font-mono);width:100%" oninput="this.value=this.value.toUpperCase().replace(/[^A-Z0-9]/g,'')">
-          <button class="btn bpa" onclick="consultarPatente(document.getElementById('pat-in').value)"><i class="ti ti-search"></i>Consultar</button>
-        </div>
-        <div id="pat-status" style="margin-top:7px;font-size:11px;color:var(--text-muted)">Ingresa la patente para auto-completar datos del vehículo.</div>
+
+  <!-- Vista principal: listado de OTs -->
+  <div id="ot-listado">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap">
+      <div class="sb" style="flex:1;min-width:180px">
+        <i class="ti ti-search" style="color:var(--text-muted);font-size:14px"></i>
+        <input id="ots-buscar" placeholder="Buscar OT, patente, cliente, servicio, técnico…" oninput="renderListaOTs(this.value)">
       </div>
-      <div id="vehiculo-datos" style="display:none">
-        <div style="font-size:11px;font-weight:500;color:var(--text-secondary);margin-bottom:8px;display:flex;align-items:center;gap:6px"><span class="step-num step-num-ok">✓</span> Datos del vehículo</div>
-        <div class="fgrid3">
-          <div class="fg"><label>Marca</label><input id="v-marca" readonly></div>
-          <div class="fg"><label>Modelo</label><input id="v-modelo" readonly></div>
-          <div class="fg"><label>Año</label><input id="v-anio" readonly></div>
-          <div class="fg"><label>Motor</label><input id="v-motor" readonly></div>
-          <div class="fg"><label>Combustible</label><input id="v-comb" readonly></div>
-          <div class="fg"><label>Tipo</label><input id="v-tipo" readonly></div>
-        </div>
-        <div class="fg"><label>N° de chasis / VIN</label><input id="v-vin" placeholder="17 caracteres" style="font-family:var(--font-mono);letter-spacing:.05em"></div>
-        <div class="fg"><label>N° de motor</label><input id="v-nmotor" readonly></div>
-        <div class="div"></div>
-      </div>
-      <div id="cliente-datos" style="display:none">
-        <div style="font-size:11px;font-weight:500;color:var(--text-secondary);margin-bottom:8px;display:flex;align-items:center;gap:6px"><span class="step-num">2</span> Datos del cliente</div>
-        <div class="fgrid2">
-          <div class="fg"><label>Nombre completo</label><input id="c-nombre" placeholder="Nombre del cliente"></div>
-          <div class="fg"><label>RUT</label><input id="c-rut" placeholder="12.345.678-9"></div>
-          <div class="fg"><label>WhatsApp</label><input id="c-wz" placeholder="+56 9 XXXX XXXX"></div>
-          <div class="fg"><label>Correo</label><input id="c-mail" placeholder="cliente@email.cl"></div>
-          <div class="fg"><label>Kilometraje <span style="font-weight:400;color:var(--text-muted)">(opcional)</span></label><input id="c-km" type="number" placeholder="45200"></div>
-          <div class="fg"><label>Técnico asignado</label>
-            <select id="c-tec"><option>Pedro Ramírez</option><option>Javier Muñoz</option><option>Luis González</option><option>Roberto Araya</option></select>
-          </div>
-        </div>
-        <!-- Cita -->
-        <div class="div" style="margin:10px 0 8px"></div>
-        <div style="font-size:11px;font-weight:500;color:var(--text-secondary);margin-bottom:8px;display:flex;align-items:center;gap:6px">
-          <span class="step-num">3</span> Cita y estado
-        </div>
-        <div class="fgrid2">
-          <div class="fg"><label>Fecha de cita</label><input type="date" id="c-fecha"></div>
-          <div class="fg"><label>Hora de cita</label><input type="time" id="c-hora"></div>
-        </div>
-
-        <!-- Dropdown estado de cita -->
-        <div class="fg" style="margin-top:8px;position:relative">
-          <label>Estado de cita</label>
-          <div style="display:flex;gap:6px;align-items:center">
-            <div id="estado-cita-badge" style="flex:1;padding:7px 10px;border-radius:var(--radius);border:0.5px solid var(--border);background:var(--surface-1);font-size:12px;font-weight:500">
-              📅 Agendado
-            </div>
-            <button class="btn" style="white-space:nowrap" onclick="toggleEstadoDropdown()">
-              <i class="ti ti-chevron-down"></i> Cambiar
-            </button>
-          </div>
-          <!-- Menú desplegable -->
-          <div id="estado-dropdown" style="display:none;position:absolute;top:100%;left:0;right:0;z-index:50;background:var(--surface-2);border:0.5px solid var(--border);border-radius:var(--radius);box-shadow:0 4px 16px rgba(0,0,0,.15);margin-top:3px;overflow:hidden">
-            <div class="edo-opt" onclick="seleccionarEstado('llego')"    style="padding:9px 12px;cursor:pointer;font-size:12px;display:flex;gap:8px;align-items:center">✅ <span><strong>Cliente llegó</strong><br><span style="font-size:10px;color:var(--text-muted)">Activa la OT y registra hora de entrada</span></span></div>
-            <div class="edo-opt" onclick="seleccionarEstado('nollego')"  style="padding:9px 12px;cursor:pointer;font-size:12px;display:flex;gap:8px;align-items:center;border-top:0.5px solid var(--border)">❌ <span><strong>Cliente no llegó</strong><br><span style="font-size:10px;color:var(--text-muted)">Cierra la OT y registra inasistencia</span></span></div>
-            <div class="edo-opt" onclick="seleccionarEstado('reagendar')" style="padding:9px 12px;cursor:pointer;font-size:12px;display:flex;gap:8px;align-items:center;border-top:0.5px solid var(--border)">📅 <span><strong>Reagendar</strong><br><span style="font-size:10px;color:var(--text-muted)">Ingresa nueva fecha y hora</span></span></div>
-            <div class="edo-opt" onclick="seleccionarEstado('cancelo')"  style="padding:9px 12px;cursor:pointer;font-size:12px;display:flex;gap:8px;align-items:center;border-top:0.5px solid var(--border)">🚫 <span><strong>Cliente canceló</strong><br><span style="font-size:10px;color:var(--text-muted)">Registra la cancelación</span></span></div>
-            <div class="edo-opt" onclick="seleccionarEstado('cotizacion')" style="padding:9px 12px;cursor:pointer;font-size:12px;display:flex;gap:8px;align-items:center;border-top:0.5px solid var(--border)">📋 <span><strong>Cotización</strong><br><span style="font-size:10px;color:var(--text-muted)">Activa modo cotización</span></span></div>
-          </div>
-        </div>
-
-        <!-- Panel reagendar -->
-        <div id="reagendar-panel" style="display:none;margin-top:8px;background:var(--surface-1);border:0.5px solid var(--border-warning,#d97706);border-radius:var(--radius);padding:10px">
-          <div style="font-size:11px;font-weight:500;margin-bottom:8px">📅 Nueva fecha de cita</div>
-          <div class="fgrid2">
-            <div class="fg"><label>Nueva fecha</label><input type="date" id="c-fecha-nueva"></div>
-            <div class="fg"><label>Nueva hora</label><input type="time" id="c-hora-nueva"></div>
-          </div>
-          <div class="fg"><label>Motivo de reagenda</label><input id="c-reagendar-motivo" placeholder="Ej: Cliente solicitó cambio de horario"></div>
-        </div>
-
-        <!-- Historial de estados (visible si hay entradas) -->
-        <div id="historial-estados" style="display:none;margin-top:8px">
-          <div style="font-size:10px;font-weight:500;color:var(--text-muted);margin-bottom:4px;text-transform:uppercase;letter-spacing:.05em">Historial de cita</div>
-          <div id="historial-lista" style="font-size:11px"></div>
-        </div>
-
-        <div class="fg"><label>Servicio solicitado</label>
-          <select id="c-serv"><option>Mantención 10.000 km</option><option>Cambio de embrague</option><option>Diagnóstico scanner</option><option>Cambio de frenos</option><option>Alineación y balanceo</option><option>Cambio aceite + filtros</option><option>Otro</option></select>
-        </div>
-        <div class="fg"><label>Notas</label><textarea id="c-notas" placeholder="Observaciones del cliente…"></textarea></div>
-        <div id="precot-box" style="display:none">
-          <div class="div"></div>
-          <div class="al al-w"><i class="ti ti-sparkles"></i><div class="al-text" id="precot-text"></div></div>
-          <div class="al al-a"><i class="ti ti-tool"></i><div class="al-text" id="wiki-text"></div></div>
-          <div id="prov-sug" class="al al-s" style="display:none"><i class="ti ti-truck"></i><div class="al-text" id="prov-sug-text"></div></div>
-        </div>
-        <!-- CRM: historial del vehículo (se muestra tras consulta de patente) -->
-        <div id="crm-hist-box" style="display:none;margin-top:10px">
-          <div style="font-size:11px;font-weight:500;color:var(--text-secondary);margin-bottom:6px;display:flex;align-items:center;gap:6px">
-            <i class="ti ti-history" style="font-size:12px"></i> Historial del vehículo
-          </div>
-          <div id="crm-hist-contenido" style="font-size:11px"></div>
-        </div>
-        <button class="btn bpa" style="width:100%;justify-content:center;margin-top:10px" onclick="crearOT()"><i class="ti ti-clipboard-plus"></i>Crear orden de trabajo</button>
-      </div>
+      <span id="ots-count" style="font-size:11px;color:var(--text-muted);white-space:nowrap"></span>
+      <button class="btn bpa" onclick="abrirFormNuevaOT()"><i class="ti ti-plus"></i> Nueva OT</button>
     </div>
-    <div>
-      <div class="card" style="margin-bottom:14px">
-        <div class="ch"><span class="ct">OTs recientes</span><span id="ots-count" style="font-size:10px;color:var(--text-muted)"></span></div>
-        <table class="tbl">
-          <thead><tr><th>OT</th><th>Patente</th><th>Cliente</th><th>Cita</th><th>Estado</th></tr></thead>
-          <tbody id="ots-tbody">
-            <tr><td colspan="5" style="text-align:center;color:var(--text-muted);padding:16px;font-size:11px">Cargando…</td></tr>
-          </tbody>
-        </table>
-      </div>
-      <div class="card">
-        <div class="ch"><span class="ct">Patentes de prueba (demo)</span></div>
-        <div style="font-size:11px;color:var(--text-muted);margin-bottom:8px">Usa estas patentes para probar el auto-relleno:</div>
-        <div style="display:flex;flex-wrap:wrap;gap:5px">
-          <span class="tag" style="cursor:pointer;font-family:var(--font-mono)" onclick="setPatente('ABCD12')">ABCD12 — Toyota</span>
-          <span class="tag" style="cursor:pointer;font-family:var(--font-mono)" onclick="setPatente('KGSJK9')">KGSJK9 — Kia</span>
-          <span class="tag" style="cursor:pointer;font-family:var(--font-mono)" onclick="setPatente('GHJK45')">GHJK45 — VW</span>
-          <span class="tag" style="cursor:pointer;font-family:var(--font-mono)" onclick="setPatente('MNOP78')">MNOP78 — Ford</span>
-          <span class="tag" style="cursor:pointer;font-family:var(--font-mono)" onclick="setPatente('BCDF34')">BCDF34 — Honda</span>
-        </div>
-      </div>
+    <div class="card" style="padding:0;overflow:hidden">
+      <table class="tbl">
+        <thead>
+          <tr>
+            <th>OT</th><th>Patente</th><th>Cliente</th><th>Servicio</th>
+            <th>Fecha cita</th><th>Técnico</th><th>Estado</th>
+          </tr>
+        </thead>
+        <tbody id="ots-tbody">
+          <tr><td colspan="7" style="text-align:center;color:var(--text-muted);padding:20px;font-size:11px">Cargando…</td></tr>
+        </tbody>
+      </table>
     </div>
   </div>
+
+  <!-- ===== FORMULARIO NUEVA OT (overlay) ===== -->
+  <div id="ot-nueva" style="display:none;position:absolute;inset:0;background:var(--surface-0);z-index:20;overflow-y:auto;padding:16px">
+
+    <!-- Barra superior -->
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;flex-wrap:wrap">
+      <button class="btn" onclick="cerrarFormNuevaOT()"><i class="ti ti-arrow-left"></i> Volver</button>
+      <div style="flex:1;font-size:15px;font-weight:600">Nueva Orden de Trabajo</div>
+      <button class="btn bpa" onclick="crearOT()"><i class="ti ti-clipboard-plus"></i> Guardar OT</button>
+    </div>
+
+    <div class="g2">
+
+      <!-- Columna izquierda: vehículo + cliente -->
+      <div>
+        <!-- Vehículo -->
+        <div class="card" style="margin-bottom:14px">
+          <div class="ch"><span class="ct"><i class="ti ti-car" style="font-size:13px"></i> Vehículo</span></div>
+          <div class="fg">
+            <label>Patente</label>
+            <div style="display:flex;gap:6px">
+              <input id="n-patente" maxlength="8" placeholder="ABCD12"
+                style="flex:1;font-family:var(--font-mono);font-size:14px;letter-spacing:.06em;border:0.5px solid var(--border-strong);border-radius:var(--radius);padding:7px 9px;background:var(--surface-1);color:var(--text-primary)"
+                oninput="this.value=this.value.toUpperCase().replace(/[^A-Z0-9]/g,'')">
+              <button class="btn" onclick="consultarPatenteNueva()"><i class="ti ti-search"></i> Consultar</button>
+            </div>
+            <div id="n-pat-status" style="font-size:10px;margin-top:3px;min-height:14px"></div>
+          </div>
+          <div class="fgrid3">
+            <div class="fg"><label>Marca</label><input id="n-marca" placeholder="Toyota"></div>
+            <div class="fg"><label>Modelo</label><input id="n-modelo" placeholder="Corolla"></div>
+            <div class="fg"><label>Año</label><input id="n-anio" placeholder="2022"></div>
+            <div class="fg"><label>Color</label><input id="n-color" placeholder="Blanco"></div>
+            <div class="fg"><label>Kilometraje</label><input id="n-km" type="number" placeholder="45200"></div>
+          </div>
+          <!-- Historial del vehículo (CRM) -->
+          <div id="crm-hist-box" style="display:none;margin-top:10px;border-top:0.5px solid var(--border);padding-top:10px">
+            <div style="font-size:11px;font-weight:500;color:var(--text-secondary);margin-bottom:6px;display:flex;align-items:center;gap:6px">
+              <i class="ti ti-history" style="font-size:12px"></i> Historial del vehículo
+            </div>
+            <div id="crm-hist-contenido" style="font-size:11px"></div>
+          </div>
+        </div>
+
+        <!-- Cliente -->
+        <div class="card">
+          <div class="ch"><span class="ct"><i class="ti ti-user" style="font-size:13px"></i> Cliente</span></div>
+          <div class="fgrid2">
+            <div class="fg"><label>Nombre completo</label><input id="n-nombre" placeholder="Nombre del cliente"></div>
+            <div class="fg"><label>RUT</label><input id="n-rut" placeholder="12.345.678-9"></div>
+            <div class="fg"><label>WhatsApp</label><input id="n-wz" placeholder="+56 9 XXXX XXXX"></div>
+            <div class="fg"><label>Correo</label><input id="n-mail" placeholder="cliente@email.cl"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Columna derecha: servicio -->
+      <div>
+        <div class="card">
+          <div class="ch"><span class="ct"><i class="ti ti-tool" style="font-size:13px"></i> Servicio</span></div>
+
+          <div class="fgrid2">
+            <div class="fg"><label>Técnico asignado</label>
+              <select id="n-tec">
+                <option value="">Sin asignar</option>
+                <option>Pedro Ramírez</option><option>Javier Muñoz</option>
+                <option>Luis González</option><option>Roberto Araya</option>
+              </select>
+            </div>
+            <div class="fg"><label>Estado inicial</label>
+              <select id="n-estado">
+                <option value="agendado">📅 Agendado</option>
+                <option value="cotizacion">📋 Cotización</option>
+                <option value="en-proceso">🔧 En proceso</option>
+              </select>
+            </div>
+            <div class="fg"><label>Fecha de cita</label><input type="date" id="n-fecha"></div>
+            <div class="fg"><label>Hora de cita</label><input type="time" id="n-hora"></div>
+          </div>
+
+          <!-- Admin: horas reales -->
+          <div class="fgrid2">
+            <div class="fg"><label>Hora entrada <span style="font-size:9px;opacity:.5">(admin)</span></label><input type="time" id="n-hora-entrada"></div>
+            <div class="fg"><label>Hora entrega est. <span style="font-size:9px;opacity:.5">(admin)</span></label><input type="time" id="n-hora-salida"></div>
+          </div>
+
+          <!-- Servicios a realizar -->
+          <div class="fg" style="margin-top:6px">
+            <label style="display:flex;align-items:center;justify-content:space-between">
+              Servicios a realizar
+              <button class="btn" style="font-size:10px;padding:2px 7px" onclick="nOTServAdd()">
+                <i class="ti ti-plus"></i> Agregar
+              </button>
+            </label>
+            <div id="n-serv-lista" style="display:flex;flex-direction:column;gap:4px;margin-top:4px"></div>
+          </div>
+
+          <!-- Repuestos requeridos -->
+          <div class="fg" style="margin-top:6px">
+            <label style="display:flex;align-items:center;justify-content:space-between">
+              Repuestos requeridos
+              <button class="btn" style="font-size:10px;padding:2px 7px" onclick="nOTRepAdd()">
+                <i class="ti ti-plus"></i> Agregar
+              </button>
+            </label>
+            <div id="n-rep-lista" style="display:flex;flex-direction:column;gap:4px;margin-top:4px"></div>
+          </div>
+
+          <!-- Observaciones -->
+          <div class="fg" style="margin-top:6px">
+            <label>Observaciones</label>
+            <textarea id="n-notas" placeholder="Observaciones del cliente…" style="min-height:60px"></textarea>
+          </div>
+        </div>
+      </div>
+    </div><!-- /g2 -->
+
+    <!-- Botones inferiores -->
+    <div style="display:flex;gap:8px;margin-top:14px">
+      <button class="btn" style="flex:1;justify-content:center" onclick="cerrarFormNuevaOT()">
+        <i class="ti ti-x"></i> Cancelar
+      </button>
+      <button class="btn bpa" style="flex:2;justify-content:center" onclick="crearOT()">
+        <i class="ti ti-clipboard-plus"></i> Guardar OT
+      </button>
+    </div>
+  </div><!-- /#ot-nueva -->
 
   <!-- ===== DETALLE OT (overlay) ===== -->
   <div id="ot-detalle" style="display:none;position:absolute;inset:0;background:var(--surface-0);z-index:20;overflow-y:auto;padding:16px">
@@ -181,7 +206,8 @@
             <div class="fg"><label>Kilometraje</label><input id="det-km" type="number" readonly></div>
             <div class="fg"><label>Técnico</label>
               <select id="det-tec" disabled>
-                <option>Pedro Ramírez</option><option>Javier Muñoz</option><option>Luis González</option><option>Roberto Araya</option>
+                <option>Pedro Ramírez</option><option>Javier Muñoz</option>
+                <option>Luis González</option><option>Roberto Araya</option>
               </select>
             </div>
           </div>
@@ -214,8 +240,9 @@
           <div id="det-calc-tiempo" style="font-size:11px;color:var(--text-success);padding:0 0 4px;display:none"></div>
           <div class="fg"><label>Servicio</label>
             <select id="det-serv" disabled>
-              <option>Mantención 10.000 km</option><option>Cambio de embrague</option><option>Diagnóstico scanner</option>
-              <option>Cambio de frenos</option><option>Alineación y balanceo</option><option>Cambio aceite + filtros</option><option>Otro</option>
+              <option>Mantención 10.000 km</option><option>Cambio de embrague</option>
+              <option>Diagnóstico scanner</option><option>Cambio de frenos</option>
+              <option>Alineación y balanceo</option><option>Cambio aceite + filtros</option><option>Otro</option>
             </select>
           </div>
           <div class="fg"><label>Notas</label><textarea id="det-notas" readonly style="min-height:60px"></textarea></div>
@@ -248,7 +275,7 @@
       </div>
     </div><!-- /g2 -->
 
-    <!-- ===== MÓDULO 5: COTIZACIÓN ===== -->
+    <!-- MÓDULO 5: COTIZACIÓN -->
     <div id="det-panel-cotizacion" style="display:none;margin-top:14px">
       <div class="card">
         <div class="ch">
@@ -262,7 +289,7 @@
       </div>
     </div>
 
-    <!-- ===== MÓDULO 6: CIERRE + INSTAGRAM ===== -->
+    <!-- MÓDULO 6: CIERRE + INSTAGRAM -->
     <div id="det-panel-cierre" style="display:none;margin-top:14px">
       <div class="card">
         <div class="ch"><span class="ct">📸 Cierre de OT — Publicación Instagram</span></div>
@@ -292,7 +319,7 @@
       </div>
     </div>
 
-    <!-- ===== MÓDULO 7: TIEMPO Y RENTABILIDAD ===== -->
+    <!-- MÓDULO 7: TIEMPO Y RENTABILIDAD -->
     <div id="det-panel-tiempo" style="display:none;margin-top:14px">
       <div class="card">
         <div class="ch">
@@ -307,7 +334,7 @@
     </div>
 
   </div><!-- /#ot-detalle -->
-</div>
+</div><!-- /#pg-ot -->
 
 <!-- CLIENTES -->
 <div class="page" id="pg-clientes">
