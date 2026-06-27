@@ -11,6 +11,10 @@ function init_taller() {
       'BCDF34': { marca:'Honda',      modelo:'Civic',     anio:'2021', motor:'1.5L VTEC Turbo L15B7',comb:'Bencina',  tipo:'Sedán',     vin:'2HGFC2F59MH552143', nmotor:'L15B7-0183920'    },
     });
   }
+  // El pg-ot necesita position:relative para que el overlay absoluto funcione
+  const pgOt = document.getElementById('pg-ot');
+  if (pgOt) pgOt.style.position = 'relative';
+  renderListaOTs();
 }
 
 // Pre-cotizaciones por marca
@@ -399,4 +403,279 @@ function _resetFormOT() {
   _setPatStatus('ok', 'Ingresa la patente para auto-completar datos del vehículo.');
   const st = document.getElementById('pat-status');
   if (st) st.style.color = 'var(--text-muted)';
+}
+
+// ===== LISTA DE OTs =====
+const OT_ESTADO_CSS = {
+  agendado:   's-wait',  'en-proceso': 's-prog',
+  cerrado:    's-done',  cotizacion:   's-crit',
+};
+const OT_ESTADO_LABEL = {
+  agendado:   'Agendado',    'en-proceso': 'En proceso',
+  cerrado:    'Cerrado',     cotizacion:   'Cotización',
+};
+
+function renderListaOTs() {
+  const tbody = document.getElementById('ots-tbody');
+  const cnt   = document.getElementById('ots-count');
+  if (!tbody) return;
+
+  const ots = APP.lsGet('mp_ots', []);
+  if (cnt) cnt.textContent = ots.length + ' orden' + (ots.length !== 1 ? 'es' : '');
+
+  if (ots.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--text-muted);padding:20px;font-size:11px">No hay órdenes de trabajo. Crea la primera usando el formulario.</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = [...ots].reverse().map(o => {
+    const css   = OT_ESTADO_CSS[o.estado]   || 's-wait';
+    const label = OT_ESTADO_LABEL[o.estado] || o.estado;
+    const cita  = o.fechaCita ? o.fechaCita + (o.horaCita ? ' ' + o.horaCita : '') : '—';
+    return `<tr style="cursor:pointer" onclick="abrirDetalleOT('${o.id}')" onmouseover="this.style.background='var(--surface-1)'" onmouseout="this.style.background=''">
+      <td style="color:var(--text-accent);font-weight:500">${o.id}</td>
+      <td style="font-family:var(--font-mono);font-size:10px">${o.patente || '—'}</td>
+      <td>${o.clienteNombre || '—'}</td>
+      <td style="font-size:10px;color:var(--text-muted)">${cita}</td>
+      <td><span class="st ${css}"><span class="dot"></span>${label}</span></td>
+    </tr>`;
+  }).join('');
+}
+
+// ===== VISTA DETALLE OT =====
+let _otDetalleId  = null;
+let _otEditando   = false;
+
+function abrirDetalleOT(id) {
+  const ots = APP.lsGet('mp_ots', []);
+  const ot  = ots.find(o => o.id === id);
+  if (!ot) return;
+
+  _otDetalleId = id;
+  _otEditando  = false;
+
+  // Rellenar campos
+  const s = (elId, val) => { const el = document.getElementById(elId); if (el) el.value = val || ''; };
+  document.getElementById('det-titulo').textContent = 'OT ' + ot.id + ' — ' + (ot.patente || '') + ' · ' + (ot.marca || '') + ' ' + (ot.modelo || '') + ' ' + (ot.anio || '');
+  s('det-nombre', ot.clienteNombre); s('det-rut',  ot.rut);
+  s('det-wz',     ot.wz);           s('det-mail', ot.mail);
+  s('det-km',     ot.km);
+  const tec = document.getElementById('det-tec');
+  if (tec) { tec.value = ot.tecnico || tec.options[0]?.value || ''; tec.disabled = true; }
+
+  s('det-marca',  ot.marca);  s('det-modelo', ot.modelo);
+  s('det-anio',   ot.anio);   s('det-motor',  ot.motor);
+  s('det-comb',   ot.comb);   s('det-tipo',   ot.tipo);
+  s('det-vin',    ot.vin);    s('det-nmotor', ot.nmotor);
+
+  s('det-fecha', ot.fechaCita || '');
+  s('det-hora',  ot.horaCita  || '');
+  const serv = document.getElementById('det-serv');
+  if (serv) { serv.value = ot.servicio || serv.options[0]?.value || ''; serv.disabled = true; }
+  s('det-notas',     ot.notas     || '');
+  s('det-valor',     ot.valor     || '');
+  s('det-repuestos', ot.repuestos || '');
+
+  // Campos readonly por defecto
+  ['det-nombre','det-rut','det-wz','det-mail','det-km',
+   'det-marca','det-modelo','det-anio','det-motor','det-comb','det-tipo','det-vin','det-nmotor',
+   'det-fecha','det-hora','det-notas','det-valor','det-repuestos']
+    .forEach(id => { const el = document.getElementById(id); if (el) el.setAttribute('readonly',''); });
+
+  // Badge de estado
+  _actualizarBadgeDet(ot.estadoCita || ot.estado || 'agendado');
+
+  // Botones
+  const be = document.getElementById('det-btn-editar');  if (be) { be.style.display = ''; be.innerHTML = '<i class="ti ti-edit"></i> Editar'; }
+  const bg = document.getElementById('det-btn-guardar'); if (bg) bg.style.display = 'none';
+
+  // Historial
+  _renderHistorialDet(ot.historial || []);
+
+  // Ocultar reagendar
+  const rp = document.getElementById('det-reagendar-panel'); if (rp) rp.style.display = 'none';
+
+  // Mostrar overlay
+  document.getElementById('ot-detalle').style.display = 'block';
+  document.getElementById('ot-detalle').scrollTop = 0;
+}
+
+function volverListaOT() {
+  _otDetalleId = null;
+  _otEditando  = false;
+  document.getElementById('ot-detalle').style.display = 'none';
+  renderListaOTs();
+}
+
+function _actualizarBadgeDet(codigo) {
+  const est = ESTADOS[codigo] || ESTADOS['agendado'];
+  const badge = document.getElementById('det-estado-badge');
+  if (badge) {
+    badge.textContent  = est.emoji + ' ' + est.label;
+    badge.style.color  = est.color;
+    badge.style.borderColor = est.color;
+  }
+}
+
+function toggleEditarOT() {
+  _otEditando = !_otEditando;
+  const campos = ['det-nombre','det-rut','det-wz','det-mail','det-km',
+    'det-marca','det-modelo','det-anio','det-motor','det-comb','det-tipo','det-vin','det-nmotor',
+    'det-fecha','det-hora','det-notas','det-valor','det-repuestos'];
+
+  campos.forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    if (_otEditando) el.removeAttribute('readonly'); else el.setAttribute('readonly','');
+  });
+  const tec  = document.getElementById('det-tec');  if (tec)  tec.disabled  = !_otEditando;
+  const serv = document.getElementById('det-serv'); if (serv) serv.disabled = !_otEditando;
+
+  const be = document.getElementById('det-btn-editar');
+  const bg = document.getElementById('det-btn-guardar');
+  if (be) be.innerHTML = _otEditando ? '<i class="ti ti-x"></i> Cancelar' : '<i class="ti ti-edit"></i> Editar';
+  if (bg) bg.style.display = _otEditando ? '' : 'none';
+}
+
+function guardarCambiosOT() {
+  if (!_otDetalleId) return;
+  const ots = APP.lsGet('mp_ots', []);
+  const idx = ots.findIndex(o => o.id === _otDetalleId);
+  if (idx < 0) return;
+
+  const g = id => (document.getElementById(id)?.value || '').trim();
+  const tec  = document.getElementById('det-tec');
+  const serv = document.getElementById('det-serv');
+
+  // Registrar cambios en historial
+  const ahora = new Date();
+  const entrada = {
+    estado: 'editado', label: 'OT modificada', emoji: '✏️',
+    ts:    ahora.toISOString(),
+    hora:  ahora.toLocaleTimeString('es-CL', { hour:'2-digit', minute:'2-digit' }),
+    fecha: ahora.toLocaleDateString('es-CL'),
+    detalle: `Cliente: ${g('det-nombre')} · Vehículo: ${g('det-marca')} ${g('det-modelo')}`,
+  };
+
+  ots[idx] = {
+    ...ots[idx],
+    clienteNombre: g('det-nombre'), rut:  g('det-rut'),
+    wz:            g('det-wz'),     mail: g('det-mail'),
+    km:            g('det-km'),     tecnico: tec?.value  || ots[idx].tecnico,
+    marca:         g('det-marca'),  modelo:  g('det-modelo'),
+    anio:          g('det-anio'),   motor:   g('det-motor'),
+    comb:          g('det-comb'),   tipo:    g('det-tipo'),
+    vin:           g('det-vin'),    nmotor:  g('det-nmotor'),
+    fechaCita:     g('det-fecha'),  horaCita: g('det-hora'),
+    servicio:      serv?.value || ots[idx].servicio,
+    notas:         g('det-notas'),
+    valor:         g('det-valor'),
+    repuestos:     g('det-repuestos'),
+    historial: [...(ots[idx].historial || []), entrada],
+  };
+
+  APP.lsSet('mp_ots', ots);
+  _otEditando = false;
+  abrirDetalleOT(_otDetalleId); // refresca la vista
+}
+
+// --- Dropdown estado en detalle ---
+function toggleEstadoDropdownDet() {
+  const dd = document.getElementById('det-estado-dd');
+  if (!dd) return;
+  dd.style.display = dd.style.display === 'none' ? 'block' : 'none';
+  if (dd.style.display === 'block') {
+    setTimeout(() => {
+      const cerrar = e => { if (!dd.contains(e.target)) { dd.style.display = 'none'; document.removeEventListener('click', cerrar); } };
+      document.addEventListener('click', cerrar);
+    }, 0);
+  }
+}
+
+function cambiarEstadoOTDet(codigo) {
+  const dd = document.getElementById('det-estado-dd');
+  if (dd) dd.style.display = 'none';
+
+  if (codigo === 'reagendar') {
+    const rp = document.getElementById('det-reagendar-panel');
+    if (rp) { rp.style.display = 'block'; rp.scrollIntoView({ behavior:'smooth', block:'nearest' }); }
+    return;
+  }
+  _aplicarEstadoOTDet(codigo);
+}
+
+function confirmarReagendaDet() {
+  const fNueva = document.getElementById('det-fecha-nueva')?.value || '';
+  const hNueva = document.getElementById('det-hora-nueva')?.value  || '';
+  const motivo = document.getElementById('det-reagendar-motivo')?.value || '';
+  const rp = document.getElementById('det-reagendar-panel'); if (rp) rp.style.display = 'none';
+
+  _aplicarEstadoOTDet('reagendar', { nuevaFecha: fNueva, nuevaHora: hNueva, motivo });
+
+  // Actualizar fechaCita/horaCita si se ingresaron
+  if (fNueva && _otDetalleId) {
+    const ots = APP.lsGet('mp_ots', []);
+    const idx = ots.findIndex(o => o.id === _otDetalleId);
+    if (idx >= 0) {
+      if (fNueva) ots[idx].fechaCita = fNueva;
+      if (hNueva) ots[idx].horaCita  = hNueva;
+      APP.lsSet('mp_ots', ots);
+    }
+  }
+  // Limpiar campos
+  ['det-fecha-nueva','det-hora-nueva','det-reagendar-motivo'].forEach(id => {
+    const el = document.getElementById(id); if (el) el.value = '';
+  });
+}
+
+function _aplicarEstadoOTDet(codigo, extra = {}) {
+  if (!_otDetalleId) return;
+  const est   = ESTADOS[codigo] || ESTADOS['agendado'];
+  const ahora = new Date();
+  const entrada = {
+    estado: codigo, label: est.label, emoji: est.emoji,
+    ts:    ahora.toISOString(),
+    hora:  ahora.toLocaleTimeString('es-CL', { hour:'2-digit', minute:'2-digit' }),
+    fecha: ahora.toLocaleDateString('es-CL'),
+    ...extra,
+  };
+  if (codigo === 'llego') entrada.horaEntrada = entrada.hora;
+
+  const ots = APP.lsGet('mp_ots', []);
+  const idx = ots.findIndex(o => o.id === _otDetalleId);
+  if (idx < 0) return;
+
+  const estadoOT = codigo === 'llego'      ? 'en-proceso'
+                 : codigo === 'nollego' || codigo === 'cancelo' ? 'cerrado'
+                 : codigo === 'cotizacion' ? 'cotizacion'
+                 : ots[idx].estado;
+
+  ots[idx].estadoCita = codigo;
+  ots[idx].estado     = estadoOT;
+  ots[idx].historial  = [...(ots[idx].historial || []), entrada];
+  APP.lsSet('mp_ots', ots);
+
+  _actualizarBadgeDet(codigo);
+  _renderHistorialDet(ots[idx].historial);
+}
+
+function _renderHistorialDet(historial) {
+  const el = document.getElementById('det-historial');
+  if (!el) return;
+  if (!historial || historial.length === 0) {
+    el.innerHTML = '<div style="color:var(--text-muted);text-align:center;padding:16px">Sin eventos registrados</div>';
+    return;
+  }
+  el.innerHTML = [...historial].reverse().map((e, i) => `
+    <div style="display:flex;gap:10px;padding:8px 0;${i < historial.length - 1 ? 'border-bottom:0.5px solid var(--border)' : ''}">
+      <div style="font-size:16px;flex-shrink:0;width:24px;text-align:center">${e.emoji || '📋'}</div>
+      <div style="flex:1">
+        <div style="font-weight:500;font-size:12px">${e.label || e.estado}</div>
+        <div style="font-size:10px;color:var(--text-muted)">${e.fecha || ''} ${e.hora || ''}</div>
+        ${e.detalle    ? `<div style="font-size:10px;color:var(--text-muted);margin-top:2px">${e.detalle}</div>` : ''}
+        ${e.motivo     ? `<div style="font-size:10px;color:var(--text-muted);margin-top:2px">Motivo: ${e.motivo}</div>` : ''}
+        ${e.nuevaFecha ? `<div style="font-size:10px;color:var(--text-muted);margin-top:2px">Nueva cita: ${e.nuevaFecha}${e.nuevaHora ? ' ' + e.nuevaHora : ''}</div>` : ''}
+        ${e.horaEntrada ? `<div style="font-size:10px;color:var(--text-success);margin-top:2px">Hora de entrada: ${e.horaEntrada}</div>` : ''}
+      </div>
+    </div>`).join('');
 }
