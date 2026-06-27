@@ -13,14 +13,300 @@ function init_taller() {
   }
   renderListaOTs();
   renderClientes();
-  // ESC cierra modales de OT
+  _ssInitTodos();
+  // ESC cierra modales de OT y también los dropdowns abiertos
   document.addEventListener('keydown', e => {
-    if (e.key !== 'Escape') return;
-    const nueva = document.getElementById('ot-nueva');
-    if (nueva && nueva.style.display === 'flex') { cerrarFormNuevaOT(); return; }
-    const det = document.getElementById('ot-detalle');
-    if (det && det.style.display === 'flex') { volverListaOT(); }
+    if (e.key === 'Escape') {
+      if (_ssCloseAll()) return; // si cerró algún dropdown, no propagar
+      const nueva = document.getElementById('ot-nueva');
+      if (nueva && nueva.style.display === 'flex') { cerrarFormNuevaOT(); return; }
+      const det = document.getElementById('ot-detalle');
+      if (det && det.style.display === 'flex') { volverListaOT(); }
+    }
   });
+  // Cerrar dropdowns al hacer click fuera
+  document.addEventListener('click', e => {
+    if (!e.target.closest('.ss') && !e.target.closest('.ss-drop')) _ssCloseAll();
+  });
+}
+
+// ===========================
+// SMART SELECTOR (SS) SYSTEM
+// ===========================
+
+// ---- Datos ----
+const _SS_TIPOS = ['Automóvil','Camioneta','SUV','Furgón','Bus','Camión','Moto','Bicicleta','Bici/Moto Eléctrica','Autobus','Campero','Autohormigonera','Barredora','Brazo Articulado','Brazo Excavador','Cargador Frontal'];
+const _SS_MARCAS = ['Abarth','Alfa Romeo','Audi','BRP','CHANA','Chery','Chevrolet','Citroën','Daewoo','Fiat','Ford','Geely','Great Wall','Honda','Hyundai','JAC','Jeep','Kia','Lifan','Mazda','Mercedes-Benz','MG','Mini','Mitsubishi','Nissan','Peugeot','RAM','Renault','Seat','Skoda','Subaru','Suzuki','Toyota','Volkswagen','Volvo','ZNA'];
+const _SS_ANIOS = Array.from({length:38}, (_,i) => String(2027-i)); // 2027 → 1990
+const _SS_REGIONES = [
+  {val:'arica-parinacota', label:'Arica y Parinacota'},
+  {val:'tarapaca',         label:'Tarapacá'},
+  {val:'antofagasta',      label:'Antofagasta'},
+  {val:'atacama',          label:'Atacama'},
+  {val:'coquimbo',         label:'Coquimbo'},
+  {val:'valparaiso',       label:'Valparaíso'},
+  {val:'metropolitana',    label:'Metropolitana de Santiago'},
+  {val:'ohiggins',         label:"O'Higgins"},
+  {val:'maule',            label:'Maule'},
+  {val:'nuble',            label:'Ñuble'},
+  {val:'biobio',           label:'Biobío'},
+  {val:'araucania',        label:'La Araucanía'},
+  {val:'los-rios',         label:'Los Ríos'},
+  {val:'los-lagos',        label:'Los Lagos'},
+  {val:'aysen',            label:'Aysén'},
+  {val:'magallanes',       label:'Magallanes y Antártica'},
+];
+const _SS_CIUDADES = {
+  'arica-parinacota': ['Arica','Putre','General Lagos'],
+  'tarapaca':    ['Iquique','Alto Hospicio','Pozo Almonte','Pica'],
+  'antofagasta': ['Antofagasta','Calama','Tocopilla','Mejillones','Taltal'],
+  'atacama':     ['Copiapó','Vallenar','Chañaral','Caldera','Freirina'],
+  'coquimbo':    ['La Serena','Coquimbo','Ovalle','Illapel','Los Vilos','Combarbalá'],
+  'valparaiso':  ['Valparaíso','Viña del Mar','Concón','Quilpué','Villa Alemana','San Antonio','Quillota','La Calera','Los Andes','San Felipe','Casablanca','Cartagena','El Quisco','El Tabo','Algarrobo','Santo Domingo','Limache','Olmué','La Ligua','Papudo','Zapallar','Petorca','Cabildo','La Cruz','Hijuelas','Nogales','Rinconada','Putaendo','Santa María','San Esteban','Isla de Pascua'],
+  'metropolitana':['Santiago','Providencia','Las Condes','Ñuñoa','Maipú','Pudahuel','Quilicura','Recoleta','Independencia','San Bernardo','La Florida','Puente Alto','Vitacura','La Reina','Peñalolén','Lo Barnechea','Renca','Cerrillos','Cerro Navia','Conchalí','El Bosque','Estación Central','Huechuraba','La Cisterna','La Granja','La Pintana','Lo Espejo','Macul','Padre Hurtado'],
+  'ohiggins':    ['Rancagua','San Fernando','Pichilemu','Rengo','Machalí'],
+  'maule':       ['Talca','Curicó','Linares','Constitución','Cauquenes','San Javier'],
+  'nuble':       ['Chillán','Chillán Viejo','San Carlos','Bulnes','Yungay'],
+  'biobio':      ['Concepción','Talcahuano','Los Ángeles','San Pedro de la Paz','Coronel'],
+  'araucania':   ['Temuco','Villarrica','Pucón','Angol','Victoria','Nueva Imperial','Lautaro'],
+  'los-rios':    ['Valdivia','La Unión','Río Bueno','Panguipulli'],
+  'los-lagos':   ['Puerto Montt','Osorno','Castro','Ancud','Puerto Varas'],
+  'aysen':       ['Coyhaique','Puerto Aysén','Chile Chico','Cochrane'],
+  'magallanes':  ['Punta Arenas','Puerto Natales','Puerto Williams','Porvenir'],
+};
+
+// ---- Estado global ----
+const _SS = {};
+
+// ---- Core ----
+function _ssInit(id, opciones, onChange, opts = {}) {
+  _SS[id] = { opciones: opciones.slice(), onChange, opts, val: '', label: '' };
+}
+
+function _ssTrig(id) {
+  const trig = document.getElementById('ss-' + id + '-trig');
+  const drop = document.getElementById('ss-' + id + '-drop');
+  if (!drop || !_SS[id]) return;
+  const isOpen = drop.style.display !== 'none';
+  _ssCloseAll();
+  if (isOpen) return;
+  // Posicionar como fixed para escapar del overflow del modal
+  if (trig) {
+    const r = trig.getBoundingClientRect();
+    drop.style.position = 'fixed';
+    drop.style.top   = (r.bottom + 3) + 'px';
+    drop.style.left  = r.left + 'px';
+    drop.style.width = r.width + 'px';
+    drop.style.right = 'auto';
+  }
+  _ssRenderList(id, '');
+  drop.style.display = 'flex';
+  if (trig) trig.classList.add('open');
+  const q = document.getElementById('ss-' + id + '-q');
+  if (q) { q.value = ''; setTimeout(() => q.focus(), 30); }
+}
+
+function _ssCloseAll() {
+  let alguno = false;
+  document.querySelectorAll('.ss-drop').forEach(d => { if (d.style.display !== 'none') { d.style.display = 'none'; alguno = true; } });
+  document.querySelectorAll('.ss-trig').forEach(t => t.classList.remove('open'));
+  return alguno;
+}
+
+function _ssQ(id) {
+  const q = document.getElementById('ss-' + id + '-q');
+  _ssRenderList(id, q ? q.value : '');
+}
+
+function _ssRenderList(id, filtro) {
+  const state = _SS[id];
+  const list  = document.getElementById('ss-' + id + '-list');
+  if (!state || !list) return;
+  const q = filtro.toLowerCase().trim();
+  const items = q
+    ? state.opciones.filter(o => (typeof o === 'string' ? o : (o.label || o.val || '')).toLowerCase().includes(q))
+    : state.opciones;
+
+  let html = items.map(o => {
+    const val   = typeof o === 'string' ? o : (o.val   || o.label);
+    const label = typeof o === 'string' ? o : (o.label || o.val);
+    const meta  = typeof o === 'object' && o.meta ? `<span class="ss-meta">${_tallerEsc(o.meta)}</span>` : '';
+    return `<div class="ss-item" tabindex="0"
+      onclick="_ssSelect('${id}','${_escSS(val)}','${_escSS(label)}')"
+      onkeydown="if(event.key==='Enter')_ssSelect('${id}','${_escSS(val)}','${_escSS(label)}')"
+    >${_tallerEsc(label)}${meta}</div>`;
+  }).join('');
+
+  if (!html) {
+    if (state.opts.permitirNuevo && q) {
+      html = `<div class="ss-item ss-new" onclick="_ssAgregar('${id}','${_escSS(filtro)}')">＋ Agregar &ldquo;${_tallerEsc(filtro)}&rdquo;</div>`;
+    } else {
+      html = '<div class="ss-item ss-empty">Sin resultados</div>';
+    }
+  } else if (state.opts.permitirNuevo && q) {
+    const exacto = items.find(o => (typeof o === 'string' ? o : (o.label || o.val)).toLowerCase() === q);
+    if (!exacto) html += `<div class="ss-item ss-new" onclick="_ssAgregar('${id}','${_escSS(filtro)}')">＋ Agregar &ldquo;${_tallerEsc(filtro)}&rdquo;</div>`;
+  }
+  list.innerHTML = html;
+}
+
+function _escSS(s) { return (s||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'"); }
+
+function _ssSelect(id, val, label) {
+  const state = _SS[id];
+  if (!state) return;
+  state.val   = val;
+  state.label = label;
+  const valEl = document.getElementById('ss-' + id + '-val');
+  if (valEl) { valEl.textContent = label; valEl.classList.remove('ss-placeholder'); }
+  const inp = document.getElementById(id);
+  if (inp) inp.value = val;
+  _ssCloseAll();
+  if (state.onChange) state.onChange(val, label);
+}
+
+function _ssAgregar(id, val) {
+  const t = (val || '').trim();
+  if (!t || !_SS[id]) return;
+  const existe = _SS[id].opciones.find(o => (typeof o === 'string' ? o : (o.label||o.val)).toLowerCase() === t.toLowerCase());
+  if (!existe) _SS[id].opciones.push(t);
+  _ssSelect(id, t, t);
+}
+
+function _ssSetVal(id, val, label) {
+  const state = _SS[id];
+  if (!state) return;
+  state.val   = val   || '';
+  state.label = label || val || '';
+  const placeholder = state.opts.noSelText || '— Selecciona —';
+  const valEl = document.getElementById('ss-' + id + '-val');
+  if (valEl) {
+    valEl.textContent = state.label || placeholder;
+    valEl.classList.toggle('ss-placeholder', !state.label);
+  }
+  const inp = document.getElementById(id);
+  if (inp) inp.value = val || '';
+}
+
+function _ssGetVal(id) { return (_SS[id] || {}).val || ''; }
+
+function _ssReset(id) {
+  const state = _SS[id];
+  if (!state) return;
+  const placeholder = state.opts.noSelText || '— Selecciona —';
+  state.val = ''; state.label = '';
+  const valEl = document.getElementById('ss-' + id + '-val');
+  if (valEl) { valEl.textContent = placeholder; valEl.classList.add('ss-placeholder'); }
+  const inp = document.getElementById(id);
+  if (inp) inp.value = '';
+}
+
+// ---- Obtener opciones de técnicos desde mp_operarios ----
+function _ssTecOps() {
+  const ops  = APP.lsGet('mp_operarios', []);
+  const lista = [{ val: '', label: 'Sin asignar' }];
+  ops.filter(o => o.activo !== false).forEach(o => lista.push({ val: o.nombre || o.id, label: o.nombre || o.id }));
+  // Fallback si no hay operarios configurados
+  if (!ops.length) ['Pedro Ramírez','Javier Muñoz','Luis González','Roberto Araya'].forEach(n => lista.push({ val: n, label: n }));
+  return lista;
+}
+
+// ---- Inicializar todos los SS de la OT ----
+function _ssInitTodos() {
+  _ssInit('n-tipo',   _SS_TIPOS.slice(), null, { permitirNuevo: true, noSelText: '— Tipo de vehículo —' });
+  _ssInit('n-marca',  _SS_MARCAS.slice(), null, { permitirNuevo: true, noSelText: '— Selecciona marca —' });
+  _ssInit('n-anio',   _SS_ANIOS.slice(),  null, { noSelText: '— Año —' });
+  _ssInit('n-tec',    _ssTecOps(),        null, { noSelText: 'Sin asignar' });
+  _ssInit('n-region', _SS_REGIONES.slice(), (val) => {
+    // Actualizar ciudades cuando cambia la región
+    const ciudades = _SS_CIUDADES[val] || [];
+    if (_SS['n-ciudad']) _SS['n-ciudad'].opciones = ciudades.slice();
+    _ssReset('n-ciudad');
+  }, { noSelText: '— Región —' });
+  _ssInit('n-ciudad', (_SS_CIUDADES['valparaiso'] || []).slice(), null, { permitirNuevo: true, noSelText: '— Ciudad —' });
+  _ssInit('n-cli', [], null, { noSelText: 'Buscar por nombre / RUT / WhatsApp…' });
+  // Pre-seleccionar Valparaíso
+  setTimeout(() => _ssSelect('n-region', 'valparaiso', 'Valparaíso'), 0);
+}
+
+// ---- Búsqueda de cliente en nueva OT ----
+function _ssCliFilter() {
+  const q    = (document.getElementById('ss-n-cli-q')?.value || '').toLowerCase().trim();
+  const list = document.getElementById('ss-n-cli-list');
+  if (!list) return;
+  if (!q) { list.innerHTML = '<div class="ss-item ss-empty">Escribe para buscar…</div>'; return; }
+  const clientes = APP.lsGet('mp_clientes', []);
+  const matches  = clientes.filter(c =>
+    (c.nombre || '').toLowerCase().includes(q) ||
+    (c.rut    || '').toLowerCase().includes(q) ||
+    (c.wz     || '').toLowerCase().includes(q)
+  ).slice(0, 8);
+  if (!matches.length) {
+    list.innerHTML = '<div class="ss-item ss-empty">Sin resultados — completa los datos manualmente</div>';
+    return;
+  }
+  list.innerHTML = matches.map(c => {
+    const pat = (c.patentes || []).join(', ');
+    return `<div class="ss-item" style="flex-direction:column;align-items:flex-start;gap:2px" onclick="_ssCliSelect('${_escSS(c.id)}')">
+      <span style="font-weight:500">${_tallerEsc(c.nombre||'—')}</span>
+      <span class="ss-meta" style="margin-left:0;font-size:10px">${[c.rut?'RUT '+c.rut:'', c.wz||'', pat].filter(Boolean).join(' · ')}</span>
+    </div>`;
+  }).join('');
+}
+
+function _ssCliSelect(cliId) {
+  const c = (APP.lsGet('mp_clientes', [])).find(cl => cl.id === cliId);
+  if (!c) return;
+  const set = (id, v) => { const el = document.getElementById(id); if (el) el.value = v || ''; };
+  set('n-nombre', c.nombre); set('n-rut', c.rut);
+  set('n-wz', c.wz);        set('n-mail', c.mail);
+  if (c.region) _ssSetVal('n-region', c.region, (_SS_REGIONES.find(r => r.val === c.region) || {}).label || c.region);
+  if (c.ciudad) _ssSetVal('n-ciudad', c.ciudad, c.ciudad);
+  const valEl = document.getElementById('ss-n-cli-val');
+  if (valEl) { valEl.textContent = c.nombre || '—'; valEl.classList.remove('ss-placeholder'); }
+  _ssCloseAll();
+}
+
+// ---- Dropdown inline para servicios en nueva OT ----
+function _ssServInput(i, val) {
+  if (_nOTServsItems[i] !== undefined) _nOTServsItems[i].nombre = val;
+  const drop  = document.getElementById('n-svc-d-' + i);
+  const listEl = document.getElementById('n-svc-dl-' + i);
+  if (!drop || !listEl) return;
+  const q    = (val || '').toLowerCase().trim();
+  const svcs = APP.lsGet('mp_servicios', []);
+  if (!svcs.length || !q) { drop.style.display = 'none'; return; }
+  const matches = svcs.filter(s => (s.nombre || '').toLowerCase().includes(q)).slice(0, 10);
+  if (!matches.length) { drop.style.display = 'none'; return; }
+  // Posicionar como fixed
+  const inp = document.getElementById('n-svc-i-' + i);
+  if (inp) {
+    const r = inp.getBoundingClientRect();
+    drop.style.position = 'fixed';
+    drop.style.top   = (r.bottom + 2) + 'px';
+    drop.style.left  = r.left + 'px';
+    drop.style.width = r.width + 'px';
+    drop.style.right = 'auto';
+  }
+  listEl.innerHTML = matches.map(s => {
+    const precio = s.precioFijo ? '$' + Number(s.precioFijo).toLocaleString('es-CL') : '';
+    const horas  = s.horasEst   ? s.horasEst + 'h' : '';
+    const meta   = [horas, precio].filter(Boolean).join(' · ');
+    return `<div class="ss-item" style="justify-content:space-between"
+      onmousedown="_ssServPick(${i},'${_escSS(s.nombre)}')">
+      <span>${_tallerEsc(s.nombre)}</span>
+      ${meta ? `<span class="ss-meta">${meta}</span>` : ''}
+    </div>`;
+  }).join('');
+  drop.style.display = 'flex';
+}
+
+function _ssServPick(i, nombre) {
+  const inp = document.getElementById('n-svc-i-' + i);
+  if (inp) inp.value = nombre;
+  const drop = document.getElementById('n-svc-d-' + i);
+  if (drop) drop.style.display = 'none';
+  _nOTServSync(i, nombre);
 }
 
 // ===== MÓDULO CLIENTES (renderizado dinámico desde mp_clientes) =====
@@ -374,13 +660,21 @@ function cerrarFormNuevaOT() {
 }
 
 function _resetFormNuevaOT() {
-  ['n-patente','n-marca','n-modelo','n-anio','n-color','n-km',
+  ['n-patente','n-modelo','n-color','n-km',
    'n-nombre','n-rut','n-wz','n-mail',
-   'n-fecha','n-hora','n-hora-entrada','n-hora-salida','n-notas'].forEach(id => {
+   'n-fecha','n-hora','n-hora-entrada','n-hora-salida','n-notas',
+   'n-marca','n-anio','n-tipo','n-tec','n-region','n-ciudad'].forEach(id => {
     const el = document.getElementById(id); if (el) el.value = '';
   });
-  const tec = document.getElementById('n-tec');
-  if (tec) tec.selectedIndex = 0;
+  // Resetear displays de smart selectors
+  ['n-tipo','n-marca','n-anio','n-cli'].forEach(_ssReset);
+  // Técnico: refrescar desde mp_operarios y resetear
+  if (_SS['n-tec']) _SS['n-tec'].opciones = _ssTecOps();
+  _ssReset('n-tec');
+  // Región default: Valparaíso
+  if (_SS['n-ciudad']) _SS['n-ciudad'].opciones = (_SS_CIUDADES['valparaiso'] || []).slice();
+  _ssSelect('n-region', 'valparaiso', 'Valparaíso');
+  _ssReset('n-ciudad');
   const est = document.getElementById('n-estado');
   if (est) est.value = 'agendado';
   const st = document.getElementById('n-pat-status');
@@ -402,14 +696,20 @@ function _nOTServRender() {
     lista.innerHTML = '<div style="font-size:10px;color:var(--text-muted);padding:4px 0">No hay servicios configurados. Ve a <strong>Admin &rsaquo; Configuración</strong> para agregarlos.</div>';
     return;
   }
-  const opts = svcs.map(s => `<option value="${_tallerEsc(s.nombre)}">`).join('');
   lista.innerHTML = _nOTServsItems.map((item, i) => `
     <div style="border:0.5px solid var(--border);border-radius:var(--radius);padding:8px;background:var(--surface-1);margin-bottom:6px">
       <div style="display:flex;gap:4px;align-items:center;margin-bottom:6px">
-        <input list="n-sdl-${i}" value="${_tallerEsc(item.nombre)}" placeholder="Nombre del servicio…"
-          style="flex:1;font-size:11px;border:0.5px solid var(--border);border-radius:var(--radius);padding:4px 7px;background:var(--surface-0);color:var(--text-primary)"
-          oninput="_nOTServSync(${i},this.value)" onchange="_nOTServSync(${i},this.value)">
-        <datalist id="n-sdl-${i}">${opts}</datalist>
+        <div style="position:relative;flex:1">
+          <input id="n-svc-i-${i}" value="${_tallerEsc(item.nombre)}" placeholder="Buscar servicio del catálogo…"
+            style="width:100%;box-sizing:border-box;font-size:11px;border:0.5px solid var(--border);border-radius:var(--radius);padding:5px 8px;background:var(--surface-0);color:var(--text-primary)"
+            oninput="_ssServInput(${i},this.value)"
+            onfocus="_ssServInput(${i},this.value)"
+            onblur="setTimeout(()=>{const d=document.getElementById('n-svc-d-${i}');if(d)d.style.display='none'},180)"
+            onchange="_nOTServSync(${i},this.value)">
+          <div id="n-svc-d-${i}" class="ss-drop" style="display:none">
+            <div class="ss-list" id="n-svc-dl-${i}"></div>
+          </div>
+        </div>
         <button class="btn" style="padding:2px 5px;font-size:11px;flex-shrink:0" onclick="nOTServElim(${i})"><i class="ti ti-x"></i></button>
       </div>
       <div style="display:flex;gap:8px;align-items:center;font-size:11px">
@@ -528,9 +828,11 @@ function consultarPatenteNueva() {
   const datos = _patGet(pat);
   if (datos) {
     const set = (id, v) => { const el = document.getElementById(id); if (el && !el.value) el.value = v || ''; };
-    set('n-marca',  datos.marca);
     set('n-modelo', datos.modelo);
-    set('n-anio',   datos.anio);
+    // SS fields: usar _ssSetVal solo si aún no hay valor seleccionado
+    if (datos.marca && !_ssGetVal('n-marca')) _ssSetVal('n-marca', datos.marca, datos.marca);
+    if (datos.anio  && !_ssGetVal('n-anio'))  _ssSetVal('n-anio',  datos.anio,  datos.anio);
+    if (datos.tipo  && !_ssGetVal('n-tipo'))  _ssSetVal('n-tipo',  datos.tipo,  datos.tipo);
     if (st) { st.style.color = 'var(--text-success)'; st.textContent = '✓ Vehículo encontrado — datos auto-completados.'; }
     _checkClienteExistenteNueva(pat);
   } else {
@@ -565,12 +867,15 @@ function crearOT() {
   const marca  = g('n-marca');
   const modelo = g('n-modelo');
   const anio   = g('n-anio');
+  const tipo   = g('n-tipo');
   const color  = g('n-color');
   const km     = g('n-km');
   const rut    = g('n-rut');
   const wz     = g('n-wz');
   const mail   = g('n-mail');
-  const tecnico     = document.getElementById('n-tec')?.value    || '';
+  const region = g('n-region');
+  const ciudad = g('n-ciudad');
+  const tecnico     = g('n-tec')    || '';
   const estadoSel   = document.getElementById('n-estado')?.value || 'agendado';
   const fecha       = g('n-fecha');
   const hora        = g('n-hora');
@@ -589,7 +894,7 @@ function crearOT() {
 
   // Save vehicle to local DB
   if (pat && marca) {
-    _patSave(pat, { marca, modelo, anio, motor: '', comb: '', tipo: '', vin: '—', nmotor: '' });
+    _patSave(pat, { marca, modelo, anio, tipo, motor: '', comb: '', vin: '—', nmotor: '' });
   }
 
   // Dedup client by RUT or patente
@@ -599,13 +904,15 @@ function crearOT() {
     (pat && Array.isArray(c.patentes) && c.patentes.includes(pat))
   );
   if (!cli) {
-    cli = { id: 'cli-' + Date.now(), nombre, rut, wz, mail, km, patentes: pat ? [pat] : [], otIds: [], creado: new Date().toISOString() };
+    cli = { id: 'cli-' + Date.now(), nombre, rut, wz, mail, km, region, ciudad, patentes: pat ? [pat] : [], otIds: [], creado: new Date().toISOString() };
     clientes.push(cli);
   } else {
     if (nombre) cli.nombre = nombre;
     if (rut)    cli.rut    = rut;
     if (wz)     cli.wz     = wz;
     if (mail)   cli.mail   = mail;
+    if (region) cli.region = region;
+    if (ciudad) cli.ciudad = ciudad;
     if (pat && !cli.patentes.includes(pat)) cli.patentes.push(pat);
   }
 
@@ -651,8 +958,8 @@ function crearOT() {
   const num = Math.max(41, ...ots.map(o => o.num || 0)) + 1;
   const id  = '#' + String(num).padStart(4, '0');
   const ot  = {
-    id, num, patente: pat, marca, modelo, anio, color, motor: '', comb: '', tipo: '', vin: '—', nmotor: '',
-    clienteId: cli.id, clienteNombre: nombre || cli.nombre, rut, wz, mail, km,
+    id, num, patente: pat, marca, modelo, anio, tipo, color, motor: '', comb: '', vin: '—', nmotor: '',
+    clienteId: cli.id, clienteNombre: nombre || cli.nombre, rut, wz, mail, km, region, ciudad,
     tecnico, servicio: servicioStr, serviciosItems: servsItems,
     valor: valorTotal || 0,
     notas, fechaCita: fecha, horaCita: hora,

@@ -54,10 +54,51 @@
             </div>
             <div id="n-pat-status" style="font-size:10px;margin-top:3px;min-height:14px"></div>
           </div>
-          <div class="fgrid3">
-            <div class="fg"><label>Marca</label><input id="n-marca" placeholder="Toyota"></div>
-            <div class="fg"><label>Modelo</label><input id="n-modelo" placeholder="Corolla"></div>
-            <div class="fg"><label>Año</label><input id="n-anio" placeholder="2022"></div>
+          <div class="fgrid2">
+            <!-- Tipo de vehículo -->
+            <div class="fg"><label>Tipo</label>
+              <div class="ss" id="ss-n-tipo">
+                <div class="ss-trig" id="ss-n-tipo-trig" tabindex="0" onclick="_ssTrig('n-tipo')" onkeydown="if(event.key==='Enter'||event.key===' ')_ssTrig('n-tipo')">
+                  <span class="ss-val ss-placeholder" id="ss-n-tipo-val">— Tipo de vehículo —</span>
+                  <i class="ti ti-chevron-down ss-arr"></i>
+                </div>
+                <div class="ss-drop" id="ss-n-tipo-drop" style="display:none">
+                  <input class="ss-q" id="ss-n-tipo-q" placeholder="Filtrar tipo…" oninput="_ssQ('n-tipo')">
+                  <div class="ss-list" id="ss-n-tipo-list"></div>
+                </div>
+                <input type="hidden" id="n-tipo" value="">
+              </div>
+            </div>
+            <!-- Marca -->
+            <div class="fg"><label>Marca</label>
+              <div class="ss" id="ss-n-marca">
+                <div class="ss-trig" id="ss-n-marca-trig" tabindex="0" onclick="_ssTrig('n-marca')" onkeydown="if(event.key==='Enter'||event.key===' ')_ssTrig('n-marca')">
+                  <span class="ss-val ss-placeholder" id="ss-n-marca-val">— Selecciona marca —</span>
+                  <i class="ti ti-chevron-down ss-arr"></i>
+                </div>
+                <div class="ss-drop" id="ss-n-marca-drop" style="display:none">
+                  <input class="ss-q" id="ss-n-marca-q" placeholder="Buscar marca…" oninput="_ssQ('n-marca')">
+                  <div class="ss-list" id="ss-n-marca-list"></div>
+                </div>
+                <input type="hidden" id="n-marca" value="">
+              </div>
+            </div>
+            <!-- Modelo -->
+            <div class="fg"><label>Modelo</label><input id="n-modelo" placeholder="Ej: Corolla"></div>
+            <!-- Año -->
+            <div class="fg"><label>Año</label>
+              <div class="ss" id="ss-n-anio">
+                <div class="ss-trig" id="ss-n-anio-trig" tabindex="0" onclick="_ssTrig('n-anio')" onkeydown="if(event.key==='Enter'||event.key===' ')_ssTrig('n-anio')">
+                  <span class="ss-val ss-placeholder" id="ss-n-anio-val">— Año —</span>
+                  <i class="ti ti-chevron-down ss-arr"></i>
+                </div>
+                <div class="ss-drop" id="ss-n-anio-drop" style="display:none">
+                  <div class="ss-list" id="ss-n-anio-list"></div>
+                </div>
+                <input type="hidden" id="n-anio" value="">
+              </div>
+            </div>
+            <!-- Color y km -->
             <div class="fg"><label>Color</label><input id="n-color" placeholder="Blanco"></div>
             <div class="fg"><label>Kilometraje</label><input id="n-km" type="number" placeholder="45200"></div>
           </div>
@@ -73,11 +114,52 @@
         <!-- Cliente -->
         <div class="card">
           <div class="ch"><span class="ct"><i class="ti ti-user" style="font-size:13px"></i> Cliente</span></div>
+          <!-- Búsqueda de cliente existente -->
+          <div class="fg" style="margin-bottom:10px;padding-bottom:10px;border-bottom:0.5px solid var(--border)">
+            <label style="color:var(--text-muted)">Buscar cliente existente</label>
+            <div class="ss" id="ss-n-cli">
+              <div class="ss-trig" id="ss-n-cli-trig" tabindex="0" onclick="_ssTrig('n-cli')" onkeydown="if(event.key==='Enter'||event.key===' ')_ssTrig('n-cli')" style="gap:8px">
+                <i class="ti ti-search" style="font-size:11px;color:var(--text-muted);flex-shrink:0"></i>
+                <span class="ss-val ss-placeholder" id="ss-n-cli-val">Nombre, RUT o WhatsApp…</span>
+              </div>
+              <div class="ss-drop" id="ss-n-cli-drop" style="display:none">
+                <input class="ss-q" id="ss-n-cli-q" placeholder="Nombre, RUT o WhatsApp…" oninput="_ssCliFilter()">
+                <div class="ss-list" id="ss-n-cli-list"><div class="ss-item ss-empty">Escribe para buscar…</div></div>
+              </div>
+            </div>
+          </div>
           <div class="fgrid2">
             <div class="fg"><label>Nombre completo</label><input id="n-nombre" placeholder="Nombre del cliente"></div>
             <div class="fg"><label>RUT</label><input id="n-rut" placeholder="12.345.678-9"></div>
             <div class="fg"><label>WhatsApp</label><input id="n-wz" placeholder="+56 9 XXXX XXXX"></div>
             <div class="fg"><label>Correo</label><input id="n-mail" placeholder="cliente@email.cl"></div>
+            <!-- Región -->
+            <div class="fg"><label>Región</label>
+              <div class="ss" id="ss-n-region">
+                <div class="ss-trig" id="ss-n-region-trig" tabindex="0" onclick="_ssTrig('n-region')" onkeydown="if(event.key==='Enter'||event.key===' ')_ssTrig('n-region')">
+                  <span class="ss-val" id="ss-n-region-val">Valparaíso</span>
+                  <i class="ti ti-chevron-down ss-arr"></i>
+                </div>
+                <div class="ss-drop" id="ss-n-region-drop" style="display:none">
+                  <div class="ss-list" id="ss-n-region-list"></div>
+                </div>
+                <input type="hidden" id="n-region" value="valparaiso">
+              </div>
+            </div>
+            <!-- Ciudad -->
+            <div class="fg"><label>Ciudad</label>
+              <div class="ss" id="ss-n-ciudad">
+                <div class="ss-trig" id="ss-n-ciudad-trig" tabindex="0" onclick="_ssTrig('n-ciudad')" onkeydown="if(event.key==='Enter'||event.key===' ')_ssTrig('n-ciudad')">
+                  <span class="ss-val ss-placeholder" id="ss-n-ciudad-val">— Ciudad —</span>
+                  <i class="ti ti-chevron-down ss-arr"></i>
+                </div>
+                <div class="ss-drop" id="ss-n-ciudad-drop" style="display:none">
+                  <input class="ss-q" id="ss-n-ciudad-q" placeholder="Buscar ciudad…" oninput="_ssQ('n-ciudad')">
+                  <div class="ss-list" id="ss-n-ciudad-list"></div>
+                </div>
+                <input type="hidden" id="n-ciudad" value="">
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -89,11 +171,16 @@
 
           <div class="fgrid2">
             <div class="fg"><label>Técnico asignado</label>
-              <select id="n-tec">
-                <option value="">Sin asignar</option>
-                <option>Pedro Ramírez</option><option>Javier Muñoz</option>
-                <option>Luis González</option><option>Roberto Araya</option>
-              </select>
+              <div class="ss" id="ss-n-tec">
+                <div class="ss-trig" id="ss-n-tec-trig" tabindex="0" onclick="_ssTrig('n-tec')" onkeydown="if(event.key==='Enter'||event.key===' ')_ssTrig('n-tec')">
+                  <span class="ss-val" id="ss-n-tec-val">Sin asignar</span>
+                  <i class="ti ti-chevron-down ss-arr"></i>
+                </div>
+                <div class="ss-drop" id="ss-n-tec-drop" style="display:none">
+                  <div class="ss-list" id="ss-n-tec-list"></div>
+                </div>
+                <input type="hidden" id="n-tec" value="">
+              </div>
             </div>
             <div class="fg"><label>Estado inicial</label>
               <select id="n-estado">

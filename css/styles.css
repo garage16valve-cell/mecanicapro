@@ -349,3 +349,51 @@ nav { padding: 8px; flex: 1; }
   from { opacity: 0; transform: translateY(-10px); }
   to   { opacity: 1; transform: translateY(0); }
 }
+
+/* ===== SMART SELECTOR ===== */
+.ss { position: relative; }
+.ss-trig {
+  display: flex; align-items: center; gap: 6px;
+  padding: 7px 10px; border: 0.5px solid var(--border);
+  border-radius: var(--radius); background: var(--surface-1);
+  cursor: pointer; font-size: 12px; color: var(--text-primary);
+  min-height: 34px; user-select: none; box-sizing: border-box;
+  transition: border-color .12s;
+}
+.ss-trig:hover { border-color: var(--border-strong); }
+.ss-trig.open  { border-color: var(--fill-accent); }
+.ss-val { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ss-placeholder { color: var(--text-muted); }
+.ss-arr { font-size: 11px; color: var(--text-muted); flex-shrink: 0; transition: transform .15s; }
+.ss-trig.open .ss-arr { transform: rotate(180deg); }
+
+/* Dropdown panel — position:fixed set via JS so it escapes modal overflow */
+.ss-drop {
+  background: var(--surface-2);
+  border: 0.5px solid var(--border-strong);
+  border-radius: var(--radius);
+  box-shadow: 0 6px 20px rgba(0,0,0,.25);
+  z-index: 1200;
+  overflow: hidden;
+  max-height: 280px;
+  display: flex; flex-direction: column;
+}
+.ss-q {
+  width: 100%; box-sizing: border-box;
+  padding: 8px 10px; border: none; border-bottom: 0.5px solid var(--border);
+  background: var(--surface-1); color: var(--text-primary);
+  font-size: 12px; font-family: var(--font-sans); outline: none; flex-shrink: 0;
+}
+.ss-list { overflow-y: auto; flex: 1; }
+.ss-item {
+  padding: 10px 12px; cursor: pointer; font-size: 12px;
+  color: var(--text-primary); display: flex; align-items: center; gap: 8px;
+  min-height: 40px; border-bottom: 0.5px solid var(--border);
+  box-sizing: border-box; line-height: 1.3;
+}
+.ss-item:last-child { border-bottom: none; }
+.ss-item:hover { background: var(--bg-accent); color: var(--text-accent); }
+.ss-item.ss-new  { color: var(--text-accent); }
+.ss-item.ss-empty { color: var(--text-muted); cursor: default; font-size: 11px; }
+.ss-meta { margin-left: auto; font-size: 10px; color: var(--text-muted); white-space: nowrap; flex-shrink: 0; }
+@media (max-width: 768px) { .ss-item { min-height: 48px; } }
