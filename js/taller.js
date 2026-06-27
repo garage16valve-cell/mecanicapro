@@ -253,6 +253,7 @@ function consultarPatente(val) {
     if (cd) cd.style.display = 'block';
     _mostrarPreCot(datos);
     _checkClienteExistente(pat);
+    _crmRenderFormulario(pat);
 
   } else {
     // 2. No encontrado: mostrar formulario manual
@@ -267,12 +268,12 @@ function consultarPatente(val) {
     if (vd) {
       vd.style.display = 'block';
       vd.querySelectorAll('input').forEach(el => { el.removeAttribute('readonly'); el.value = ''; });
-      // v-vin ya es un input, queda vacío con el bucle anterior
     }
     const cd = document.getElementById('cliente-datos');
     if (cd) cd.style.display = 'block';
     const pb = document.getElementById('precot-box');
     if (pb) pb.style.display = 'none';
+    _crmRenderFormulario(pat);
   }
 }
 
@@ -474,6 +475,7 @@ function _resetFormOT() {
   const vd = document.getElementById('vehiculo-datos'); if (vd) vd.style.display = 'none';
   const cd = document.getElementById('cliente-datos');  if (cd) cd.style.display  = 'none';
   const pb = document.getElementById('precot-box');     if (pb) pb.style.display  = 'none';
+  const ch = document.getElementById('crm-hist-box');   if (ch) ch.style.display  = 'none';
 
   _setPatStatus('ok', 'Ingresa la patente para auto-completar datos del vehículo.');
   const st = document.getElementById('pat-status');
@@ -549,14 +551,31 @@ function abrirDetalleOT(id) {
   s('det-hora',  ot.horaCita  || '');
   const serv = document.getElementById('det-serv');
   if (serv) { serv.value = ot.servicio || serv.options[0]?.value || ''; serv.disabled = true; }
-  s('det-notas',     ot.notas     || '');
-  s('det-valor',     ot.valor     || '');
-  s('det-repuestos', ot.repuestos || '');
+  s('det-notas',  ot.notas  || '');
+  s('det-valor',  ot.valor  || '');
+
+  // Hora entrada / salida reales
+  const _toTimeInput = ts => {
+    if (!ts) return '';
+    // Si ya es HH:MM (hora local guardada como string)
+    if (/^\d{1,2}:\d{2}$/.test(ts)) return ts.padStart(5, '0');
+    // Si es ISO timestamp
+    try { const d = new Date(ts); return d.toLocaleTimeString('es-CL',{hour:'2-digit',minute:'2-digit'}).padStart(5,'0'); } catch { return ''; }
+  };
+  s('det-hora-entrada', _toTimeInput(ot.entrada_ts || ot.horaEntrada || ''));
+  s('det-hora-salida',  _toTimeInput(ot.salida_ts  || ot.horaSalida  || ''));
+
+  // Repuestos dinámicos
+  _detRepEditing = false;
+  _detRepItems   = (ot.repuestosItems && ot.repuestosItems.length) ? ot.repuestosItems : _detRepParseTexto(ot.repuestos || '');
+  _detRepRender();
+  const addBtn = document.getElementById('det-rep-add-btn');
+  if (addBtn) addBtn.style.display = 'none';
 
   // Campos readonly por defecto
   ['det-nombre','det-rut','det-wz','det-mail','det-km',
    'det-marca','det-modelo','det-anio','det-motor','det-comb','det-tipo','det-vin','det-nmotor',
-   'det-fecha','det-hora','det-notas','det-valor','det-repuestos']
+   'det-fecha','det-hora','det-hora-entrada','det-hora-salida','det-notas','det-valor']
     .forEach(id => { const el = document.getElementById(id); if (el) el.setAttribute('readonly',''); });
 
   // Badge de estado
@@ -572,8 +591,14 @@ function abrirDetalleOT(id) {
   // Paneles módulos 5/6/7
   _actualizarPanelesDet(ot);
 
-  // Ocultar reagendar
+  // Ocultar reagendar y upsell banner (se re-calculan abajo)
   const rp = document.getElementById('det-reagendar-panel'); if (rp) rp.style.display = 'none';
+
+  // CRM historial del vehículo
+  _crmRenderDetalle(ot.patente, ot.id);
+
+  // Upselling inteligente
+  _upsellingRender(ot.patente, ot.servicio);
 
   // Mostrar overlay
   document.getElementById('ot-detalle').style.display = 'block';
@@ -601,7 +626,7 @@ function toggleEditarOT() {
   _otEditando = !_otEditando;
   const campos = ['det-nombre','det-rut','det-wz','det-mail','det-km',
     'det-marca','det-modelo','det-anio','det-motor','det-comb','det-tipo','det-vin','det-nmotor',
-    'det-fecha','det-hora','det-notas','det-valor','det-repuestos'];
+    'det-fecha','det-hora','det-hora-entrada','det-hora-salida','det-notas','det-valor'];
 
   campos.forEach(id => {
     const el = document.getElementById(id);
@@ -610,6 +635,16 @@ function toggleEditarOT() {
   });
   const tec  = document.getElementById('det-tec');  if (tec)  tec.disabled  = !_otEditando;
   const serv = document.getElementById('det-serv'); if (serv) serv.disabled = !_otEditando;
+
+  // Repuestos dinámicos
+  _detRepEditing = _otEditando;
+  _detRepRender();
+  const addBtn = document.getElementById('det-rep-add-btn');
+  if (addBtn) addBtn.style.display = _otEditando ? '' : 'none';
+
+  // Auto-cálculo tiempo al editar horas
+  const calcEl = document.getElementById('det-calc-tiempo');
+  if (calcEl) calcEl.style.display = _otEditando ? 'block' : 'none';
 
   const be = document.getElementById('det-btn-editar');
   const bg = document.getElementById('det-btn-guardar');
@@ -637,6 +672,34 @@ function guardarCambiosOT() {
     detalle: `Cliente: ${g('det-nombre')} · Vehículo: ${g('det-marca')} ${g('det-modelo')}`,
   };
 
+  // Hora entrada/salida reales y cálculo automático de tiempoReal
+  const horaEntrada = g('det-hora-entrada');
+  const horaSalida  = g('det-hora-salida');
+  let nuevaEntradaTs = ots[idx].entrada_ts;
+  let nuevaSalidaTs  = ots[idx].salida_ts;
+  let nuevoTiempoReal = ots[idx].tiempoReal;
+
+  if (horaEntrada) {
+    const [hh, mm] = horaEntrada.split(':').map(Number);
+    const base = ots[idx].fechaCita ? new Date(ots[idx].fechaCita) : new Date();
+    base.setHours(hh, mm, 0, 0);
+    nuevaEntradaTs = base.toISOString();
+  }
+  if (horaSalida) {
+    const [hh, mm] = horaSalida.split(':').map(Number);
+    const base = ots[idx].fechaCita ? new Date(ots[idx].fechaCita) : new Date();
+    base.setHours(hh, mm, 0, 0);
+    nuevaSalidaTs = base.toISOString();
+  }
+  if (nuevaEntradaTs && nuevaSalidaTs) {
+    nuevoTiempoReal = Math.round((new Date(nuevaSalidaTs) - new Date(nuevaEntradaTs)) / 60000);
+    if (nuevoTiempoReal < 0) nuevoTiempoReal = null; // sanity check
+  }
+
+  // Repuestos dinámicos
+  const repItems = _detRepItems.filter(it => it.desc);
+  const repTexto = _detRepToTexto();
+
   ots[idx] = {
     ...ots[idx],
     clienteNombre: g('det-nombre'), rut:  g('det-rut'),
@@ -650,7 +713,13 @@ function guardarCambiosOT() {
     servicio:      serv?.value || ots[idx].servicio,
     notas:         g('det-notas'),
     valor:         g('det-valor'),
-    repuestos:     g('det-repuestos'),
+    repuestos:     repTexto,
+    repuestosItems: repItems,
+    entrada_ts:    nuevaEntradaTs,
+    salida_ts:     nuevaSalidaTs,
+    horaEntrada:   horaEntrada || ots[idx].horaEntrada,
+    horaSalida:    horaSalida  || ots[idx].horaSalida,
+    tiempoReal:    nuevoTiempoReal,
     historial: [...(ots[idx].historial || []), entrada],
   };
 
@@ -951,6 +1020,186 @@ function _mostrarPanelTiempo(ot) {
     }
   }
   el.innerHTML = html;
+}
+
+// ===== REPUESTOS DINÁMICOS (lista con "+" en detalle OT) =====
+let _detRepItems   = [];
+let _detRepEditing = false;
+
+function _detRepParseTexto(texto) {
+  if (!texto || !texto.trim()) return [];
+  return texto.split('\n').filter(l => l.trim()).map(l => {
+    const m = l.match(/^(.*?)\s*\$?([\d.]+)\s*$/);
+    if (m) return { desc: m[1].trim(), precio: parseInt(m[2].replace(/\./g, '')) || 0 };
+    return { desc: l.trim(), precio: 0 };
+  });
+}
+
+function _detRepRender() {
+  const lista   = document.getElementById('det-rep-lista');
+  const totalEl = document.getElementById('det-rep-total');
+  if (!lista) return;
+
+  if (!_detRepItems.length) {
+    lista.innerHTML = _detRepEditing
+      ? '<div style="color:var(--text-muted);font-size:10px;padding:4px 0">Sin ítems — usa Agregar.</div>'
+      : '<div style="color:var(--text-muted);font-size:10px;padding:4px 0">—</div>';
+    if (totalEl) totalEl.style.display = 'none';
+    return;
+  }
+
+  lista.innerHTML = _detRepItems.map((it, i) => `
+    <div style="display:flex;gap:4px;align-items:center">
+      <input value="${_tallerEsc(it.desc)}" placeholder="Descripción" style="flex:1;font-size:11px;border:0.5px solid var(--border);border-radius:var(--radius);padding:4px 6px;background:var(--surface-1);color:var(--text-primary)" ${_detRepEditing ? '' : 'readonly'} oninput="_detRepSync(${i},'desc',this.value)">
+      <input type="number" value="${it.precio || ''}" placeholder="$" style="width:80px;font-size:11px;border:0.5px solid var(--border);border-radius:var(--radius);padding:4px 6px;background:var(--surface-1);color:var(--text-primary);text-align:right" ${_detRepEditing ? '' : 'readonly'} oninput="_detRepSync(${i},'precio',this.value)">
+      ${_detRepEditing ? `<button class="btn" style="padding:2px 5px;font-size:11px;flex-shrink:0" onclick="detRepElim(${i})"><i class="ti ti-x"></i></button>` : ''}
+    </div>`).join('');
+
+  const total = _detRepItems.reduce((s, it) => s + (parseInt(it.precio) || 0), 0);
+  if (totalEl) {
+    totalEl.style.display = total > 0 ? 'block' : 'none';
+    totalEl.textContent   = 'Total repuestos: $' + total.toLocaleString('es-CL');
+  }
+}
+
+function _detRepSync(i, campo, val) {
+  if (_detRepItems[i]) _detRepItems[i][campo] = campo === 'precio' ? (parseInt(val) || 0) : val;
+  const total   = _detRepItems.reduce((s, it) => s + (parseInt(it.precio) || 0), 0);
+  const totalEl = document.getElementById('det-rep-total');
+  if (totalEl) {
+    totalEl.style.display = total > 0 ? 'block' : 'none';
+    totalEl.textContent   = 'Total repuestos: $' + total.toLocaleString('es-CL');
+  }
+}
+
+function detRepAdd() {
+  _detRepItems.push({ desc: '', precio: 0 });
+  _detRepRender();
+}
+
+function detRepElim(i) {
+  _detRepItems.splice(i, 1);
+  _detRepRender();
+}
+
+function _detRepToTexto() {
+  return _detRepItems.filter(it => it.desc).map(it =>
+    it.desc + (it.precio ? ' $' + Number(it.precio).toLocaleString('es-CL') : '')
+  ).join('\n');
+}
+
+function detCalcTiempo() {
+  const entrada = document.getElementById('det-hora-entrada')?.value;
+  const salida  = document.getElementById('det-hora-salida')?.value;
+  const el      = document.getElementById('det-calc-tiempo');
+  if (!el) return;
+  if (!entrada || !salida) { el.textContent = ''; return; }
+  const [eh, em] = entrada.split(':').map(Number);
+  const [sh, sm] = salida.split(':').map(Number);
+  const mins = (sh * 60 + sm) - (eh * 60 + em);
+  if (mins <= 0) { el.textContent = '⚠ La hora de entrega debe ser posterior a la de entrada'; el.style.color = 'var(--text-danger)'; return; }
+  el.style.color = 'var(--text-success)';
+  el.textContent = `⏱ Tiempo real calculado: ${Math.floor(mins / 60)}h ${mins % 60}m`;
+}
+
+function _tallerEsc(s) {
+  return String(s || '').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;');
+}
+
+// ===== CRM TÉCNICO — Historial del vehículo =====
+function _crmOtsPatente(patente) {
+  if (!patente) return [];
+  return APP.lsGet('mp_ots', [])
+    .filter(o => o.patente === patente)
+    .sort((a, b) => new Date(a.creado) - new Date(b.creado));
+}
+
+function _crmHtml(histOTs, currentId) {
+  if (!histOTs.length) return '<div style="color:var(--text-muted);padding:8px 0;font-size:11px">Sin historial previo para esta patente.</div>';
+  const fmtT = m => m != null ? Math.floor(m / 60) + 'h ' + (m % 60) + 'm' : null;
+  return histOTs.map(o => {
+    const esCurrent = o.id === currentId;
+    const t = fmtT(o.tiempoReal);
+    return `<div style="padding:7px 0;border-bottom:0.5px solid var(--border);${esCurrent ? 'opacity:.4;' : ''}">
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+        <span style="color:var(--text-accent);font-weight:500;font-size:11px;cursor:pointer" onclick="volverListaOT();setTimeout(()=>abrirDetalleOT('${o.id}'),50)">${o.id}</span>
+        <span style="font-size:10px;color:var(--text-muted)">${o.creado ? new Date(o.creado).toLocaleDateString('es-CL') : '—'}</span>
+        ${esCurrent ? '<span style="font-size:9px;background:var(--surface-2);padding:1px 5px;border-radius:8px;color:var(--text-muted)">esta OT</span>' : ''}
+      </div>
+      <div style="font-size:11px;margin-top:2px;font-weight:500">${o.servicio || '—'}</div>
+      <div style="font-size:10px;color:var(--text-muted);margin-top:1px;display:flex;gap:10px;flex-wrap:wrap">
+        ${o.tecnico ? '<span>' + o.tecnico + '</span>' : ''}
+        ${t ? '<span>⏱ ' + t + '</span>' : ''}
+        ${o.valor ? '<span>$' + Number(o.valor).toLocaleString('es-CL') + '</span>' : ''}
+        ${o.valorTotal ? '<span>Total $' + Number(o.valorTotal).toLocaleString('es-CL') + '</span>' : ''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function _crmRenderFormulario(patente) {
+  const box  = document.getElementById('crm-hist-box');
+  const cont = document.getElementById('crm-hist-contenido');
+  if (!box || !cont) return;
+  const hist = _crmOtsPatente(patente);
+  if (!hist.length) { box.style.display = 'none'; return; }
+  cont.innerHTML = _crmHtml(hist, null);
+  box.style.display = 'block';
+}
+
+function _crmRenderDetalle(patente, currentId) {
+  const panel = document.getElementById('det-crm-panel');
+  const cont  = document.getElementById('det-crm-contenido');
+  if (!panel || !cont) return;
+  const hist = _crmOtsPatente(patente);
+  if (!hist.length) { panel.style.display = 'none'; return; }
+  cont.innerHTML = _crmHtml(hist, currentId);
+  panel.style.display = 'block';
+}
+
+// ===== UPSELLING INTELIGENTE =====
+const _UPSELL_DEFAULTS = [
+  { servicio: 'Cambio aceite + filtros',  meses: 6  },
+  { servicio: 'Mantención 10.000 km',     meses: 12 },
+  { servicio: 'Cambio de frenos',         meses: 24 },
+  { servicio: 'Alineación y balanceo',    meses: 12 },
+  { servicio: 'Diagnóstico scanner',      meses: 12 },
+  { servicio: 'Cambio de embrague',       meses: 36 },
+];
+
+function _upsellingCheck(patente, servicioActual) {
+  const reglas = APP.lsGet('mp_upselling_rules', _UPSELL_DEFAULTS);
+  const hist   = _crmOtsPatente(patente).filter(o => o.estado === 'completado');
+  if (!hist.length) return [];
+
+  const ahora  = Date.now();
+  return reglas.reduce((acc, regla) => {
+    if (regla.servicio === servicioActual) return acc;
+    const ultOT = hist.filter(o => o.servicio === regla.servicio)
+      .sort((a, b) => new Date(b.creado) - new Date(a.creado))[0];
+    if (!ultOT) return acc;
+    const meses = (ahora - new Date(ultOT.creado)) / (1000 * 60 * 60 * 24 * 30.44);
+    if (meses >= regla.meses) {
+      acc.push({ servicio: regla.servicio, meses: Math.floor(meses), intervalo: regla.meses, ultimaFecha: new Date(ultOT.creado).toLocaleDateString('es-CL') });
+    }
+    return acc;
+  }, []);
+}
+
+function _upsellingRender(patente, servicioActual) {
+  const banner = document.getElementById('det-upsell-banner');
+  if (!banner) return;
+  const sugs = _upsellingCheck(patente, servicioActual);
+  if (!sugs.length) { banner.style.display = 'none'; return; }
+  const items = sugs.map(s =>
+    `<div style="padding:3px 0;display:flex;gap:6px;align-items:flex-start"><i class="ti ti-bulb" style="color:#d97706;font-size:12px;margin-top:1px;flex-shrink:0"></i>
+    <span><strong>${s.servicio}</strong> — hace <strong>${s.meses} meses</strong> (rec. cada ${s.intervalo} m · último: ${s.ultimaFecha})</span></div>`
+  ).join('');
+  banner.style.display = 'block';
+  banner.innerHTML = `<div class="al al-w" style="flex-direction:column;align-items:stretch">
+    <div style="font-size:11px;font-weight:600;margin-bottom:4px"><i class="ti ti-sparkles"></i> Servicios sugeridos para esta visita</div>
+    <div style="font-size:11px">${items}</div>
+  </div>`;
 }
 
 // ===== CONTROL PANELES SEGÚN ESTADO =====

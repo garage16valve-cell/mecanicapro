@@ -1,39 +1,33 @@
 <!-- REPORTES -->
 <div class="page active" id="pg-reportes">
   <div class="kgrid5">
-    <div class="kcard"><div class="kl">OTs completadas</div><div class="kv">47</div><div class="ks ku">+12 vs mayo</div></div>
-    <div class="kcard"><div class="kl">Ingresos</div><div class="kv">$4.2M</div><div class="ks ku">+18%</div></div>
-    <div class="kcard"><div class="kl">Clientes nuevos</div><div class="kv">14</div><div class="ks ku">+3</div></div>
-    <div class="kcard"><div class="kl">Rent./hora</div><div class="kv">$9.4K</div><div class="ks ku">mejor mes</div></div>
-    <div class="kcard"><div class="kl">Satisfacción</div><div class="kv">4.8 ★</div><div class="ks" style="color:var(--text-muted)">32 reseñas</div></div>
+    <div class="kcard"><div class="kl">OTs completadas</div><div class="kv" id="adm-kpi-ots">—</div><div class="ks ku" id="adm-kpi-ots-sub"></div></div>
+    <div class="kcard"><div class="kl">Ingresos</div><div class="kv" id="adm-kpi-ingresos">—</div><div class="ks ku" id="adm-kpi-ing-sub"></div></div>
+    <div class="kcard"><div class="kl">Clientes nuevos</div><div class="kv" id="adm-kpi-clientes">—</div><div class="ks ku" id="adm-kpi-cli-sub"></div></div>
+    <div class="kcard"><div class="kl">Rent./hora</div><div class="kv" id="adm-kpi-renth">—</div><div class="ks" id="adm-kpi-renth-sub" style="color:var(--text-muted)"></div></div>
+    <div class="kcard"><div class="kl">Satisfacción</div><div class="kv" id="adm-kpi-sat">4.8 ★</div><div class="ks" id="adm-kpi-sat-sub" style="color:var(--text-muted)"></div></div>
   </div>
   <div class="g2">
     <div class="card">
       <div class="ch"><span class="ct">Servicios más rentables</span></div>
       <table class="tbl">
         <thead><tr><th>Servicio</th><th>OTs</th><th>Ingreso total</th><th>Rent./hora</th></tr></thead>
-        <tbody>
-          <tr><td>Cambio embrague</td><td>8</td><td>$2.56M</td><td style="color:var(--text-success);font-weight:500">$96K/h</td></tr>
-          <tr><td>Diagnóstico scanner</td><td>14</td><td>$630K</td><td style="color:var(--text-success);font-weight:500">$60K/h</td></tr>
-          <tr><td>Cambio frenos</td><td>11</td><td>$935K</td><td style="color:var(--text-success);font-weight:500">$57K/h</td></tr>
-          <tr><td>Mantención 10k km</td><td>18</td><td>$1.17M</td><td style="color:var(--text-warning);font-weight:500">$52K/h</td></tr>
+        <tbody id="adm-tbody-svc">
+          <tr><td colspan="4" style="text-align:center;color:var(--text-muted);padding:16px;font-size:11px">Cargando…</td></tr>
         </tbody>
       </table>
       <div class="div"></div>
       <div style="display:flex;gap:6px">
-        <button class="btn" style="flex:1;justify-content:center;font-size:11px"><i class="ti ti-download"></i>Exportar PDF</button>
-        <button class="btn" style="flex:1;justify-content:center;font-size:11px"><i class="ti ti-download"></i>Exportar Excel</button>
+        <button class="btn" style="flex:1;justify-content:center;font-size:11px" onclick="admExportarPDF()"><i class="ti ti-download"></i>Exportar PDF</button>
+        <button class="btn" style="flex:1;justify-content:center;font-size:11px" onclick="admExportarExcel()"><i class="ti ti-table-export"></i>Exportar Excel</button>
       </div>
     </div>
     <div class="card">
       <div class="ch"><span class="ct">Rendimiento por mecánico</span></div>
       <table class="tbl">
-        <thead><tr><th>Mecánico</th><th>OTs</th><th>Ingresos</th><th>Nota</th></tr></thead>
-        <tbody>
-          <tr><td>Pedro Ramírez</td><td>18</td><td>$1.6M</td><td>4.9 ★</td></tr>
-          <tr><td>Javier Muñoz</td><td>15</td><td>$1.3M</td><td>4.7 ★</td></tr>
-          <tr><td>Luis González</td><td>9</td><td>$820K</td><td>4.8 ★</td></tr>
-          <tr><td>Roberto Araya</td><td>5</td><td>$480K</td><td>4.6 ★</td></tr>
+        <thead><tr><th>Mecánico</th><th>OTs</th><th>Ingresos</th><th>% completadas</th></tr></thead>
+        <tbody id="adm-tbody-mec">
+          <tr><td colspan="4" style="text-align:center;color:var(--text-muted);padding:16px;font-size:11px">Cargando…</td></tr>
         </tbody>
       </table>
     </div>
@@ -45,20 +39,36 @@
   <div class="g2">
     <div class="card">
       <div class="ch"><span class="ct">Datos del taller</span></div>
-      <div class="fg"><label>Nombre del taller</label><input value="AutoTaller Santiago"></div>
-      <div class="fg"><label>RUT empresa</label><input value="76.543.210-8"></div>
-      <div class="fg"><label>Dirección</label><input value="Av. Providencia 1234, Santiago"></div>
-      <div class="fg"><label>Link de agendamiento</label><input value="plataforma.cl/agenda/autotaller-santiago" readonly></div>
-      <button class="btn bpa" style="margin-top:4px"><i class="ti ti-device-floppy"></i>Guardar cambios</button>
+      <div class="fg"><label>Nombre del taller</label><input id="cfg-nombre" placeholder="Nombre del taller"></div>
+      <div class="fg"><label>RUT empresa</label><input id="cfg-rut" placeholder="76.543.210-8"></div>
+      <div class="fg"><label>Dirección</label><input id="cfg-direccion" placeholder="Dirección del taller"></div>
+      <div class="fg"><label>Teléfono / WhatsApp</label><input id="cfg-telefono" placeholder="+56 9 XXXX XXXX"></div>
+      <div class="fg"><label>Link de agendamiento</label><input id="cfg-agenda" placeholder="plataforma.cl/agenda/..."></div>
+      <button class="btn bpa" id="cfg-btn-guardar" style="margin-top:4px" onclick="admGuardarConfig()">
+        <i class="ti ti-device-floppy"></i>Guardar cambios
+      </button>
     </div>
     <div class="card">
       <div class="ch"><span class="ct">Integraciones API</span></div>
-      <div style="display:flex;flex-direction:column;gap:6px">
-        <div style="display:flex;align-items:center;justify-content:space-between;padding:9px;background:var(--surface-1);border-radius:var(--radius)"><div><div style="font-size:12px;font-weight:500"><i class="ti ti-car" style="font-size:12px"></i> API Patentes Chile</div><div style="font-size:10px;color:var(--text-muted)">Auto-relleno de datos vehiculares</div></div><span class="st s-done"><span class="dot"></span>Activa</span></div>
-        <div style="display:flex;align-items:center;justify-content:space-between;padding:9px;background:var(--surface-1);border-radius:var(--radius)"><div><div style="font-size:12px;font-weight:500"><i class="ti ti-brand-whatsapp" style="font-size:12px;color:#25d366"></i> Wati / WhatsApp API</div><div style="font-size:10px;color:var(--text-muted)">Mensajes automáticos de fidelización</div></div><span class="st s-done"><span class="dot"></span>Activa</span></div>
-        <div style="display:flex;align-items:center;justify-content:space-between;padding:9px;background:var(--surface-1);border-radius:var(--radius)"><div><div style="font-size:12px;font-weight:500"><i class="ti ti-receipt" style="font-size:12px"></i> Haulmer / SII</div><div style="font-size:10px;color:var(--text-muted)">Boletas y facturas electrónicas</div></div><span class="st s-done"><span class="dot"></span>Activa</span></div>
-        <div style="display:flex;align-items:center;justify-content:space-between;padding:9px;background:var(--surface-1);border-radius:var(--radius)"><div><div style="font-size:12px;font-weight:500"><i class="ti ti-map-pin" style="font-size:12px"></i> Geolocalización MINSAL residuos</div><div style="font-size:10px;color:var(--text-muted)">Empresas autorizadas de retiro</div></div><span class="st s-wait"><span class="dot"></span>Pendiente</span></div>
+      <div id="adm-integraciones" style="display:flex;flex-direction:column;gap:6px">
+        <!-- Renderizado por JS -->
       </div>
     </div>
+  </div>
+
+  <!-- Módulo Servicios embebido en Admin -->
+  <div class="card" style="margin-top:14px">
+    <div class="ch">
+      <span class="ct"><i class="ti ti-tools" style="font-size:13px"></i> Catálogo de servicios</span>
+      <button class="btn bpa" onclick="nav('servicios',null)" style="font-size:11px">
+        <i class="ti ti-arrow-right"></i> Ir al módulo
+      </button>
+    </div>
+    <div class="kgrid" style="grid-template-columns:repeat(3,1fr);margin-bottom:10px">
+      <div class="kcard"><div class="kl">Servicios activos</div><div class="kv" id="adm-svc-count" style="font-size:18px">—</div></div>
+      <div class="kcard"><div class="kl">Tarifa/hora global</div><div class="kv" id="adm-svc-tarifa" style="font-size:16px">—</div></div>
+      <div class="kcard"><div class="kl">Categorías</div><div class="kv" id="adm-svc-cats" style="font-size:18px">—</div></div>
+    </div>
+    <div id="adm-svc-lista" style="font-size:11px;color:var(--text-muted)"></div>
   </div>
 </div>
