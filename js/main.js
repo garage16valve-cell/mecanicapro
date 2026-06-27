@@ -1,7 +1,7 @@
 // ===== CONFIGURACIÓN DE MÓDULOS =====
 const MODULE_MAP = {
   dashboard: 'dashboard',
-  agenda:    'dashboard',
+  agenda:    'agenda',
   ot:        'taller',
   clientes:  'taller',
   wiki:      'taller',
