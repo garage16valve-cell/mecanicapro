@@ -1,44 +1,98 @@
 <!-- REPORTES -->
 <div class="page active" id="pg-reportes">
+
+  <!-- Selector de período -->
+  <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;flex-wrap:wrap">
+    <span style="font-size:11px;color:var(--text-muted);font-weight:500">Período:</span>
+    <div style="display:flex;border:0.5px solid var(--border);border-radius:var(--radius);overflow:hidden">
+      <button id="adm-per-sem" class="btn" onclick="admSetPeriodo('semana')" style="border-radius:0;border:none;border-right:0.5px solid var(--border);font-size:11px">Semana</button>
+      <button id="adm-per-mes" class="btn" onclick="admSetPeriodo('mes')"    style="border-radius:0;border:none;border-right:0.5px solid var(--border);font-size:11px">Mes</button>
+      <button id="adm-per-ano" class="btn" onclick="admSetPeriodo('año')"   style="border-radius:0;border:none;font-size:11px">Año</button>
+    </div>
+    <span id="adm-periodo-label" style="font-size:11px;color:var(--text-muted)"></span>
+    <div style="flex:1"></div>
+    <button class="btn" style="font-size:11px" onclick="admExportarPDF()"><i class="ti ti-download"></i> PDF</button>
+    <button class="btn" style="font-size:11px" onclick="admExportarExcel()"><i class="ti ti-table-export"></i> Excel</button>
+  </div>
+
+  <!-- KPIs -->
   <div class="kgrid5">
     <div class="kcard"><div class="kl">OTs completadas</div><div class="kv" id="adm-kpi-ots">—</div><div class="ks ku" id="adm-kpi-ots-sub"></div></div>
     <div class="kcard"><div class="kl">Ingresos</div><div class="kv" id="adm-kpi-ingresos">—</div><div class="ks ku" id="adm-kpi-ing-sub"></div></div>
     <div class="kcard"><div class="kl">Clientes nuevos</div><div class="kv" id="adm-kpi-clientes">—</div><div class="ks ku" id="adm-kpi-cli-sub"></div></div>
-    <div class="kcard"><div class="kl">Rent./hora</div><div class="kv" id="adm-kpi-renth">—</div><div class="ks" id="adm-kpi-renth-sub" style="color:var(--text-muted)"></div></div>
+    <div class="kcard"><div class="kl">Rent./hora real</div><div class="kv" id="adm-kpi-renth">—</div><div class="ks" id="adm-kpi-renth-sub" style="color:var(--text-muted)"></div></div>
     <div class="kcard"><div class="kl">Satisfacción</div><div class="kv" id="adm-kpi-sat">4.8 ★</div><div class="ks" id="adm-kpi-sat-sub" style="color:var(--text-muted)"></div></div>
   </div>
+
+  <!-- Servicios + Mecánicos -->
   <div class="g2">
     <div class="card">
       <div class="ch"><span class="ct">Servicios más rentables</span></div>
-      <table class="tbl">
-        <thead><tr><th>Servicio</th><th>OTs</th><th>Ingreso total</th><th>Rent./hora</th></tr></thead>
-        <tbody id="adm-tbody-svc">
-          <tr><td colspan="4" style="text-align:center;color:var(--text-muted);padding:16px;font-size:11px">Cargando…</td></tr>
-        </tbody>
-      </table>
-      <div class="div"></div>
-      <div style="display:flex;gap:6px">
-        <button class="btn" style="flex:1;justify-content:center;font-size:11px" onclick="admExportarPDF()"><i class="ti ti-download"></i>Exportar PDF</button>
-        <button class="btn" style="flex:1;justify-content:center;font-size:11px" onclick="admExportarExcel()"><i class="ti ti-table-export"></i>Exportar Excel</button>
+      <div style="overflow-x:auto">
+        <table class="tbl" style="min-width:560px">
+          <thead><tr>
+            <th>Servicio</th><th>OTs</th><th>T.est promedio</th><th>T.real promedio</th>
+            <th>Eficiencia</th><th>Ingresos</th><th>Rent./hora</th>
+          </tr></thead>
+          <tbody id="adm-tbody-svc">
+            <tr><td colspan="7" style="text-align:center;color:var(--text-muted);padding:16px;font-size:11px">Cargando…</td></tr>
+          </tbody>
+        </table>
       </div>
     </div>
     <div class="card">
-      <div class="ch"><span class="ct">Rendimiento por mecánico</span></div>
+      <div class="ch"><span class="ct">Rendimiento por mecánico</span><span style="font-size:10px;color:var(--text-muted)">Solo Admin</span></div>
       <table class="tbl">
-        <thead><tr><th>Mecánico</th><th>OTs</th><th>Ingresos</th><th>% completadas</th></tr></thead>
+        <thead><tr><th>Mecánico</th><th>OTs</th><th>T.real total</th><th>Eficiencia</th><th>Ingresos</th></tr></thead>
         <tbody id="adm-tbody-mec">
-          <tr><td colspan="4" style="text-align:center;color:var(--text-muted);padding:16px;font-size:11px">Cargando…</td></tr>
+          <tr><td colspan="5" style="text-align:center;color:var(--text-muted);padding:16px;font-size:11px">Cargando…</td></tr>
         </tbody>
       </table>
     </div>
   </div>
+
+  <!-- Gráfico mensual -->
+  <div class="card" style="margin-top:14px">
+    <div class="ch">
+      <span class="ct"><i class="ti ti-chart-bar" style="font-size:13px"></i> Carga de trabajo mensual (últimos 12 meses)</span>
+    </div>
+    <div id="adm-grafico-svg" style="min-height:120px"></div>
+    <div style="display:flex;gap:16px;margin-top:6px;font-size:10px;color:var(--text-muted)">
+      <span style="display:flex;align-items:center;gap:4px"><span style="display:inline-block;width:12px;height:12px;background:var(--fill-accent);border-radius:2px;opacity:.8"></span>OTs completadas</span>
+      <span style="display:flex;align-items:center;gap:4px"><span style="display:inline-block;width:12px;height:12px;background:var(--fill-accent);border-radius:2px;opacity:.3"></span>Horas trabajadas (escala relativa)</span>
+    </div>
+  </div>
+
+  <!-- Frecuencia + Stock -->
+  <div class="g2" style="margin-top:14px">
+    <div class="card">
+      <div class="ch"><span class="ct"><i class="ti ti-car" style="font-size:13px"></i> Marcas y modelos más frecuentes</span></div>
+      <table class="tbl">
+        <thead><tr><th>Marca</th><th>OTs</th><th>Modelo top</th><th>Servicio más frecuente</th></tr></thead>
+        <tbody id="adm-frecuencia-tbody">
+          <tr><td colspan="4" style="text-align:center;color:var(--text-muted);padding:16px;font-size:11px">Cargando…</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="card">
+      <div class="ch"><span class="ct"><i class="ti ti-package" style="font-size:13px"></i> Stock sugerido — repuestos de alta rotación</span></div>
+      <table class="tbl">
+        <thead><tr><th>Repuesto</th><th>Usos</th><th>Sugerencia</th></tr></thead>
+        <tbody id="adm-stock-tbody">
+          <tr><td colspan="3" style="text-align:center;color:var(--text-muted);padding:16px;font-size:11px">Cargando…</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
 </div>
 
 <!-- CONFIGURACIÓN -->
 <div class="page" id="pg-config">
 
-  <!-- Datos del taller + Integraciones -->
+  <!-- Datos del taller + Config operativa + Integraciones -->
   <div class="g2">
+    <!-- Datos del taller -->
     <div class="card">
       <div class="ch"><span class="ct">Datos del taller</span></div>
       <div class="fg"><label>Nombre del taller</label><input id="cfg-nombre" placeholder="Nombre del taller"></div>
@@ -47,12 +101,42 @@
       <div class="fg"><label>Teléfono / WhatsApp</label><input id="cfg-telefono" placeholder="+56 9 XXXX XXXX"></div>
       <div class="fg"><label>Link de agendamiento</label><input id="cfg-agenda" placeholder="plataforma.cl/agenda/..."></div>
       <button class="btn bpa" id="cfg-btn-guardar" style="margin-top:4px" onclick="admGuardarConfig()">
-        <i class="ti ti-device-floppy"></i>Guardar cambios
+        <i class="ti ti-device-floppy"></i>Guardar datos del taller
       </button>
     </div>
-    <div class="card">
-      <div class="ch"><span class="ct">Integraciones API</span></div>
-      <div id="adm-integraciones" style="display:flex;flex-direction:column;gap:6px"></div>
+
+    <!-- Col derecha: Config operativa + Integraciones -->
+    <div>
+      <div class="card" style="margin-bottom:14px">
+        <div class="ch"><span class="ct"><i class="ti ti-settings" style="font-size:13px"></i> Configuración operativa</span></div>
+        <div class="fgrid2">
+          <div class="fg"><label>Hora inicio jornada</label><input type="time" id="cfg-op-inicio" oninput="admGuardarConfigOperativa()"></div>
+          <div class="fg"><label>Hora fin jornada</label><input type="time" id="cfg-op-fin" oninput="admGuardarConfigOperativa()"></div>
+          <div class="fg">
+            <label>Capacidad máxima (horas/día)</label>
+            <input type="number" id="cfg-op-cap" min="1" max="24" step="0.5" placeholder="8" oninput="admGuardarConfigOperativa()">
+            <div style="font-size:10px;color:var(--text-muted);margin-top:2px">Afecta al semáforo de capacidad en Agenda</div>
+          </div>
+          <div class="fg">
+            <label>Precio mínimo por hora ($)</label>
+            <input type="number" id="cfg-op-precio-min" min="0" step="1000" placeholder="25000" oninput="admGuardarConfigOperativa()">
+            <div style="font-size:10px;color:var(--text-muted);margin-top:2px">Alerta si un servicio rinde menos que esto</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="ch"><span class="ct">Integraciones API</span></div>
+        <div id="adm-integraciones" style="display:flex;flex-direction:column;gap:6px"></div>
+        <!-- Google Calendar detalle -->
+        <div id="adm-gcal-det" style="display:none;margin-top:10px;padding-top:10px;border-top:0.5px solid var(--border)">
+          <div class="fgrid2">
+            <div class="fg"><label style="font-size:10px">Google Client ID</label><input id="cfg-gcal-clientid" placeholder="XXXX.apps.googleusercontent.com" oninput="admGuardarGCalConfig()"></div>
+            <div class="fg"><label style="font-size:10px">Calendar ID</label><input id="cfg-gcal-calid" placeholder="primary" oninput="admGuardarGCalConfig()"></div>
+          </div>
+          <div style="font-size:10px;color:var(--text-muted);margin-top:4px">Estado OAuth: <span id="cfg-gcal-estado">desconectado</span></div>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -62,12 +146,21 @@
       <span class="ct"><i class="ti ti-users" style="font-size:13px"></i> Operarios</span>
       <button class="btn bpa" onclick="admAgregarOperario()"><i class="ti ti-plus"></i> Agregar mecánico</button>
     </div>
+    <div style="font-size:10px;color:var(--text-muted);margin-bottom:10px">Haz clic en el círculo para cambiar el color asignado en la agenda.</div>
+    <div id="adm-operarios-lista" style="display:flex;flex-direction:column;gap:6px"></div>
+  </div>
+
+  <!-- Reglas de upselling -->
+  <div class="card" style="margin-top:14px">
+    <div class="ch">
+      <span class="ct"><i class="ti ti-sparkles" style="font-size:13px"></i> Reglas de upselling inteligente</span>
+      <button class="btn bpa" onclick="admUpsellAgregar()" style="font-size:11px"><i class="ti ti-plus"></i> Agregar regla</button>
+    </div>
     <div style="font-size:10px;color:var(--text-muted);margin-bottom:10px">
-      El círculo de color asigna el mecánico en la agenda. Haz clic en él para cambiar el color.
+      Cuando una OT se abre para un vehículo, el sistema verifica cuántos meses han pasado desde el último servicio y sugiere estos de forma proactiva.
     </div>
-    <div id="adm-operarios-lista" style="display:flex;flex-direction:column;gap:6px">
-      <!-- Renderizado por JS -->
-    </div>
+    <div id="adm-upsell-lista" style="font-size:11px"></div>
+    <button class="btn" style="margin-top:8px;font-size:11px" onclick="admUpsellReset()"><i class="ti ti-refresh"></i> Restaurar reglas por defecto</button>
   </div>
 
   <!-- Notificaciones WhatsApp -->
@@ -75,8 +168,6 @@
     <div class="ch">
       <span class="ct"><i class="ti ti-brand-whatsapp" style="color:#25d366;font-size:13px"></i> Notificaciones WhatsApp</span>
     </div>
-
-    <!-- Config -->
     <div class="fgrid2" style="margin-bottom:12px">
       <div class="fg">
         <label>Hora resumen día siguiente</label>
@@ -90,46 +181,32 @@
           <option value="15">15 días</option>
           <option value="30">30 días</option>
         </select>
-        <div style="font-size:10px;color:var(--text-muted);margin-top:3px">Días después de completar una OT para enviar encuesta al cliente</div>
+        <div style="font-size:10px;color:var(--text-muted);margin-top:3px">Días tras completar una OT para enviar encuesta al cliente</div>
       </div>
     </div>
-
-    <!-- Descripción de las alertas -->
     <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:12px">
       <div style="padding:10px;background:var(--surface-1);border-radius:var(--radius);font-size:11px">
-        <div style="font-weight:500;margin-bottom:4px">📅 Alerta 1 — Resumen diario</div>
-        <div style="color:var(--text-muted)">Agenda del día siguiente para cada mecánico. Se envía a la hora configurada.</div>
+        <div style="font-weight:500;margin-bottom:4px">📅 Resumen diario</div>
+        <div style="color:var(--text-muted)">Agenda de mañana para cada mecánico.</div>
       </div>
       <div style="padding:10px;background:var(--surface-1);border-radius:var(--radius);font-size:11px">
-        <div style="font-weight:500;margin-bottom:4px">⏰ Alerta 2 — Aviso 30 min</div>
-        <div style="color:var(--text-muted)">Notifica al mecánico 30 min antes de que llegue un cliente. Automático mientras la app está abierta.</div>
+        <div style="font-weight:500;margin-bottom:4px">⏰ Aviso 30 min</div>
+        <div style="color:var(--text-muted)">Alerta al mecánico antes de cada llegada.</div>
       </div>
       <div style="padding:10px;background:var(--surface-1);border-radius:var(--radius);font-size:11px">
-        <div style="font-weight:500;margin-bottom:4px">⭐ Alerta 3 — Post-servicio</div>
-        <div style="color:var(--text-muted)">Encuesta de satisfacción al cliente N días después de completar la OT.</div>
+        <div style="font-weight:500;margin-bottom:4px">⭐ Post-servicio</div>
+        <div style="color:var(--text-muted)">Encuesta de satisfacción al cliente.</div>
         <div id="alerta-post-count" style="margin-top:4px;color:var(--text-accent);font-weight:500"></div>
       </div>
     </div>
-
-    <!-- Botones de acción -->
     <div style="display:flex;gap:8px;flex-wrap:wrap">
-      <button class="btn bpw" onclick="admEnviarResumenManual()">
-        <i class="ti ti-brand-whatsapp"></i> Enviar resumen ahora
-      </button>
-      <button class="btn bpw" onclick="admEnviarPostServicio()">
-        <i class="ti ti-star"></i> Enviar seguimientos post-servicio
-      </button>
+      <button class="btn bpw" onclick="admEnviarResumenManual()"><i class="ti ti-brand-whatsapp"></i> Enviar resumen ahora</button>
+      <button class="btn bpw" onclick="admEnviarPostServicio()"><i class="ti ti-star"></i> Enviar seguimientos post-servicio</button>
     </div>
-
-    <!-- Status -->
     <div id="alerta-status" style="font-size:11px;color:var(--text-muted);margin-top:8px;min-height:16px"></div>
-
-    <!-- Motor de alertas -->
-    <div style="margin-top:12px;padding:10px;background:var(--surface-1);border-radius:var(--radius);display:flex;align-items:center;gap:10px">
-      <div style="flex:1">
-        <div style="font-size:11px;font-weight:500;margin-bottom:2px">Motor de alertas automáticas</div>
-        <div id="alerta-motor-status" style="font-size:11px;color:var(--text-muted)">⚪ Iniciando…</div>
-      </div>
+    <div style="margin-top:12px;padding:10px;background:var(--surface-1);border-radius:var(--radius)">
+      <div style="font-size:11px;font-weight:500;margin-bottom:2px">Motor de alertas</div>
+      <div id="alerta-motor-status" style="font-size:11px;color:var(--text-muted)">⚪ Iniciando…</div>
     </div>
   </div>
 
@@ -137,38 +214,131 @@
   <div class="card" style="margin-top:14px">
     <div class="ch">
       <span class="ct"><i class="ti ti-history" style="font-size:13px"></i> Log de alertas</span>
-      <button class="btn" onclick="admLimpiarLog()" style="font-size:10px"><i class="ti ti-trash"></i> Limpiar log</button>
+      <button class="btn" onclick="admLimpiarLog()" style="font-size:10px"><i class="ti ti-trash"></i> Limpiar</button>
     </div>
     <table class="tbl">
-      <thead>
-        <tr>
-          <th style="white-space:nowrap">Fecha/hora</th>
-          <th>Tipo</th>
-          <th>Destinatario</th>
-          <th>Mensaje</th>
-          <th>Estado</th>
-        </tr>
-      </thead>
+      <thead><tr><th style="white-space:nowrap">Fecha/hora</th><th>Tipo</th><th>Destinatario</th><th>Mensaje</th><th>Estado</th></tr></thead>
       <tbody id="adm-alertas-log-tbody">
         <tr><td colspan="5" style="text-align:center;color:var(--text-muted);padding:16px;font-size:11px">Sin alertas registradas aún.</td></tr>
       </tbody>
     </table>
   </div>
 
-  <!-- Catálogo de servicios (existing) -->
+  <!-- Configuración de Repuestos -->
+  <div class="card" style="margin-top:14px">
+    <div class="ch">
+      <span class="ct"><i class="ti ti-package" style="font-size:13px"></i> Configuración de repuestos</span>
+    </div>
+    <div class="g2" style="gap:12px">
+      <div class="fg">
+        <label>% Ganancia sobre repuestos</label>
+        <div style="display:flex;align-items:center;gap:8px">
+          <input id="cfg-ganancia" type="number" min="0" max="200" step="1" placeholder="30"
+            style="flex:1;font-family:var(--font-mono)">
+          <span style="font-size:12px;color:var(--text-muted)">%</span>
+        </div>
+        <div style="font-size:10px;color:var(--text-muted);margin-top:3px">Margen aplicado sobre el costo de compra del repuesto.</div>
+      </div>
+      <div class="fg">
+        <label>Precio mínimo por hora M.O.</label>
+        <div style="display:flex;align-items:center;gap:8px">
+          <input id="cfg-precio-min-mo" type="number" min="0" step="500" placeholder="25000"
+            style="flex:1;font-family:var(--font-mono)">
+          <span style="font-size:12px;color:var(--text-muted)">$/h</span>
+        </div>
+        <div style="font-size:10px;color:var(--text-muted);margin-top:3px">Alerta en Reportes si la rentabilidad/hora cae bajo este valor.</div>
+      </div>
+    </div>
+    <div class="fg" style="margin-top:10px">
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:12px">
+        <input id="cfg-iva-defecto" type="checkbox">
+        Mostrar precios con IVA por defecto (19%)
+      </label>
+      <div style="font-size:10px;color:var(--text-muted);margin-top:3px">
+        Activa este toggle para que los servicios nuevos incluyan IVA al mostrar su precio de venta.
+      </div>
+    </div>
+    <button id="cfg-rep-btn" class="btn bpa" style="margin-top:12px" onclick="admGuardarConfigRepuestos()">
+      <i class="ti ti-device-floppy"></i> Guardar configuración
+    </button>
+  </div>
+
+  <!-- Catálogo de servicios -->
   <div class="card" style="margin-top:14px">
     <div class="ch">
       <span class="ct"><i class="ti ti-tools" style="font-size:13px"></i> Catálogo de servicios</span>
-      <button class="btn bpa" onclick="nav('servicios',null)" style="font-size:11px">
-        <i class="ti ti-arrow-right"></i> Ir al módulo
+      <span id="adm-cat-count" style="font-size:11px;color:var(--text-muted);margin-left:6px"></span>
+      <div style="display:flex;gap:6px;margin-left:auto">
+        <input id="adm-cat-buscar" type="text" placeholder="Buscar servicio…" style="font-size:11px;padding:4px 9px;width:160px"
+          oninput="_admCatRender(this.value)">
+        <button class="btn bpa" onclick="admCatNuevo()" style="font-size:11px"><i class="ti ti-plus"></i> Nuevo</button>
+      </div>
+    </div>
+
+    <!-- Lista de servicios -->
+    <div id="adm-cat-lista" style="margin-top:6px"></div>
+
+    <!-- Panel Nuevo / Editar servicio -->
+    <div id="adm-cat-panel" style="display:none;margin-top:14px;border-top:0.5px solid var(--border);padding-top:14px">
+      <div class="ch" style="margin-bottom:12px">
+        <span class="ct" id="adm-cat-titulo">Nuevo servicio</span>
+        <button id="adm-cat-btn-del" class="btn" style="color:var(--text-danger);display:none" onclick="admCatEliminar()">
+          <i class="ti ti-trash"></i> Eliminar
+        </button>
+        <button class="btn" onclick="admCatCerrarPanel()" style="padding:4px 9px"><i class="ti ti-x"></i></button>
+      </div>
+      <div class="g2">
+        <div class="fg"><label>Nombre del servicio</label><input id="adm-cat-f-nombre" placeholder="Ej: Cambio de aceite"></div>
+        <div class="fg">
+          <label>Categoría</label>
+          <select id="adm-cat-f-cat" style="width:100%">
+            <option>Mantención</option>
+            <option>Frenos</option>
+            <option>Motor</option>
+            <option>Eléctrico</option>
+            <option>Suspensión</option>
+            <option>Otro</option>
+          </select>
+        </div>
+      </div>
+      <div class="g2">
+        <div class="fg">
+          <label>Horas estimadas</label>
+          <input id="adm-cat-f-hest" type="number" min="0" step="0.5" placeholder="1.5">
+        </div>
+        <div class="fg">
+          <label>Precio fijo de venta</label>
+          <input id="adm-cat-f-precio" type="number" min="0" step="500" placeholder="45000" style="font-family:var(--font-mono)">
+        </div>
+      </div>
+      <div class="g2">
+        <div class="fg">
+          <label>Precio mínimo de venta</label>
+          <input id="adm-cat-f-precio-min" type="number" min="0" step="500" placeholder="38000" style="font-family:var(--font-mono)">
+          <div style="font-size:10px;color:var(--text-muted);margin-top:3px">Solo visible para Admin. Alerta si se cobra menos.</div>
+        </div>
+        <div class="fg" style="align-self:flex-end">
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:12px;margin-bottom:6px">
+            <input id="adm-cat-f-iva" type="checkbox">
+            Precio incluye IVA (19%)
+          </label>
+          <div style="font-size:10px;color:var(--text-muted)">El precio mostrado al cliente incluirá IVA.</div>
+        </div>
+      </div>
+
+      <!-- Repuestos sugeridos -->
+      <div style="margin-top:12px">
+        <div class="ch" style="margin-bottom:8px">
+          <span style="font-size:11px;font-weight:500">Repuestos sugeridos</span>
+          <button class="btn" onclick="admCatAgregarRep()" style="font-size:11px"><i class="ti ti-plus"></i> Agregar</button>
+        </div>
+        <div id="adm-cat-rep-lista"></div>
+      </div>
+
+      <button class="btn bpa" style="width:100%;justify-content:center;margin-top:14px" onclick="admCatGuardar()">
+        <i class="ti ti-device-floppy"></i> Guardar servicio
       </button>
     </div>
-    <div class="kgrid" style="grid-template-columns:repeat(3,1fr);margin-bottom:10px">
-      <div class="kcard"><div class="kl">Servicios activos</div><div class="kv" id="adm-svc-count" style="font-size:18px">—</div></div>
-      <div class="kcard"><div class="kl">Tarifa/hora global</div><div class="kv" id="adm-svc-tarifa" style="font-size:16px">—</div></div>
-      <div class="kcard"><div class="kl">Categorías</div><div class="kv" id="adm-svc-cats" style="font-size:18px">—</div></div>
-    </div>
-    <div id="adm-svc-lista" style="font-size:11px;color:var(--text-muted)"></div>
   </div>
 
 </div>

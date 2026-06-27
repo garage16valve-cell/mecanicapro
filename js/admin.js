@@ -18,6 +18,178 @@ let _admAlertaIntervalId  = null;
 let _admAlertaResumenDate = '';
 let _admAlertaSentSet     = new Set();
 
+// ===== CATÁLOGO DE SERVICIOS (embebido en Admin) =====
+let _admCatEditId = null;
+let _admCatReps   = [];
+
+function _admCatRender(filtro) {
+  const lista = document.getElementById('adm-cat-lista');
+  const cnt   = document.getElementById('adm-cat-count');
+  if (!lista) return;
+  const todos = APP.lsGet('mp_servicios', []);
+  const q     = (filtro || '').toLowerCase().trim();
+  const items = q ? todos.filter(s =>
+    (s.nombre||'').toLowerCase().includes(q) || (s.categoria||'').toLowerCase().includes(q)
+  ) : todos;
+  if (cnt) cnt.textContent = items.length + ' servicio' + (items.length !== 1 ? 's' : '');
+  if (!items.length) {
+    lista.innerHTML = `<div style="text-align:center;padding:28px;color:var(--text-muted)">
+      <i class="ti ti-tools" style="font-size:26px;display:block;margin-bottom:8px;opacity:.3"></i>
+      ${q ? 'Sin resultados para "' + _admEsc(filtro) + '".' : 'Sin servicios. Usa <strong>+ Nuevo</strong> para crear el primero.'}
+    </div>`;
+    return;
+  }
+  const CAT_CSS = { 'Mantención':'s-wait','Frenos':'s-crit','Motor':'s-prog','Eléctrico':'s-new','Suspensión':'s-pend','Otro':'s-done' };
+  lista.innerHTML = items.map(s => {
+    const precio = s.precioFijo || 0;
+    const precioMuestra = s.precioConIva && precio ? Math.round(precio * 1.19) : precio;
+    const minVenta = s.precioMinVenta || 0;
+    return `<div class="card" style="cursor:pointer;margin-bottom:8px" onclick="admCatEditar('${s.id}')"
+      onmouseover="this.style.borderColor='var(--border-accent)'" onmouseout="this.style.borderColor=''">
+      <div class="ch">
+        <div>
+          <div style="font-weight:500;font-size:12px;margin-bottom:4px">${_admEsc(s.nombre)}</div>
+          <span class="st ${CAT_CSS[s.categoria]||'s-wait'}"><span class="dot"></span>${_admEsc(s.categoria||'Otro')}</span>
+          ${s.precioConIva ? '<span class="tag" style="font-size:9px;margin-left:4px">c/IVA</span>' : ''}
+        </div>
+        <div style="text-align:right">
+          ${precioMuestra ? `<div style="font-size:15px;font-weight:600;color:var(--text-accent)">$${precioMuestra.toLocaleString('es-CL')}</div>` : ''}
+          ${s.horasEst ? `<div style="font-size:10px;color:var(--text-muted)">${s.horasEst}h est.</div>` : ''}
+        </div>
+      </div>
+      <div style="font-size:10px;color:var(--text-muted);margin-top:6px;display:flex;gap:12px;flex-wrap:wrap">
+        ${minVenta ? `<span><i class="ti ti-alert-circle" style="font-size:10px;vertical-align:-1px"></i> Mín. $${minVenta.toLocaleString('es-CL')}</span>` : ''}
+        ${s.repuestosSugeridos?.length ? `<span><i class="ti ti-package" style="font-size:10px;vertical-align:-1px"></i> ${s.repuestosSugeridos.length} rep. sug.</span>` : ''}
+        ${s.proveedoresIds?.length ? `<span><i class="ti ti-building-store" style="font-size:10px;vertical-align:-1px"></i> ${s.proveedoresIds.length} prov.</span>` : ''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function admCatNuevo() {
+  _admCatEditId = null; _admCatReps = [];
+  ['adm-cat-f-nombre','adm-cat-f-hest','adm-cat-f-precio','adm-cat-f-precio-min'].forEach(id => {
+    const el = document.getElementById(id); if (el) el.value = '';
+  });
+  const cat = document.getElementById('adm-cat-f-cat'); if (cat) cat.value = 'Mantención';
+  const iva = document.getElementById('adm-cat-f-iva');
+  if (iva) iva.checked = !!APP.lsGet('mp_config',{}).iva_por_defecto;
+  const del = document.getElementById('adm-cat-btn-del'); if (del) del.style.display = 'none';
+  document.getElementById('adm-cat-titulo').textContent = 'Nuevo servicio';
+  _admCatRenderReps();
+  document.getElementById('adm-cat-panel').style.display = 'block';
+  document.getElementById('adm-cat-panel').scrollIntoView({ behavior:'smooth', block:'nearest' });
+}
+
+function admCatEditar(id) {
+  const svc = APP.lsGet('mp_servicios', []).find(s => s.id === id);
+  if (!svc) return;
+  _admCatEditId = id;
+  _admCatReps   = JSON.parse(JSON.stringify(svc.repuestosSugeridos || []));
+  const s = (elId, v) => { const e = document.getElementById(elId); if (e) e.value = v ?? ''; };
+  s('adm-cat-f-nombre',    svc.nombre);
+  s('adm-cat-f-hest',      svc.horasEst   || '');
+  s('adm-cat-f-precio',    svc.precioFijo || '');
+  s('adm-cat-f-precio-min',svc.precioMinVenta || '');
+  const cat = document.getElementById('adm-cat-f-cat'); if (cat) cat.value = svc.categoria || 'Otro';
+  const iva = document.getElementById('adm-cat-f-iva'); if (iva) iva.checked = !!svc.precioConIva;
+  const del = document.getElementById('adm-cat-btn-del'); if (del) del.style.display = '';
+  document.getElementById('adm-cat-titulo').textContent = 'Editar: ' + svc.nombre;
+  _admCatRenderReps();
+  document.getElementById('adm-cat-panel').style.display = 'block';
+  document.getElementById('adm-cat-panel').scrollIntoView({ behavior:'smooth', block:'nearest' });
+}
+
+function admCatCerrarPanel() {
+  document.getElementById('adm-cat-panel').style.display = 'none';
+  _admCatEditId = null; _admCatReps = [];
+}
+
+function admCatGuardar() {
+  const g = id => (document.getElementById(id)?.value || '').trim();
+  const nombre = g('adm-cat-f-nombre');
+  if (!nombre) { alert('Ingresa el nombre del servicio.'); return; }
+  const dato = {
+    nombre,
+    categoria:     document.getElementById('adm-cat-f-cat')?.value || 'Otro',
+    horasEst:      parseFloat(g('adm-cat-f-hest'))    || 0,
+    precioFijo:    parseFloat(g('adm-cat-f-precio'))   || 0,
+    precioMinVenta:parseFloat(g('adm-cat-f-precio-min'))|| 0,
+    precioConIva:  !!document.getElementById('adm-cat-f-iva')?.checked,
+    repuestosSugeridos: _admCatReps,
+  };
+  const todos = APP.lsGet('mp_servicios', []);
+  if (_admCatEditId) {
+    const idx = todos.findIndex(s => s.id === _admCatEditId);
+    if (idx >= 0) todos[idx] = { ...todos[idx], ...dato };
+  } else {
+    todos.push({ id:'svc-'+Date.now(), horasMin:0, horasMax:0, ...dato, creado:new Date().toISOString() });
+  }
+  APP.lsSet('mp_servicios', todos);
+  _admCatRender(); admCatCerrarPanel(); _admPanelServicios();
+}
+
+function admCatEliminar() {
+  if (!_admCatEditId || !confirm('¿Eliminar este servicio del catálogo?')) return;
+  APP.lsSet('mp_servicios', APP.lsGet('mp_servicios',[]).filter(s => s.id !== _admCatEditId));
+  _admCatRender(); admCatCerrarPanel(); _admPanelServicios();
+}
+
+function admCatAgregarRep() {
+  _admCatReps.push({ nombre:'', cantidad:1, unidad:'unidad' });
+  _admCatRenderReps();
+}
+function admCatEliminarRep(i) { _admCatReps.splice(i, 1); _admCatRenderReps(); }
+function admCatSyncRep(i, campo, val) {
+  if (_admCatReps[i]) _admCatReps[i][campo] = campo === 'cantidad' ? (parseFloat(val)||1) : val;
+}
+function _admCatRenderReps() {
+  const el = document.getElementById('adm-cat-rep-lista');
+  if (!el) return;
+  if (!_admCatReps.length) {
+    el.innerHTML = '<div style="font-size:11px;color:var(--text-muted);padding:8px 0;text-align:center">Sin repuestos sugeridos</div>';
+    return;
+  }
+  const UNIDADES = ['unidad','litro','kg','par','metro','juego'];
+  const ST = 'border:0.5px solid var(--border);border-radius:var(--radius);padding:4px 7px;font-size:11px;background:var(--surface-1);color:var(--text-primary)';
+  el.innerHTML = _admCatReps.map((r, i) => `
+    <div style="display:grid;grid-template-columns:1fr 60px 90px 28px;gap:5px;align-items:center;margin-bottom:5px">
+      <input value="${_admEsc(r.nombre)}" placeholder="Nombre repuesto" style="${ST}"
+        oninput="admCatSyncRep(${i},'nombre',this.value)">
+      <input type="number" min="0.5" step="0.5" value="${r.cantidad}" style="${ST}"
+        oninput="admCatSyncRep(${i},'cantidad',this.value)">
+      <select style="${ST}" onchange="admCatSyncRep(${i},'unidad',this.value)">
+        ${UNIDADES.map(u => `<option${u===r.unidad?' selected':''}>${u}</option>`).join('')}
+      </select>
+      <button class="btn" style="padding:4px;color:var(--text-danger)" onclick="admCatEliminarRep(${i})"><i class="ti ti-x"></i></button>
+    </div>`).join('');
+}
+
+// ===== CONFIG REPUESTOS =====
+function _admCargarConfigRepuestos() {
+  const cfg = APP.lsGet('mp_config', {});
+  const s   = (id, v) => { const el = document.getElementById(id); if (el) el.value = v ?? ''; };
+  s('cfg-ganancia',      cfg.ganancia_repuestos || 30);
+  s('cfg-precio-min-mo', cfg.precio_minimo_hora || '');
+  const iva = document.getElementById('cfg-iva-defecto');
+  if (iva) iva.checked = !!cfg.iva_por_defecto;
+}
+
+function admGuardarConfigRepuestos() {
+  const g   = id => (document.getElementById(id)?.value || '').trim();
+  const cfg = APP.lsGet('mp_config', {});
+  cfg.ganancia_repuestos = parseFloat(g('cfg-ganancia'))      || 0;
+  cfg.precio_minimo_hora = parseFloat(g('cfg-precio-min-mo')) || 0;
+  cfg.iva_por_defecto    = !!document.getElementById('cfg-iva-defecto')?.checked;
+  APP.lsSet('mp_config', cfg);
+  // Sincronizar precio_minimo_hora también a mp_taller_config para KPIs
+  const tcfg = APP.lsGet('mp_taller_config', {});
+  tcfg.precioMinHora = cfg.precio_minimo_hora;
+  APP.lsSet('mp_taller_config', tcfg);
+  const btn = document.getElementById('cfg-rep-btn');
+  if (btn) { const o=btn.innerHTML; btn.innerHTML='<i class="ti ti-check"></i> Guardado'; btn.disabled=true; setTimeout(()=>{btn.innerHTML=o;btn.disabled=false;},2000); }
+}
+
 // ===== INIT =====
 function init_admin() {
   _admActualizarBotonesPeriodo();
@@ -28,8 +200,10 @@ function init_admin() {
   _admFrecuencia();
   _admCargarConfig();
   _admCargarConfigOperativa();
+  _admCargarConfigRepuestos();
   _admRenderIntegraciones();
   _admPanelServicios();
+  _admCatRender();
   _admRenderOperarios();
   _admRenderUpselling();
   _admCargarAlertasConfig();
