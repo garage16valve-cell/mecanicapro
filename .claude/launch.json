@@ -3,9 +3,10 @@
   "configurations": [
     {
       "name": "MecánicaPro",
-      "runtimeExecutable": "python",
-      "runtimeArgs": ["-m", "http.server", "3030"],
-      "port": 3030
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["C:\\Users\\camil\\Downloads\\Gestion de taller\\serve.js"],
+      "port": 3030,
+      "autoPort": true
     }
   ]
 }
