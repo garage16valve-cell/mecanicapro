@@ -140,6 +140,7 @@
           <div onclick="cambiarEstadoOTDet('reagendar')" style="padding:9px 12px;cursor:pointer;font-size:12px;display:flex;gap:8px;border-top:0.5px solid var(--border)">📅 <span><strong>Reagendar</strong><div style="font-size:10px;color:var(--text-muted)">Nueva fecha y hora</div></span></div>
           <div onclick="cambiarEstadoOTDet('cancelo')"   style="padding:9px 12px;cursor:pointer;font-size:12px;display:flex;gap:8px;border-top:0.5px solid var(--border)">🚫 <span><strong>Cliente canceló</strong><div style="font-size:10px;color:var(--text-muted)">Registra la cancelación</div></span></div>
           <div onclick="cambiarEstadoOTDet('cotizacion')" style="padding:9px 12px;cursor:pointer;font-size:12px;display:flex;gap:8px;border-top:0.5px solid var(--border)">📋 <span><strong>Cotización</strong><div style="font-size:10px;color:var(--text-muted)">Activa modo cotización</div></span></div>
+          <div onclick="completarOT()" style="padding:9px 12px;cursor:pointer;font-size:12px;display:flex;gap:8px;border-top:0.5px solid var(--border)">🏁 <span><strong>Completar OT</strong><div style="font-size:10px;color:var(--text-muted)">Registra salida y genera publicación</div></span></div>
         </div>
       </div>
       <button class="btn bpa" id="det-btn-editar" onclick="toggleEditarOT()"><i class="ti ti-edit"></i> Editar</button>
@@ -217,8 +218,67 @@
           </div>
         </div>
       </div>
+    </div><!-- /g2 -->
+
+    <!-- ===== MÓDULO 5: COTIZACIÓN ===== -->
+    <div id="det-panel-cotizacion" style="display:none;margin-top:14px">
+      <div class="card">
+        <div class="ch">
+          <span class="ct">📋 Cotización</span>
+          <div style="display:flex;gap:6px">
+            <button class="btn bpw" onclick="enviarCotizacionWA()"><i class="ti ti-brand-whatsapp"></i> Enviar WA</button>
+            <button class="btn" onclick="copiarCotizacion()"><i class="ti ti-copy"></i> Copiar para email</button>
+          </div>
+        </div>
+        <textarea id="det-cot-texto" style="width:100%;min-height:220px;font-size:11px;font-family:var(--font-mono);border:0.5px solid var(--border);border-radius:var(--radius);padding:10px;background:var(--surface-1);color:var(--text-primary);resize:vertical;box-sizing:border-box"></textarea>
+      </div>
     </div>
-  </div>
+
+    <!-- ===== MÓDULO 6: CIERRE + INSTAGRAM ===== -->
+    <div id="det-panel-cierre" style="display:none;margin-top:14px">
+      <div class="card">
+        <div class="ch"><span class="ct">📸 Cierre de OT — Publicación Instagram</span></div>
+        <div id="det-completar-sec">
+          <button class="btn bpa" style="width:100%;justify-content:center" onclick="completarOT()">
+            <i class="ti ti-check"></i> Registrar trabajo completado y generar publicación
+          </button>
+        </div>
+        <div id="det-ig-sec" style="display:none">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;padding:8px 10px;background:var(--bg-success);border-radius:var(--radius)">
+            <i class="ti ti-circle-check" style="color:var(--text-success);font-size:14px"></i>
+            <span style="font-size:11px;color:var(--text-success);font-weight:500">OT completada — <span id="det-tiempo-resumen"></span></span>
+          </div>
+          <div class="fg">
+            <label>Foto del vehículo entregado <span style="font-weight:400;color:var(--text-muted)">(opcional)</span></label>
+            <input type="file" id="det-foto" accept="image/*" onchange="previsualizarFoto(this)" style="font-size:11px">
+            <div id="det-foto-preview" style="margin-top:6px"></div>
+          </div>
+          <div class="fg" style="margin-top:10px">
+            <label>Texto para Instagram <span style="font-size:10px;color:var(--text-muted)">(editable antes de copiar)</span></label>
+            <textarea id="det-ig-texto" style="width:100%;min-height:300px;font-size:11px;border:0.5px solid var(--border);border-radius:var(--radius);padding:10px;background:var(--surface-1);color:var(--text-primary);resize:vertical;box-sizing:border-box"></textarea>
+          </div>
+          <button class="btn bpa" style="width:100%;justify-content:center;margin-top:8px" onclick="copiarPostIG()">
+            <i class="ti ti-copy"></i> Copiar texto para Instagram
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== MÓDULO 7: TIEMPO Y RENTABILIDAD ===== -->
+    <div id="det-panel-tiempo" style="display:none;margin-top:14px">
+      <div class="card">
+        <div class="ch">
+          <span class="ct">⏱️ Tiempo y rentabilidad</span>
+          <div style="display:flex;align-items:center;gap:6px">
+            <label style="font-size:11px;color:var(--text-muted);white-space:nowrap">Tiempo est. (h):</label>
+            <input id="det-tiempo-est" type="number" min="0" step="0.5" style="width:70px;font-size:11px;border:0.5px solid var(--border);border-radius:var(--radius);padding:4px 6px;background:var(--surface-1);color:var(--text-primary)" placeholder="1.5" oninput="recalcularTiempo()">
+          </div>
+        </div>
+        <div id="det-tiempo-contenido"></div>
+      </div>
+    </div>
+
+  </div><!-- /#ot-detalle -->
 </div>
 
 <!-- CLIENTES -->

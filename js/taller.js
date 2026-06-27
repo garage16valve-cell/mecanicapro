@@ -124,12 +124,13 @@ function _patSave(pat, datos) {
 
 // ===== ESTADO DE CITA =====
 const ESTADOS = {
-  agendado:   { emoji:'📅', label:'Agendado',        color:'var(--text-muted)' },
-  llego:      { emoji:'✅', label:'Cliente llegó',    color:'var(--text-success)' },
-  nollego:    { emoji:'❌', label:'Cliente no llegó', color:'var(--text-danger)' },
-  reagendar:  { emoji:'📅', label:'Reagendado',       color:'#d97706' },
-  cancelo:    { emoji:'🚫', label:'Cliente canceló',  color:'var(--text-danger)' },
-  cotizacion: { emoji:'📋', label:'Cotización',       color:'var(--text-accent)' },
+  agendado:   { emoji:'📅', label:'Agendado',           color:'var(--text-muted)'   },
+  llego:      { emoji:'✅', label:'Cliente llegó',       color:'var(--text-success)' },
+  nollego:    { emoji:'❌', label:'Cliente no llegó',    color:'var(--text-danger)'  },
+  reagendar:  { emoji:'📅', label:'Reagendado',          color:'#d97706'             },
+  cancelo:    { emoji:'🚫', label:'Cliente canceló',     color:'var(--text-danger)'  },
+  cotizacion: { emoji:'📋', label:'Cotización',          color:'var(--text-accent)'  },
+  completado: { emoji:'🏁', label:'Trabajo completado',  color:'var(--text-success)' },
 };
 
 let _estadoActual = 'agendado';
@@ -483,10 +484,12 @@ function _resetFormOT() {
 const OT_ESTADO_CSS = {
   agendado:   's-wait',  'en-proceso': 's-prog',
   cerrado:    's-done',  cotizacion:   's-crit',
+  completado: 's-done',
 };
 const OT_ESTADO_LABEL = {
   agendado:   'Agendado',    'en-proceso': 'En proceso',
   cerrado:    'Cerrado',     cotizacion:   'Cotización',
+  completado: 'Completado',
 };
 
 function renderListaOTs() {
@@ -565,6 +568,9 @@ function abrirDetalleOT(id) {
 
   // Historial
   _renderHistorialDet(ot.historial || []);
+
+  // Paneles módulos 5/6/7
+  _actualizarPanelesDet(ot);
 
   // Ocultar reagendar
   const rp = document.getElementById('det-reagendar-panel'); if (rp) rp.style.display = 'none';
@@ -719,10 +725,12 @@ function _aplicarEstadoOTDet(codigo, extra = {}) {
   const idx = ots.findIndex(o => o.id === _otDetalleId);
   if (idx < 0) return;
 
-  const estadoOT = codigo === 'llego'      ? 'en-proceso'
+  const estadoOT = codigo === 'llego'                           ? 'en-proceso'
                  : codigo === 'nollego' || codigo === 'cancelo' ? 'cerrado'
-                 : codigo === 'cotizacion' ? 'cotizacion'
+                 : codigo === 'cotizacion'                      ? 'cotizacion'
                  : ots[idx].estado;
+
+  if (codigo === 'llego') ots[idx].entrada_ts = ahora.toISOString();
 
   ots[idx].estadoCita = codigo;
   ots[idx].estado     = estadoOT;
@@ -731,6 +739,7 @@ function _aplicarEstadoOTDet(codigo, extra = {}) {
 
   _actualizarBadgeDet(codigo);
   _renderHistorialDet(ots[idx].historial);
+  _actualizarPanelesDet(ots[idx]);
 }
 
 function _renderHistorialDet(historial) {
@@ -750,6 +759,248 @@ function _renderHistorialDet(historial) {
         ${e.motivo     ? `<div style="font-size:10px;color:var(--text-muted);margin-top:2px">Motivo: ${e.motivo}</div>` : ''}
         ${e.nuevaFecha ? `<div style="font-size:10px;color:var(--text-muted);margin-top:2px">Nueva cita: ${e.nuevaFecha}${e.nuevaHora ? ' ' + e.nuevaHora : ''}</div>` : ''}
         ${e.horaEntrada ? `<div style="font-size:10px;color:var(--text-success);margin-top:2px">Hora de entrada: ${e.horaEntrada}</div>` : ''}
+        ${e.horaSalida  ? `<div style="font-size:10px;color:var(--text-success);margin-top:2px">Hora de salida: ${e.horaSalida}${e.tiempoReal != null ? ' · Tiempo real: ' + Math.floor(e.tiempoReal/60) + 'h ' + (e.tiempoReal%60) + 'm' : ''}</div>` : ''}
       </div>
     </div>`).join('');
+}
+
+// ===== MÓDULO 5: COTIZACIÓN =====
+function _generarCotizacion(ot) {
+  const fecha = new Date().toLocaleDateString('es-CL');
+  const vehiculo = [ot.marca, ot.modelo, ot.anio].filter(Boolean).join(' ') || '—';
+  const lines = [
+    '════════════════════════════════',
+    '       COTIZACIÓN DE SERVICIOS',
+    '   Integral Automotriz Spa — Valparaíso',
+    '════════════════════════════════',
+    '',
+    `Fecha:    ${fecha}`,
+    `OT:       ${ot.id || '—'}`,
+    `Patente:  ${ot.patente || '—'}`,
+    `Vehículo: ${vehiculo}`,
+    `Cliente:  ${ot.clienteNombre || '—'}`,
+    '',
+    '──────── SERVICIOS ────────',
+    `• ${ot.servicio || 'Por determinar'}${ot.valor ? ':  $' + Number(ot.valor).toLocaleString('es-CL') : ''}`,
+    '',
+  ];
+  if (ot.repuestos && ot.repuestos.trim()) {
+    lines.push('──────── REPUESTOS / MATERIALES ────────');
+    ot.repuestos.split('\n').forEach(r => { if (r.trim()) lines.push('• ' + r.trim()); });
+    lines.push('');
+  }
+  if (ot.valor) lines.push(`TOTAL ESTIMADO:  $${Number(ot.valor).toLocaleString('es-CL')}`, '');
+  lines.push(
+    '──────── CONDICIONES ────────',
+    '• Válido por 15 días hábiles',
+    '• Precios incluyen IVA',
+    '• Sujeto a revisión del vehículo',
+    '',
+    '──────── CONTACTO ────────',
+    'WhatsApp: +569 5165 5331',
+    'https://integral-automotriz-spa.reservio.com/booking',
+    '════════════════════════════════',
+  );
+  return lines.join('\n');
+}
+
+function enviarCotizacionWA() {
+  const texto = document.getElementById('det-cot-texto')?.value || '';
+  window.open('https://wa.me/56951655331?text=' + encodeURIComponent(texto), '_blank');
+}
+
+function copiarCotizacion() {
+  const texto = document.getElementById('det-cot-texto')?.value || '';
+  navigator.clipboard.writeText(texto).then(() => alert('✓ Cotización copiada al portapapeles.\nPégala en un correo o WhatsApp.'));
+}
+
+// ===== MÓDULO 6: CIERRE + INSTAGRAM =====
+function completarOT() {
+  if (!_otDetalleId) return;
+  const ahora = new Date();
+  const ots   = APP.lsGet('mp_ots', []);
+  const idx   = ots.findIndex(o => o.id === _otDetalleId);
+  if (idx < 0) return;
+  const ot = ots[idx];
+
+  const horaSalida = ahora.toLocaleTimeString('es-CL', { hour:'2-digit', minute:'2-digit' });
+  let tiempoReal   = null;
+  if (ot.entrada_ts) {
+    tiempoReal = Math.round((ahora - new Date(ot.entrada_ts)) / 60000);
+  }
+
+  const entrada = {
+    estado:'completado', label:'Trabajo completado', emoji:'🏁',
+    ts:    ahora.toISOString(),
+    hora:  horaSalida,
+    fecha: ahora.toLocaleDateString('es-CL'),
+    horaSalida, tiempoReal,
+  };
+
+  ots[idx] = {
+    ...ot,
+    estado:'completado', estadoCita:'completado',
+    horaSalida, salida_ts: ahora.toISOString(), tiempoReal,
+    historial: [...(ot.historial || []), entrada],
+  };
+  APP.lsSet('mp_ots', ots);
+
+  _actualizarBadgeDet('completado');
+  _renderHistorialDet(ots[idx].historial);
+  _actualizarPanelesDet(ots[idx]);
+}
+
+function _generarPostIG(ot) {
+  const marca  = ot.marca  || '[Marca]';
+  const modelo = ot.modelo || '[Modelo]';
+  const anio   = ot.anio   ? ot.anio : '';
+  const serv   = ot.servicio || '[Servicio realizado]';
+  const extras = ot.notas ? '\n- ' + ot.notas : '';
+  return `Mantenimiento correctivo ${marca} ${modelo} ${anio} 🏁
+🔧 Nuestros servicios incluyen:
+- ${serv}${extras}
+🔧 ¿Por qué elegirnos?
+- 🛠️ Trabajo garantizado por profesionales
+- 🚗 Expertos en vehículos diésel y bencina
+- 💳 Aceptamos todos los medios de pago, ¡hasta 12 cuotas!
+📍 Visítanos en Valparaíso, donde la calidad y la seguridad son nuestra prioridad.
+📩 Contáctanos hoy:
+- DM para consultas
+- WhatsApp: +569 5165 5331 - Reservas - precios - procedimientos ⬇️⬇️
+https://integral-automotriz-spa.reservio.com/booking
+Confía en nosotros para mantener tu vehículo en óptimas condiciones. ¡Agenda tu cita hoy!
+#MecanicaValparaiso #ValparaisoMecanica #ReparacionVehiculosValparaiso #AutosValparaiso #MantenimientoVehicularValparaiso valparaisoautos`;
+}
+
+function copiarPostIG() {
+  const texto = document.getElementById('det-ig-texto')?.value || '';
+  navigator.clipboard.writeText(texto).then(() => alert('✓ Texto copiado.\nPégalo directamente en Instagram.'));
+}
+
+function previsualizarFoto(input) {
+  const prev = document.getElementById('det-foto-preview');
+  if (!prev || !input.files || !input.files[0]) return;
+  const url = URL.createObjectURL(input.files[0]);
+  prev.innerHTML = `<img src="${url}" style="max-width:100%;max-height:180px;border-radius:var(--radius);margin-top:4px;object-fit:cover">`;
+}
+
+// ===== MÓDULO 7: TIEMPO Y RENTABILIDAD =====
+function _promedioHistoricoServicio(servicio) {
+  if (!servicio) return { promedio: 0, count: 0 };
+  const ots = APP.lsGet('mp_ots', []);
+  const con = ots.filter(o => o.servicio === servicio && o.tiempoReal != null && o.tiempoReal > 0);
+  if (!con.length) return { promedio: 0, count: 0 };
+  return { promedio: con.reduce((s, o) => s + o.tiempoReal, 0) / con.length, count: con.length };
+}
+
+function recalcularTiempo() {
+  if (!_otDetalleId) return;
+  const estH = parseFloat(document.getElementById('det-tiempo-est')?.value) || 0;
+  const ots  = APP.lsGet('mp_ots', []);
+  const idx  = ots.findIndex(o => o.id === _otDetalleId);
+  if (idx >= 0) { ots[idx].tiempoEstimado = estH; APP.lsSet('mp_ots', ots); _mostrarPanelTiempo(ots[idx]); }
+}
+
+function _mostrarPanelTiempo(ot) {
+  const el = document.getElementById('det-tiempo-contenido');
+  if (!el) return;
+
+  const estH       = parseFloat(document.getElementById('det-tiempo-est')?.value) || (ot.tiempoEstimado || 0);
+  const estMin     = estH * 60;
+  const realMin    = ot.tiempoReal;
+  const valor      = parseFloat(ot.valor) || 0;
+  const fmt        = m => `${Math.floor(m/60)}h ${Math.round(m%60)}m`;
+
+  let html = '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">';
+
+  if (ot.entrada_ts) {
+    html += `<div class="kcard"><div class="kl">Hora entrada</div><div class="kv" style="font-size:14px">${new Date(ot.entrada_ts).toLocaleTimeString('es-CL',{hour:'2-digit',minute:'2-digit'})}</div></div>`;
+  }
+  if (ot.horaSalida) {
+    html += `<div class="kcard"><div class="kl">Hora salida</div><div class="kv" style="font-size:14px">${ot.horaSalida}</div></div>`;
+  }
+  if (realMin != null) {
+    html += `<div class="kcard"><div class="kl">Tiempo real</div><div class="kv" style="font-size:14px">${fmt(realMin)}</div></div>`;
+    if (estMin > 0) {
+      const diff     = realMin - estMin;
+      const diffColor = diff > 0 ? 'var(--text-danger)' : 'var(--text-success)';
+      const diffSign  = diff > 0 ? '+' : '-';
+      html += `<div class="kcard"><div class="kl">Tiempo estimado</div><div class="kv" style="font-size:14px">${fmt(estMin)}</div></div>`;
+      html += `<div class="kcard"><div class="kl">Diferencia</div><div class="kv" style="font-size:14px;color:${diffColor}">${diffSign}${fmt(Math.abs(diff))}</div></div>`;
+      if (valor > 0) {
+        const ganLoss = Math.round(valor * Math.abs(diff) / estMin);
+        html += `<div class="kcard"><div class="kl">${diff > 0 ? 'Pérdida est.' : 'Ahorro est.'}</div><div class="kv" style="font-size:14px;color:${diffColor}">${diff > 0 ? '-' : '+'}$${ganLoss.toLocaleString('es-CL')}</div></div>`;
+      }
+    }
+    if (valor > 0 && realMin > 0) {
+      const vh = Math.round(valor / (realMin / 60));
+      html += `<div class="kcard"><div class="kl">Valor/hora real</div><div class="kv" style="font-size:14px">$${vh.toLocaleString('es-CL')}</div></div>`;
+    }
+  }
+  html += '</div>';
+
+  const { promedio, count } = _promedioHistoricoServicio(ot.servicio);
+  if (count > 0) {
+    html += `<div style="font-size:11px;padding:8px 0;border-top:0.5px solid var(--border);color:var(--text-muted)">
+      Promedio histórico <strong>${ot.servicio}</strong>: ${fmt(promedio)} (${count} OT${count!==1?'s':''})
+    </div>`;
+    if (estMin > 0 && promedio > estMin * 1.1) {
+      html += `<div class="al al-w" style="margin-top:8px"><i class="ti ti-alert-triangle"></i>
+        <div class="al-text" style="font-size:11px">El promedio real <strong>(${fmt(promedio)})</strong> supera el estimado. Considera ajustar las horas o el precio en el módulo de Servicios.</div>
+      </div>`;
+    }
+  }
+  el.innerHTML = html;
+}
+
+// ===== CONTROL PANELES SEGÚN ESTADO =====
+function _actualizarPanelesDet(ot) {
+  // Panel 5 — Cotización
+  const pCot = document.getElementById('det-panel-cotizacion');
+  if (pCot) {
+    const show = ot.estado === 'cotizacion';
+    pCot.style.display = show ? 'block' : 'none';
+    if (show) {
+      const ta = document.getElementById('det-cot-texto');
+      if (ta && !ta.value) ta.value = _generarCotizacion(ot);
+    }
+  }
+
+  // Panel 6 — Cierre + Instagram
+  const pCierre = document.getElementById('det-panel-cierre');
+  if (pCierre) {
+    const show = ot.estado === 'en-proceso' || ot.estado === 'completado';
+    pCierre.style.display = show ? 'block' : 'none';
+    if (show) {
+      const compSec = document.getElementById('det-completar-sec');
+      const igSec   = document.getElementById('det-ig-sec');
+      if (ot.estado === 'completado') {
+        if (compSec) compSec.style.display = 'none';
+        if (igSec) {
+          igSec.style.display = 'block';
+          const ta = document.getElementById('det-ig-texto');
+          if (ta && !ta.value) ta.value = _generarPostIG(ot);
+          const tr = document.getElementById('det-tiempo-resumen');
+          if (tr && ot.tiempoReal != null) {
+            tr.textContent = `Tiempo real: ${Math.floor(ot.tiempoReal/60)}h ${ot.tiempoReal%60}m`;
+          }
+        }
+      } else {
+        if (compSec) compSec.style.display = 'block';
+        if (igSec)   igSec.style.display   = 'none';
+      }
+    }
+  }
+
+  // Panel 7 — Tiempo
+  const pTiempo = document.getElementById('det-panel-tiempo');
+  if (pTiempo) {
+    const show = !!(ot.entrada_ts || ot.horaSalida);
+    pTiempo.style.display = show ? 'block' : 'none';
+    if (show) {
+      const est = document.getElementById('det-tiempo-est');
+      if (est && ot.tiempoEstimado) est.value = ot.tiempoEstimado;
+      _mostrarPanelTiempo(ot);
+    }
+  }
 }
