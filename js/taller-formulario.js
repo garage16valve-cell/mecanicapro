@@ -333,6 +333,14 @@ window.abrirFormNuevaOT  = abrirFormNuevaOT;
 window.cerrarFormNuevaOT = cerrarFormNuevaOT;
 window.crearOT           = crearOT;
 
+// Ocultar el botón "Nueva OT" dentro del panel cuando el módulo cargue
+// (el header ya tiene ese botón, no debe aparecer duplicado)
+new MutationObserver(() => {
+  document.querySelectorAll('#ot-listado .btn.bpa').forEach(btn => {
+    if ((btn.textContent || '').trim().includes('Nueva OT')) btn.style.display = 'none';
+  });
+}).observe(document.body, { childList: true, subtree: true });
+
 function crearOT() {
   // ── Datos mínimos (quick mode)
   const patente = (document.getElementById('nq-patente')?.value || '').toUpperCase().replace(/[^A-Z0-9]/g, '');

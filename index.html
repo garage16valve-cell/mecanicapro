@@ -67,7 +67,7 @@
     <div class="topbar">
       <div class="pt" id="ptitle">Dashboard</div>
       <div style="display:flex;gap:6px;align-items:center">
-        <button class="btn bpa btn-accion" onclick="nav('ot',null)"><i class="ti ti-plus"></i>Nueva OT</button>
+        <button class="btn bpa btn-accion" onclick="nav('ot',null);setTimeout(abrirFormNuevaOT,400)"><i class="ti ti-plus"></i>Nueva OT</button>
         <button class="btn" onclick="window.open('modules/panel-dia.html','_blank')" title="Panel del día">📺 Panel del día</button>
         <button class="modo-taller-toggle" id="btn-modo-taller" onclick="APP.modoTaller.toggle()" title="Aumenta el tamaño de botones y texto para facilitar el uso en taller">🔧 Modo Taller</button>
         <button class="btn"><i class="ti ti-bell"></i></button>
