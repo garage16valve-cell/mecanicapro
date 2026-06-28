@@ -1116,8 +1116,11 @@ function abrirDetalleOT(id) {
 
   s('det-marca',  _v('vehiculo_marca','marca'));  s('det-modelo', _v('vehiculo_modelo','modelo'));
   s('det-anio',   _v('vehiculo_anio','anio'));     s('det-motor',  _v('vehiculo_motor','motor'));
-  s('det-comb',   ot.comb || '');                  s('det-tipo',   ot.tipo || '');
-  s('det-vin',    _v('vehiculo_chasis','vin'));    s('det-nmotor', ot.nmotor || '');
+  s('det-comb',   _v('vehiculo_combustible','comb'));
+  s('det-tipo',   _v('vehiculo_tipo','tipo'));
+  s('det-vin',    _v('vehiculo_chasis','vin'));
+  s('det-nmotor', _v('vehiculo_nmotor','nmotor'));
+  s('det-patente', _v('vehiculo_patente','patente'));
 
   s('det-fecha', _v('fecha_cita','fechaCita'));
   // Extraer hora de fecha_cita si es timestamp
@@ -1203,13 +1206,20 @@ function _actualizarBadgeDet(codigo) {
 function toggleEditarOT() {
   _otEditando = !_otEditando;
   const campos = ['det-nombre','det-rut','det-wz','det-mail','det-km',
-    'det-marca','det-modelo','det-anio','det-motor','det-comb','det-tipo','det-vin','det-nmotor',
+    'det-marca','det-modelo','det-anio','det-motor',
+    'det-vin','det-nmotor','det-patente',
     'det-fecha','det-hora','det-hora-entrada','det-hora-salida','det-notas','det-valor'];
+  const camposSelect = ['det-comb','det-tipo'];
 
   campos.forEach(id => {
     const el = document.getElementById(id);
     if (!el) return;
     if (_otEditando) el.removeAttribute('readonly'); else el.setAttribute('readonly','');
+  });
+  camposSelect.forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.disabled = !_otEditando;
   });
   const tec  = document.getElementById('det-tec');  if (tec)  tec.disabled  = !_otEditando;
 
@@ -1293,6 +1303,10 @@ function guardarCambiosOT() {
     vehiculo_anio: g('det-anio'),
     vehiculo_motor: g('det-motor'),
     vehiculo_chasis: g('det-vin'),
+    vehiculo_combustible: g('det-comb'),
+    vehiculo_tipo: g('det-tipo'),
+    vehiculo_nmotor: g('det-nmotor'),
+    vehiculo_patente: g('det-patente'),
     fecha_cita: g('det-fecha') || _v('fecha_cita','fechaCita'),
     motivo_ingreso: g('det-notas'),
   };
@@ -1330,6 +1344,7 @@ function guardarCambiosOT() {
       anio: g('det-anio'), motor: g('det-motor'),
       comb: g('det-comb'), tipo: g('det-tipo'),
       vin: g('det-vin'), nmotor: g('det-nmotor'),
+      patente: g('det-patente'),
       fechaCita: g('det-fecha'), horaCita: g('det-hora'),
       servicio: otsOld[idxOld].servicio,
       notas: g('det-notas'),
