@@ -1,241 +1,295 @@
-<!-- Keyframe spinner -->
-<style>@keyframes spin{to{transform:rotate(360deg)}}</style>
+<!-- Estilos Kanban -->
+<style>
+@keyframes spin{to{transform:rotate(360deg)}}
+.kanban-tab{display:inline-flex;align-items:center;gap:5px;padding:6px 12px;border:0.5px solid var(--border);border-radius:var(--radius);background:var(--surface-1);color:var(--text-secondary);font-size:11px;font-weight:500;cursor:pointer;white-space:nowrap;transition:background .15s,color .15s,border-color .15s}
+.kanban-tab:hover{background:var(--surface-2);color:var(--text-primary)}
+.kanban-tab-active{background:var(--accent,#2563eb)!important;color:#fff!important;border-color:var(--accent,#2563eb)!important}
+.kanban-tab-count{display:inline-flex;align-items:center;justify-content:center;min-width:18px;height:18px;padding:0 4px;border-radius:9px;font-size:10px;font-weight:700;background:rgba(0,0,0,.12);color:inherit}
+.kanban-tab-active .kanban-tab-count{background:rgba(255,255,255,.3);color:#fff}
+.kanban-card{border:0.5px solid var(--border);border-radius:var(--radius);background:var(--surface-2);margin-bottom:8px;overflow:hidden}
+.kanban-card-top{padding:8px 12px;border-bottom:0.5px solid var(--border);background:var(--surface-1)}
+.kanban-card-body{padding:10px 12px}
+.kanban-card-actions{display:flex;gap:4px;padding:7px 10px;border-top:0.5px solid var(--border);flex-wrap:wrap;align-items:center}
+.kanban-btn{font-size:11px!important;padding:4px 9px!important}
+</style>
 
 <!-- ÓRDENES DE TRABAJO -->
 <div class="page active" id="pg-ot">
 
-  <!-- Vista principal: listado de OTs -->
+  <!-- Vista principal: Kanban -->
   <div id="ot-listado">
-    <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap">
-      <div class="sb" style="flex:1;min-width:180px">
-        <i class="ti ti-search" style="color:var(--text-muted);font-size:14px"></i>
-        <input id="ots-buscar" placeholder="Buscar OT, patente, cliente, servicio, técnico…" oninput="renderListaOTs(this.value)">
-      </div>
-      <span id="ots-count" style="font-size:11px;color:var(--text-muted);white-space:nowrap"></span>
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
       <button class="btn bpa" onclick="abrirFormNuevaOT()"><i class="ti ti-plus"></i> Nueva OT</button>
     </div>
-    <div class="card" style="padding:0;overflow:hidden">
-      <table class="tbl">
-        <thead>
-          <tr>
-            <th>OT</th><th>Patente</th><th>Cliente</th><th>Servicio</th>
-            <th>Fecha cita</th><th>Técnico</th><th>Estado</th>
-          </tr>
-        </thead>
-        <tbody id="ots-tbody">
-          <tr><td colspan="7" style="text-align:center;color:var(--text-muted);padding:20px;font-size:11px">Cargando…</td></tr>
-        </tbody>
-      </table>
+    <!-- Pestañas por fase -->
+    <div id="kanban-tabs-bar" style="display:flex;gap:4px;overflow-x:auto;padding-bottom:8px;margin-bottom:8px;border-bottom:0.5px solid var(--border)"></div>
+    <!-- Filtros -->
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:10px">
+      <div style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text-muted)">
+        Desde
+        <input type="date" id="kanban-desde" style="font-size:11px;border:0.5px solid var(--border);border-radius:var(--radius);padding:5px 8px;background:var(--surface-1);color:var(--text-primary)">
+      </div>
+      <div style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text-muted)">
+        Hasta
+        <input type="date" id="kanban-hasta" style="font-size:11px;border:0.5px solid var(--border);border-radius:var(--radius);padding:5px 8px;background:var(--surface-1);color:var(--text-primary)">
+      </div>
+      <div class="sb" style="flex:1;min-width:180px">
+        <i class="ti ti-search" style="color:var(--text-muted);font-size:14px"></i>
+        <input id="kanban-q" placeholder="Cliente, patente, N° OT…" oninput="filtrarKanban()">
+      </div>
+      <button class="btn" onclick="filtrarKanban()"><i class="ti ti-filter"></i> Filtrar</button>
     </div>
+    <!-- Lista de OTs del estado activo -->
+    <div id="kanban-lista"></div>
   </div>
 
-  <!-- ===== FORMULARIO NUEVA OT (modal) ===== -->
+  <!-- ===== FORMULARIO NUEVA OT ===== -->
   <div id="ot-nueva" class="modal-overlay" style="display:none" onclick="if(event.target===this)cerrarFormNuevaOT()">
-    <div class="modal-grande">
+    <div class="modal-grande" id="ot-nueva-modal" style="max-width:560px;transition:max-width .3s ease">
       <div class="modal-header">
         <h2><i class="ti ti-clipboard-plus" style="font-size:14px;vertical-align:-2px;margin-right:6px"></i>Nueva Orden de Trabajo</h2>
         <button class="modal-close" onclick="cerrarFormNuevaOT()">×</button>
       </div>
       <div class="modal-body">
-    <div class="g2">
 
-      <!-- Columna izquierda: vehículo + cliente -->
-      <div>
-        <!-- Vehículo -->
-        <div class="card" style="margin-bottom:14px">
-          <div class="ch"><span class="ct"><i class="ti ti-car" style="font-size:13px"></i> Vehículo</span></div>
-          <div class="fg">
+        <!-- MODO RÁPIDO -->
+        <div id="ot-rapido-mode">
+
+          <!-- 1. Patente -->
+          <div class="fg" style="margin-bottom:10px">
             <label>Patente</label>
             <div style="display:flex;gap:6px">
-              <input id="n-patente" maxlength="8" placeholder="ABCD12"
-                style="flex:1;font-family:var(--font-mono);font-size:14px;letter-spacing:.06em;border:0.5px solid var(--border-strong);border-radius:var(--radius);padding:7px 9px;background:var(--surface-1);color:var(--text-primary)"
+              <input id="nq-patente" maxlength="8" placeholder="ABCD12"
+                style="flex:1;font-family:var(--font-mono);font-size:18px;letter-spacing:.1em;border:0.5px solid var(--border);border-radius:var(--radius);padding:10px 14px;background:var(--surface-1);color:var(--text-primary)"
                 oninput="this.value=this.value.toUpperCase().replace(/[^A-Z0-9]/g,'')">
-              <button class="btn" onclick="consultarPatenteNueva()"><i class="ti ti-search"></i> Consultar</button>
+              <button class="btn" onclick="consultarPatenteModal()"><i class="ti ti-search"></i> Consultar</button>
             </div>
-            <div id="n-pat-status" style="font-size:10px;margin-top:3px;min-height:14px"></div>
-          </div>
-          <div class="fgrid2">
-            <!-- Tipo de vehículo -->
-            <div class="fg"><label>Tipo</label>
-              <div class="ss" id="ss-n-tipo">
-                <div class="ss-trig" id="ss-n-tipo-trig" tabindex="0" onclick="_ssTrig('n-tipo')" onkeydown="if(event.key==='Enter'||event.key===' ')_ssTrig('n-tipo')">
-                  <span class="ss-val ss-placeholder" id="ss-n-tipo-val">— Tipo de vehículo —</span>
-                  <i class="ti ti-chevron-down ss-arr"></i>
-                </div>
-                <div class="ss-drop" id="ss-n-tipo-drop" style="display:none">
-                  <input class="ss-q" id="ss-n-tipo-q" placeholder="Filtrar tipo…" oninput="_ssQ('n-tipo')">
-                  <div class="ss-list" id="ss-n-tipo-list"></div>
-                </div>
-                <input type="hidden" id="n-tipo" value="">
-              </div>
-            </div>
-            <!-- Marca -->
-            <div class="fg"><label>Marca</label>
-              <div class="ss" id="ss-n-marca">
-                <div class="ss-trig" id="ss-n-marca-trig" tabindex="0" onclick="_ssTrig('n-marca')" onkeydown="if(event.key==='Enter'||event.key===' ')_ssTrig('n-marca')">
-                  <span class="ss-val ss-placeholder" id="ss-n-marca-val">— Selecciona marca —</span>
-                  <i class="ti ti-chevron-down ss-arr"></i>
-                </div>
-                <div class="ss-drop" id="ss-n-marca-drop" style="display:none">
-                  <input class="ss-q" id="ss-n-marca-q" placeholder="Buscar marca…" oninput="_ssQ('n-marca')">
-                  <div class="ss-list" id="ss-n-marca-list"></div>
-                </div>
-                <input type="hidden" id="n-marca" value="">
-              </div>
-            </div>
-            <!-- Modelo -->
-            <div class="fg"><label>Modelo</label><input id="n-modelo" placeholder="Ej: Corolla"></div>
-            <!-- Año -->
-            <div class="fg"><label>Año</label>
-              <div class="ss" id="ss-n-anio">
-                <div class="ss-trig" id="ss-n-anio-trig" tabindex="0" onclick="_ssTrig('n-anio')" onkeydown="if(event.key==='Enter'||event.key===' ')_ssTrig('n-anio')">
-                  <span class="ss-val ss-placeholder" id="ss-n-anio-val">— Año —</span>
-                  <i class="ti ti-chevron-down ss-arr"></i>
-                </div>
-                <div class="ss-drop" id="ss-n-anio-drop" style="display:none">
-                  <div class="ss-list" id="ss-n-anio-list"></div>
-                </div>
-                <input type="hidden" id="n-anio" value="">
-              </div>
-            </div>
-            <!-- Color y km -->
-            <div class="fg"><label>Color</label><input id="n-color" placeholder="Blanco"></div>
-            <div class="fg"><label>Kilometraje</label><input id="n-km" type="number" placeholder="45200"></div>
-          </div>
-          <!-- Historial del vehículo (CRM) -->
-          <div id="crm-hist-box" style="display:none;margin-top:10px;border-top:0.5px solid var(--border);padding-top:10px">
-            <div style="font-size:11px;font-weight:500;color:var(--text-secondary);margin-bottom:6px;display:flex;align-items:center;gap:6px">
-              <i class="ti ti-history" style="font-size:12px"></i> Historial del vehículo
-            </div>
-            <div id="crm-hist-contenido" style="font-size:11px"></div>
-          </div>
-        </div>
-
-        <!-- Cliente -->
-        <div class="card">
-          <div class="ch"><span class="ct"><i class="ti ti-user" style="font-size:13px"></i> Cliente</span></div>
-          <!-- Búsqueda de cliente existente -->
-          <div class="fg" style="margin-bottom:10px;padding-bottom:10px;border-bottom:0.5px solid var(--border)">
-            <label style="color:var(--text-muted)">Buscar cliente existente</label>
-            <div class="ss" id="ss-n-cli">
-              <div class="ss-trig" id="ss-n-cli-trig" tabindex="0" onclick="_ssTrig('n-cli')" onkeydown="if(event.key==='Enter'||event.key===' ')_ssTrig('n-cli')" style="gap:8px">
-                <i class="ti ti-search" style="font-size:11px;color:var(--text-muted);flex-shrink:0"></i>
-                <span class="ss-val ss-placeholder" id="ss-n-cli-val">Nombre, RUT o WhatsApp…</span>
-              </div>
-              <div class="ss-drop" id="ss-n-cli-drop" style="display:none">
-                <input class="ss-q" id="ss-n-cli-q" placeholder="Nombre, RUT o WhatsApp…" oninput="_ssCliFilter()">
-                <div class="ss-list" id="ss-n-cli-list"><div class="ss-item ss-empty">Escribe para buscar…</div></div>
-              </div>
-            </div>
-          </div>
-          <div class="fgrid2">
-            <div class="fg"><label>Nombre completo</label><input id="n-nombre" placeholder="Nombre del cliente"></div>
-            <div class="fg"><label>RUT</label><input id="n-rut" placeholder="12.345.678-9"></div>
-            <div class="fg"><label>WhatsApp</label><input id="n-wz" placeholder="+56 9 XXXX XXXX"></div>
-            <div class="fg"><label>Correo</label><input id="n-mail" placeholder="cliente@email.cl"></div>
-            <!-- Región -->
-            <div class="fg"><label>Región</label>
-              <div class="ss" id="ss-n-region">
-                <div class="ss-trig" id="ss-n-region-trig" tabindex="0" onclick="_ssTrig('n-region')" onkeydown="if(event.key==='Enter'||event.key===' ')_ssTrig('n-region')">
-                  <span class="ss-val" id="ss-n-region-val">Valparaíso</span>
-                  <i class="ti ti-chevron-down ss-arr"></i>
-                </div>
-                <div class="ss-drop" id="ss-n-region-drop" style="display:none">
-                  <div class="ss-list" id="ss-n-region-list"></div>
-                </div>
-                <input type="hidden" id="n-region" value="valparaiso">
-              </div>
-            </div>
-            <!-- Ciudad -->
-            <div class="fg"><label>Ciudad</label>
-              <div class="ss" id="ss-n-ciudad">
-                <div class="ss-trig" id="ss-n-ciudad-trig" tabindex="0" onclick="_ssTrig('n-ciudad')" onkeydown="if(event.key==='Enter'||event.key===' ')_ssTrig('n-ciudad')">
-                  <span class="ss-val ss-placeholder" id="ss-n-ciudad-val">— Ciudad —</span>
-                  <i class="ti ti-chevron-down ss-arr"></i>
-                </div>
-                <div class="ss-drop" id="ss-n-ciudad-drop" style="display:none">
-                  <input class="ss-q" id="ss-n-ciudad-q" placeholder="Buscar ciudad…" oninput="_ssQ('n-ciudad')">
-                  <div class="ss-list" id="ss-n-ciudad-list"></div>
-                </div>
-                <input type="hidden" id="n-ciudad" value="">
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Columna derecha: servicio -->
-      <div>
-        <div class="card">
-          <div class="ch"><span class="ct"><i class="ti ti-tool" style="font-size:13px"></i> Servicio</span></div>
-
-          <div class="fgrid2">
-            <div class="fg"><label>Técnico asignado</label>
-              <div class="ss" id="ss-n-tec">
-                <div class="ss-trig" id="ss-n-tec-trig" tabindex="0" onclick="_ssTrig('n-tec')" onkeydown="if(event.key==='Enter'||event.key===' ')_ssTrig('n-tec')">
-                  <span class="ss-val" id="ss-n-tec-val">Sin asignar</span>
-                  <i class="ti ti-chevron-down ss-arr"></i>
-                </div>
-                <div class="ss-drop" id="ss-n-tec-drop" style="display:none">
-                  <div class="ss-list" id="ss-n-tec-list"></div>
-                </div>
-                <input type="hidden" id="n-tec" value="">
-              </div>
-            </div>
-            <div class="fg"><label>Estado inicial</label>
-              <select id="n-estado">
-                <option value="agendado">📅 Agendado</option>
-                <option value="cotizacion">📋 Cotización</option>
-                <option value="en-proceso">🔧 En proceso</option>
-              </select>
-            </div>
-            <div class="fg"><label>Fecha de cita</label><input type="date" id="n-fecha"></div>
-            <div class="fg"><label>Hora de cita</label><input type="time" id="n-hora"></div>
+            <div id="nq-pat-status" style="font-size:10px;margin-top:3px;min-height:14px"></div>
           </div>
 
-          <!-- Admin: horas reales -->
-          <div class="fgrid2">
-            <div class="fg"><label>Hora entrada <span style="font-size:9px;opacity:.5">(admin)</span></label><input type="time" id="n-hora-entrada"></div>
-            <div class="fg"><label>Hora entrega est. <span style="font-size:9px;opacity:.5">(admin)</span></label><input type="time" id="n-hora-salida"></div>
+          <!-- 2. Cliente -->
+          <div class="fg" style="margin-bottom:10px;position:relative">
+            <label>Cliente</label>
+            <div style="display:flex;gap:6px">
+              <input id="nq-cliente-buscar" autocomplete="off" placeholder="Buscar por nombre o WhatsApp…"
+                style="flex:1;border:0.5px solid var(--border);border-radius:var(--radius);padding:7px 10px;background:var(--surface-1);color:var(--text-primary);font-size:12px"
+                oninput="_nqBuscarCliente(this.value)">
+              <button class="btn" onclick="_nqNuevoCliente()" title="Nuevo cliente"><i class="ti ti-plus"></i></button>
+            </div>
+            <div id="nq-cliente-drop"
+              style="display:none;position:absolute;left:0;right:0;z-index:220;border:0.5px solid var(--border);border-radius:var(--radius);background:var(--surface-2);box-shadow:0 6px 20px rgba(0,0,0,.18);max-height:200px;overflow-y:auto;margin-top:2px"></div>
+            <input type="hidden" id="nq-cliente">
+            <div id="nq-cliente-chip"
+              style="display:none;margin-top:5px;padding:5px 10px;background:var(--surface-1);border:0.5px solid var(--border);border-radius:var(--radius);font-size:11px;align-items:center;gap:6px">
+              <i class="ti ti-user-check" style="color:#16a34a;font-size:12px"></i>
+              <span id="nq-cliente-chip-nom" style="flex:1;font-weight:500"></span>
+              <button onclick="_nqLimpiarCliente()" style="background:none;border:none;cursor:pointer;color:var(--text-muted);font-size:15px;padding:0;line-height:1">×</button>
+            </div>
+            <div id="nq-cliente-nuevo-box" style="display:none;margin-top:8px;padding:10px;background:var(--surface-1);border:0.5px solid var(--border);border-radius:var(--radius)">
+              <div style="font-size:10px;font-weight:700;color:var(--text-muted);text-transform:uppercase;margin-bottom:7px">Nuevo cliente</div>
+              <div class="fgrid2">
+                <div class="fg"><label>Nombre</label><input id="nq-cliente-nuevo-nombre" placeholder="Nombre completo"></div>
+                <div class="fg"><label>WhatsApp</label><input id="nq-cliente-nuevo-wz" placeholder="+56 9 XXXX XXXX"></div>
+              </div>
+            </div>
           </div>
 
-          <!-- Servicios a realizar -->
-          <div class="fg" style="margin-top:6px">
-            <label style="display:flex;align-items:center;justify-content:space-between">
-              Servicios a realizar
-              <button class="btn" style="font-size:10px;padding:2px 7px" onclick="nOTServAdd()">
-                <i class="ti ti-plus"></i> Agregar
-              </button>
-            </label>
-            <div id="n-serv-lista" style="display:flex;flex-direction:column;gap:0;margin-top:4px"></div>
-            <div id="n-valor-total" style="display:none;font-size:11px;font-weight:600;color:var(--text-accent);text-align:right;margin-top:6px;padding-top:6px;border-top:0.5px solid var(--border)"></div>
+          <!-- 3. WhatsApp -->
+          <div class="fg" style="margin-bottom:10px">
+            <label>WhatsApp del cliente</label>
+            <input id="nq-wz" placeholder="+56 9 XXXX XXXX"
+              style="width:100%;border:0.5px solid var(--border);border-radius:var(--radius);padding:7px 10px;background:var(--surface-1);color:var(--text-primary);font-size:12px;box-sizing:border-box">
           </div>
 
-          <!-- Repuestos requeridos -->
-          <div class="fg" style="margin-top:6px">
-            <label style="display:flex;align-items:center;justify-content:space-between">
-              Repuestos requeridos
-              <button class="btn" style="font-size:10px;padding:2px 7px" onclick="nOTRepAdd()">
-                <i class="ti ti-plus"></i> Agregar
-              </button>
-            </label>
-            <div id="n-rep-lista" style="display:flex;flex-direction:column;gap:4px;margin-top:4px"></div>
+          <!-- 4. Servicio -->
+          <div class="fg" style="margin-bottom:10px">
+            <label>Servicio</label>
+            <select id="nq-servicio" style="width:100%;border:0.5px solid var(--border);border-radius:var(--radius);padding:7px 10px;background:var(--surface-1);color:var(--text-primary);font-size:12px">
+              <option value="">— Selecciona servicio —</option>
+            </select>
           </div>
 
-          <!-- Observaciones -->
-          <div class="fg" style="margin-top:6px">
-            <label>Observaciones</label>
-            <textarea id="n-notas" placeholder="Observaciones del cliente…" style="min-height:60px"></textarea>
+          <!-- 5. Técnico -->
+          <div class="fg" style="margin-bottom:18px">
+            <label>Técnico asignado</label>
+            <select id="nq-tecnico" style="width:100%;border:0.5px solid var(--border);border-radius:var(--radius);padding:7px 10px;background:var(--surface-1);color:var(--text-primary);font-size:12px">
+              <option value="">— Sin asignar —</option>
+            </select>
           </div>
-        </div>
-      </div>
-    </div><!-- /g2 -->
+
+          <button class="btn bpa" style="width:100%;justify-content:center;padding:13px;font-size:14px;font-weight:700" onclick="crearOT()">
+            <i class="ti ti-device-floppy"></i>&nbsp; 💾 GUARDAR OT
+          </button>
+          <div style="text-align:center;margin-top:10px">
+            <a href="#" id="btn-mas-detalles" onclick="event.preventDefault();toggleModoCompleto()"
+              style="font-size:11px;color:var(--text-accent,#2563eb);text-decoration:none">
+              + Agregar más detalles ▼
+            </a>
+          </div>
+        </div><!-- /#ot-rapido-mode -->
+
+        <!-- MODO COMPLETO -->
+        <div id="ot-completo-mode" style="display:none;margin-top:14px;padding-top:14px;border-top:0.5px solid var(--border)">
+          <div class="g2">
+
+            <!-- COLUMNA IZQUIERDA -->
+            <div>
+              <!-- Card: Datos del servicio -->
+              <div class="card" style="margin-bottom:14px">
+                <div class="ch"><span class="ct"><i class="ti ti-settings" style="font-size:12px"></i> Datos del servicio</span></div>
+                <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:12px">
+                  <label style="display:flex;align-items:center;gap:8px;font-size:12px;cursor:pointer"><input type="checkbox" id="nc-tipo-express"> <span>⚡ Express (OT rápida)</span></label>
+                  <label style="display:flex;align-items:center;gap:8px;font-size:12px;cursor:pointer"><input type="checkbox" id="nc-es-garantia"> <span>🛡️ ¿Es garantía?</span></label>
+                  <label style="display:flex;align-items:center;gap:8px;font-size:12px;cursor:pointer"><input type="checkbox" id="nc-autoriza-ruta"> <span>🚗 ¿Autoriza prueba de ruta?</span></label>
+                  <label style="display:flex;align-items:center;gap:8px;font-size:12px;cursor:pointer"><input type="checkbox" id="nc-req-diagnostico"> <span>🔍 ¿Requiere diagnóstico inicial?</span></label>
+                </div>
+                <div class="fgrid2">
+                  <div class="fg"><label>Fecha de cita</label><input type="date" id="nc-fecha-cita"></div>
+                  <div class="fg"><label>Hora de cita</label><input type="time" id="nc-hora-cita"></div>
+                  <div class="fg" style="grid-column:1/-1"><label>Estado inicial</label>
+                    <select id="nc-estado-inicial" style="width:100%">
+                      <option value="agendado">📅 Agendado</option>
+                      <option value="en-proceso">🟢 En proceso</option>
+                      <option value="cotizacion">📋 Cotización</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Card: Vehículo -->
+              <div class="card" style="margin-bottom:14px">
+                <div class="ch"><span class="ct"><i class="ti ti-car" style="font-size:12px"></i> Vehículo</span></div>
+                <div class="fgrid2">
+                  <div class="fg"><label>Patente</label><input id="nc-patente" readonly style="font-family:var(--font-mono);letter-spacing:.06em;background:var(--surface-1)"></div>
+                  <div class="fg"><label>Marca</label><input id="nc-marca" placeholder="Toyota"></div>
+                  <div class="fg"><label>Modelo</label><input id="nc-modelo" placeholder="Corolla"></div>
+                  <div class="fg"><label>Año</label><input id="nc-anio" type="number" placeholder="2020" min="1970" max="2030"></div>
+                  <div class="fg"><label>Color</label><input id="nc-color" placeholder="Blanco"></div>
+                  <div class="fg"><label>Motor</label><input id="nc-motor" placeholder="1.6L"></div>
+                </div>
+              </div>
+
+              <!-- Card: Equipo -->
+              <div class="card">
+                <div class="ch"><span class="ct"><i class="ti ti-users" style="font-size:12px"></i> Equipo</span></div>
+                <div class="fg"><label>Técnico responsable</label><select id="nc-tecnico" style="width:100%"><option value="">Sin asignar</option></select></div>
+                <div class="fg"><label>Asesor de repuestos</label><select id="nc-asesor" style="width:100%"><option value="">Sin asignar</option></select></div>
+                <div class="fg"><label>Kilometraje de entrada</label><input id="nc-km" type="number" placeholder="45200"></div>
+                <div class="fg"><label>Nivel de combustible</label>
+                  <select id="nc-nivel-comb" style="width:100%">
+                    <option value="">—</option>
+                    <option value="vacio">Vacío</option>
+                    <option value="1/4">1/4</option>
+                    <option value="1/2">1/2</option>
+                    <option value="3/4">3/4</option>
+                    <option value="lleno">Lleno</option>
+                  </select>
+                </div>
+              </div>
+            </div><!-- /col izq -->
+
+            <!-- COLUMNA DERECHA -->
+            <div>
+              <!-- Card: Motivos de ingreso -->
+              <div class="card" style="margin-bottom:14px">
+                <div class="ch"><span class="ct"><i class="ti ti-clipboard-list" style="font-size:12px"></i> Motivos de ingreso</span></div>
+                <div class="fg"><label>Describe el motivo</label>
+                  <textarea id="nc-motivo-desc" placeholder="Ej: Cliente escucha ruido al frenar…" style="min-height:50px"></textarea>
+                </div>
+                <div class="fg"><label>Servicio del catálogo <span style="font-weight:400;color:var(--text-muted)">(opcional)</span></label>
+                  <select id="nc-motivo-svc" style="width:100%"><option value="">— Opcional —</option></select>
+                </div>
+                <div style="display:flex;gap:14px;margin:7px 0 10px;font-size:11px;flex-wrap:wrap">
+                  <label style="display:flex;align-items:center;gap:5px;cursor:pointer"><input type="radio" name="nc-motivo-tipo" value="diagnostico"> Diagnóstico</label>
+                  <label style="display:flex;align-items:center;gap:5px;cursor:pointer"><input type="radio" name="nc-motivo-tipo" value="mantenimiento"> Mantenimiento</label>
+                  <label style="display:flex;align-items:center;gap:5px;cursor:pointer"><input type="radio" name="nc-motivo-tipo" value="reparacion" checked> Reparación</label>
+                </div>
+                <button class="btn bpa" style="width:100%;justify-content:center;margin-bottom:8px" onclick="agregarMotivoOT()">
+                  <i class="ti ti-plus"></i> AGREGAR MOTIVO
+                </button>
+                <div id="nc-motivos-lista"></div>
+                <div style="display:flex;justify-content:space-between;font-size:11px;padding-top:8px;border-top:0.5px solid var(--border);margin-top:4px;color:var(--text-muted)">
+                  <span>TOTAL COTIZADO <strong style="color:var(--text-primary)">$0</strong></span>
+                  <span>TOTAL APROBADO <strong style="color:var(--text-primary)">$0</strong></span>
+                </div>
+              </div>
+
+              <!-- Card: Servicios -->
+              <div class="card" style="margin-bottom:14px">
+                <div class="ch"><span class="ct"><i class="ti ti-tool" style="font-size:12px"></i> Servicios</span></div>
+                <div id="nc-svc-lista" style="margin-bottom:8px"></div>
+                <div id="nc-svc-totales" style="display:none;font-size:11px;justify-content:space-between;padding:4px 0;border-top:0.5px solid var(--border);margin-bottom:8px;color:var(--text-muted)"></div>
+                <div class="fgrid2">
+                  <div class="fg" style="grid-column:1/-1"><label>Nombre del servicio</label><input id="nc-svc-nombre" placeholder="Ej: Cambio de aceite y filtro"></div>
+                  <div class="fg"><label>Horas est.</label><input id="nc-svc-horas" type="number" step="0.5" min="0" placeholder="1.5"></div>
+                  <div class="fg"><label>Valor CLP</label><input id="nc-svc-valor" type="number" min="0" placeholder="25000"></div>
+                </div>
+                <button class="btn" style="width:100%;justify-content:center;font-size:11px;margin-top:6px" onclick="agregarServicioOTCompleto()">
+                  <i class="ti ti-plus"></i> Agregar servicio
+                </button>
+              </div>
+
+              <!-- Card: Recepción activa (acordeón) -->
+              <div class="card">
+                <div class="ch" style="cursor:pointer;user-select:none" onclick="_toggleRecepcionAcordeon()">
+                  <span class="ct"><i class="ti ti-clipboard-check" style="font-size:12px"></i> Recepción activa</span>
+                  <i class="ti ti-chevron-down" id="nc-recep-chevron" style="font-size:12px;color:var(--text-muted);transition:transform .2s"></i>
+                </div>
+                <div id="nc-recepcion-body" style="display:none">
+                  <div class="fg"><label>Objetos de valor</label>
+                    <textarea id="nc-objetos-valor" placeholder="Radio, navegador, cargador, documentos…" style="min-height:40px"></textarea>
+                  </div>
+                  <div class="fg"><label>Documentos entregados</label>
+                    <textarea id="nc-documentos" placeholder="Permiso de circulación, revisión técnica…" style="min-height:40px"></textarea>
+                  </div>
+                  <div class="fg">
+                    <label style="display:block;font-weight:500;margin-bottom:7px">Fluidos</label>
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:5px;font-size:11px">
+                      <label style="display:flex;align-items:center;gap:5px;cursor:pointer"><input type="checkbox" class="nc-fluido" value="aceite_motor"> Aceite motor</label>
+                      <label style="display:flex;align-items:center;gap:5px;cursor:pointer"><input type="checkbox" class="nc-fluido" value="liq_frenos"> Líq. frenos</label>
+                      <label style="display:flex;align-items:center;gap:5px;cursor:pointer"><input type="checkbox" class="nc-fluido" value="liq_embrague"> Líq. embrague</label>
+                      <label style="display:flex;align-items:center;gap:5px;cursor:pointer"><input type="checkbox" class="nc-fluido" value="refrigerante"> Refrigerante</label>
+                      <label style="display:flex;align-items:center;gap:5px;cursor:pointer"><input type="checkbox" class="nc-fluido" value="aceite_hidraulico"> Aceite hidráulico</label>
+                      <label style="display:flex;align-items:center;gap:5px;cursor:pointer"><input type="checkbox" class="nc-fluido" value="limpiaparabrisas"> Limpiaparabrisas</label>
+                    </div>
+                  </div>
+                  <div class="fg">
+                    <label style="display:block;font-weight:500;margin-bottom:7px">Inventario</label>
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:5px;font-size:11px">
+                      <label style="display:flex;align-items:center;gap:5px;cursor:pointer"><input type="checkbox" class="nc-inventario" value="llanta_repuesto"> Llanta repuesto</label>
+                      <label style="display:flex;align-items:center;gap:5px;cursor:pointer"><input type="checkbox" class="nc-inventario" value="kit_carretera"> Kit carretera</label>
+                      <label style="display:flex;align-items:center;gap:5px;cursor:pointer"><input type="checkbox" class="nc-inventario" value="herramientas"> Herramientas</label>
+                      <label style="display:flex;align-items:center;gap:5px;cursor:pointer"><input type="checkbox" class="nc-inventario" value="botiquin"> Botiquín</label>
+                      <label style="display:flex;align-items:center;gap:5px;cursor:pointer"><input type="checkbox" class="nc-inventario" value="extintor"> Extintor</label>
+                    </div>
+                  </div>
+                  <div class="fg">
+                    <label style="display:block;font-weight:500;margin-bottom:7px">Daños</label>
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:5px;font-size:11px">
+                      <label style="display:flex;align-items:center;gap:5px;cursor:pointer"><input type="checkbox" class="nc-dano" value="rayado"> Rayado</label>
+                      <label style="display:flex;align-items:center;gap:5px;cursor:pointer"><input type="checkbox" class="nc-dano" value="fogueado"> Fogueado</label>
+                      <label style="display:flex;align-items:center;gap:5px;cursor:pointer"><input type="checkbox" class="nc-dano" value="sumido"> Sumido</label>
+                      <label style="display:flex;align-items:center;gap:5px;cursor:pointer"><input type="checkbox" class="nc-dano" value="picado"> Picado</label>
+                      <label style="display:flex;align-items:center;gap:5px;cursor:pointer"><input type="checkbox" class="nc-dano" value="golpeado"> Golpeado</label>
+                      <label style="display:flex;align-items:center;gap:5px;cursor:pointer"><input type="checkbox" class="nc-dano" value="sin_danos"> Sin daños</label>
+                    </div>
+                  </div>
+                  <div class="fg"><label>Descripción de daños</label>
+                    <textarea id="nc-desc-danos" placeholder="Detalla los daños observados al ingreso…" style="min-height:50px"></textarea>
+                  </div>
+                </div><!-- /#nc-recepcion-body -->
+              </div><!-- /card recepcion -->
+            </div><!-- /col der -->
+
+          </div><!-- /g2 modo completo -->
+        </div><!-- /#ot-completo-mode -->
+
       </div><!-- /modal-body -->
       <div class="modal-footer">
         <button class="btn" onclick="cerrarFormNuevaOT()"><i class="ti ti-x"></i> Cancelar</button>
         <button class="btn bpa" onclick="crearOT()"><i class="ti ti-clipboard-plus"></i> Guardar OT</button>
       </div>
-    </div><!-- /modal-grande -->
+    </div><!-- /#ot-nueva-modal -->
   </div><!-- /#ot-nueva -->
 
   <!-- ===== DETALLE OT (modal) ===== -->
@@ -245,6 +299,7 @@
         <div style="display:flex;align-items:center;gap:8px;flex:1;flex-wrap:wrap;min-width:0">
           <div style="font-size:15px;font-weight:600" id="det-titulo">OT #0000</div>
           <div id="det-estado-badge" style="padding:4px 10px;border-radius:20px;font-size:11px;font-weight:500;background:var(--surface-2);border:0.5px solid var(--border)">📅 Agendado</div>
+          <div id="det-aprobacion-badge" style="display:none;padding:4px 10px;border-radius:20px;font-size:11px;font-weight:500;border:0.5px solid"></div>
           <div style="position:relative">
             <button class="btn" onclick="toggleEstadoDropdownDet()"><i class="ti ti-refresh"></i> Estado</button>
             <div id="det-estado-dd" style="display:none;position:absolute;right:0;top:100%;width:240px;z-index:1060;background:var(--surface-2);border:0.5px solid var(--border);border-radius:var(--radius);box-shadow:0 4px 16px rgba(0,0,0,.2);margin-top:3px;overflow:hidden">
