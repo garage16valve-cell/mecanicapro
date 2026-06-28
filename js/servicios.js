@@ -38,10 +38,13 @@ function svcRenderProveedores() {
   if (!lista) return;
   const provs = APP.lsGet('mp_proveedores', []);
 
+  const cnt = document.getElementById('svc-prov-count');
+  if (cnt) cnt.textContent = provs.length + ' proveedor' + (provs.length !== 1 ? 'es' : '');
+
   if (!provs.length) {
     lista.innerHTML = `<div style="text-align:center;padding:24px;color:var(--text-muted);font-size:11px">
       <i class="ti ti-building-store" style="font-size:28px;display:block;margin-bottom:8px;opacity:.3"></i>
-      Sin proveedores. Agrega el primero con el botón de arriba.
+      Sin proveedores registrados.
     </div>`;
     return;
   }
@@ -80,8 +83,6 @@ function svcRenderProveedores() {
         </div>
         <div style="display:flex;gap:6px;align-items:center">
           ${waHref ? `<a href="${waHref}" target="_blank" class="btn bpw" style="font-size:11px;padding:4px 10px"><i class="ti ti-brand-whatsapp"></i> WA</a>` : ''}
-          <button class="btn" style="font-size:11px;padding:4px 9px" onclick="svcProvEditar('${p.id}')"><i class="ti ti-pencil"></i></button>
-          <button class="btn" style="font-size:11px;padding:4px 7px;color:var(--text-danger)" onclick="svcProvEliminar('${p.id}')"><i class="ti ti-trash"></i></button>
         </div>
       </div>
       <div>

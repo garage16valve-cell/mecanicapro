@@ -15,73 +15,11 @@
 
   <!-- ===== TAB PROVEEDORES ===== -->
   <div id="svc-tab-prov" style="display:none">
-    <div class="g2">
-      <!-- Lista proveedores -->
-      <div>
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
-          <span style="font-size:12px;font-weight:500">Proveedores del taller</span>
-          <button class="btn bpa" onclick="svcProvNuevo()"><i class="ti ti-plus"></i> Agregar proveedor</button>
-        </div>
-        <div id="svc-prov-lista"></div>
-      </div>
-
-      <!-- Formulario proveedor -->
-      <div id="svc-prov-panel" style="display:none">
-        <div class="card">
-          <div class="ch">
-            <span class="ct" id="svc-prov-panel-titulo">Nuevo proveedor</span>
-            <button class="btn" onclick="svcProvCerrarPanel()" style="padding:3px 8px"><i class="ti ti-x"></i></button>
-          </div>
-
-          <div class="fg"><label>Nombre del proveedor</label><input id="svc-prov-f-nombre" placeholder="Ej: Repuestos Díaz"></div>
-
-          <div class="fg">
-            <label>Rubro</label>
-            <select id="svc-prov-f-rubro" style="width:100%">
-              <option value="">Seleccionar…</option>
-              <option>Repuestos generales</option>
-              <option>Lubricantes y fluidos</option>
-              <option>Frenos y suspensión</option>
-              <option>Electricidad automotriz</option>
-              <option>Neumáticos</option>
-              <option>Carrocería y pintura</option>
-              <option>Herramientas</option>
-              <option>Otro</option>
-            </select>
-          </div>
-
-          <div class="fg">
-            <label>WhatsApp</label>
-            <input id="svc-prov-f-wz" placeholder="+569XXXXXXXX" style="font-family:var(--font-mono)">
-          </div>
-
-          <!-- Marcas que abastece -->
-          <div class="fg" style="margin-top:6px">
-            <label>Marcas que abastece <span style="color:var(--text-danger);font-size:10px">*</span></label>
-            <div style="display:flex;gap:6px;align-items:center">
-              <input id="svc-prov-f-marca-input" list="svc-prov-marcas-dl" placeholder="Ej: Toyota, Kia…"
-                style="flex:1;font-size:12px;border:0.5px solid var(--border);border-radius:var(--radius);padding:6px 9px;background:var(--surface-1);color:var(--text-primary)"
-                onkeydown="if(event.key==='Enter'){event.preventDefault();svcProvMarcaAdd()}">
-              <datalist id="svc-prov-marcas-dl">
-                <option>Toyota</option><option>Chevrolet</option><option>Nissan</option>
-                <option>Kia</option><option>Hyundai</option><option>Ford</option>
-                <option>Mazda</option><option>Suzuki</option><option>Mitsubishi</option>
-                <option>Honda</option><option>Volkswagen</option><option>Renault</option>
-                <option>Peugeot</option><option>Fiat</option><option>BMW</option>
-                <option>Mercedes-Benz</option><option>Audi</option><option>Subaru</option>
-                <option>Jeep</option><option>RAM</option><option>Great Wall</option>
-              </datalist>
-              <button class="btn" onclick="svcProvMarcaAdd()" style="flex-shrink:0"><i class="ti ti-plus"></i></button>
-            </div>
-            <div id="svc-prov-f-marcas-lista" style="display:flex;flex-wrap:wrap;gap:5px;margin-top:8px;min-height:22px"></div>
-          </div>
-
-          <button class="btn bpa" style="width:100%;justify-content:center;margin-top:12px" onclick="svcProvGuardar()">
-            <i class="ti ti-device-floppy"></i> Guardar proveedor
-          </button>
-        </div>
-      </div>
+    <div style="display:flex;align-items:center;margin-bottom:12px">
+      <span style="font-size:12px;font-weight:500">Proveedores del taller</span>
+      <span style="font-size:11px;color:var(--text-muted);margin-left:8px" id="svc-prov-count"></span>
     </div>
+    <div id="svc-prov-lista"></div>
   </div>
 
   <!-- ===== TAB CONFIGURACIÓN ===== -->
