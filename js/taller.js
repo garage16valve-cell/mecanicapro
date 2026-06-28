@@ -1403,14 +1403,21 @@ function confirmarReagendaDet() {
 
   _aplicarEstadoOTDet('reagendar', { nuevaFecha: fNueva, nuevaHora: hNueva, motivo });
 
-  // Actualizar fechaCita/horaCita si se ingresaron
+  // Actualizar fechaCita/horaCita si se ingresaron (ambos stores)
   if (fNueva && _otDetalleId) {
-    const ots = APP.lsGet('mp_ots', []);
-    const idx = ots.findIndex(o => o.id === _otDetalleId);
-    if (idx >= 0) {
-      if (fNueva) ots[idx].fechaCita = fNueva;
-      if (hNueva) ots[idx].horaCita  = hNueva;
-      APP.lsSet('mp_ots', ots);
+    const otsNew = APP.lsGet('ots', []);
+    const otsOld = APP.lsGet('mp_ots', []);
+    const idxN = otsNew.findIndex(o => o.id === _otDetalleId);
+    const idxO = otsOld.findIndex(o => o.id === _otDetalleId);
+    if (idxN >= 0) {
+      if (fNueva) otsNew[idxN].fecha_cita = fNueva;
+      if (hNueva) otsNew[idxN].hora_cita  = hNueva;
+      APP.lsSet('ots', otsNew);
+    }
+    if (idxO >= 0) {
+      if (fNueva) otsOld[idxO].fechaCita = fNueva;
+      if (hNueva) otsOld[idxO].horaCita  = hNueva;
+      APP.lsSet('mp_ots', otsOld);
     }
   }
   // Limpiar campos
@@ -1423,34 +1430,51 @@ function _aplicarEstadoOTDet(codigo, extra = {}) {
   if (!_otDetalleId) return;
   const est   = ESTADOS[codigo] || ESTADOS['agendado'];
   const ahora = new Date();
-  const entrada = {
+  const entradaLegacy = {
     estado: codigo, label: est.label, emoji: est.emoji,
     ts:    ahora.toISOString(),
     hora:  ahora.toLocaleTimeString('es-CL', { hour:'2-digit', minute:'2-digit' }),
     fecha: ahora.toLocaleDateString('es-CL'),
     ...extra,
   };
-  if (codigo === 'llego') entrada.horaEntrada = entrada.hora;
-
-  const ots = APP.lsGet('mp_ots', []);
-  const idx = ots.findIndex(o => o.id === _otDetalleId);
-  if (idx < 0) return;
+  const entradaNew = {
+    accion: est.label || codigo,
+    fecha: Date.now(),
+    usuario: 'Sistema',
+  };
+  if (codigo === 'llego') { entradaLegacy.horaEntrada = entradaLegacy.hora; }
 
   const estadoOT = codigo === 'llego'                           ? 'en-proceso'
                  : codigo === 'nollego' || codigo === 'cancelo' ? 'cerrado'
                  : codigo === 'cotizacion'                      ? 'cotizacion'
-                 : ots[idx].estado;
+                 : null;
 
-  if (codigo === 'llego') ots[idx].entrada_ts = ahora.toISOString();
+  // Nuevo store (ots)
+  const otsNew = APP.lsGet('ots', []);
+  const idxN = otsNew.findIndex(o => o.id === _otDetalleId);
+  if (idxN >= 0) {
+    if (codigo === 'llego') otsNew[idxN].entrada_ts = ahora.toISOString();
+    otsNew[idxN].estado = estadoOT || otsNew[idxN].estado;
+    otsNew[idxN].historial_eventos = [...(otsNew[idxN].historial_eventos || otsNew[idxN].historial || []), entradaNew];
+    APP.lsSet('ots', otsNew);
+    _actualizarBadgeDet(codigo);
+    _renderHistorialDet(otsNew[idxN].historial_eventos);
+    _actualizarPanelesDet(otsNew[idxN]);
+  }
 
-  ots[idx].estadoCita = codigo;
-  ots[idx].estado     = estadoOT;
-  ots[idx].historial  = [...(ots[idx].historial || []), entrada];
-  APP.lsSet('mp_ots', ots);
-
-  _actualizarBadgeDet(codigo);
-  _renderHistorialDet(ots[idx].historial);
-  _actualizarPanelesDet(ots[idx]);
+  // Legacy store (mp_ots)
+  const otsOld = APP.lsGet('mp_ots', []);
+  const idxO = otsOld.findIndex(o => o.id === _otDetalleId);
+  if (idxO >= 0) {
+    if (codigo === 'llego') otsOld[idxO].entrada_ts = ahora.toISOString();
+    otsOld[idxO].estadoCita = codigo;
+    otsOld[idxO].estado     = estadoOT || otsOld[idxO].estado;
+    otsOld[idxO].historial  = [...(otsOld[idxO].historial || []), entradaLegacy];
+    APP.lsSet('mp_ots', otsOld);
+    _actualizarBadgeDet(codigo);
+    _renderHistorialDet(otsOld[idxO].historial);
+    _actualizarPanelesDet(otsOld[idxO]);
+  }
 }
 
 function _renderHistorialDet(historial) {
