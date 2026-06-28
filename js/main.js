@@ -155,12 +155,109 @@ window.APP = {
       t.className = 'toast ' + tipo;
       t.textContent = mensaje;
       container.appendChild(t);
-      setTimeout(() => {
-        t.style.opacity = '0';
-        t.style.transition = 'opacity 0.3s';
-        setTimeout(() => t.remove(), 300);
-      }, duracion);
+      if (duracion > 0) {
+        setTimeout(() => {
+          t.style.opacity = '0';
+          t.style.transition = 'opacity 0.3s';
+          setTimeout(() => t.remove(), 300);
+        }, duracion);
+      }
     }
+  },
+
+  // ── Estado de carga en botones ──
+  btnCargando(btn, texto) {
+    btn.disabled = true;
+    btn.dataset.original = btn.innerHTML;
+    btn.innerHTML = '⏳ ' + (texto || 'Guardando...');
+  },
+  btnListo(btn) {
+    btn.disabled = false;
+    btn.innerHTML = btn.dataset.original || btn.innerHTML;
+  },
+
+  // ── Formateo de mensajes amigables ──
+  msg: {
+    eliminar(entidad = 'este registro') {
+      return `¿Estás seguro que quieres eliminar ${entidad}? Esta acción no se puede deshacer.`;
+    },
+    error(detalle = '') {
+      return 'Hubo un problema' + (detalle ? ': ' + detalle : '') + '. Intenta de nuevo.';
+    },
+    sinDatos() { return 'Sin datos'; },
+  },
+
+  // ── Autoguardado de formularios ──
+  borrador: {
+    _interval: null,
+    iniciar(clave, fnDatos, elStatus) {
+      this.detener();
+      this._interval = setInterval(() => {
+        const datos = fnDatos();
+        if (!datos) return;
+        APP.lsSet(clave, { datos, ts: Date.now() });
+        if (elStatus) {
+          const hora = new Date().toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' });
+          elStatus.textContent = '✓ Borrador guardado ' + hora;
+        }
+      }, 120000);
+    },
+    detener() {
+      if (this._interval) { clearInterval(this._interval); this._interval = null; }
+    },
+    verificar(clave, onRecuperar) {
+      const b = APP.lsGet(clave, null);
+      if (!b || !b.datos) return;
+      const fecha = new Date(b.ts).toLocaleDateString('es-CL', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+      APP.toast.show(`Hay un borrador sin guardar del ${fecha}`, 'warning', 0);
+      // Mostrar opción de recuperar via modal
+      setTimeout(() => {
+        const t = document.querySelector('.toast.warning');
+        if (!t) return;
+        const btn = document.createElement('button');
+        btn.className = 'btn bpa';
+        btn.style.cssText = 'margin-left:10px;min-height:28px;padding:4px 10px;font-size:11px;';
+        btn.textContent = 'Recuperar';
+        btn.onclick = () => { onRecuperar(b.datos); t.remove(); };
+        t.appendChild(btn);
+        t.style.pointerEvents = 'auto';
+      }, 100);
+    },
+    limpiar(clave) {
+      APP.lsSet(clave, null);
+    },
+  },
+
+  // ── Modo Taller ──
+  modoTaller: {
+    get activo() {
+      const cfg = APP.lsGet('config', {});
+      return !!cfg.modo_taller;
+    },
+    activar() {
+      const cfg = APP.lsGet('config', {});
+      cfg.modo_taller = true;
+      APP.lsSet('config', cfg);
+      document.body.classList.add('modo-taller');
+      const btn = document.getElementById('btn-modo-taller');
+      if (btn) { btn.classList.add('activo'); btn.innerHTML = '🔧 Modo Taller: ON'; }
+    },
+    desactivar() {
+      const cfg = APP.lsGet('config', {});
+      cfg.modo_taller = false;
+      APP.lsSet('config', cfg);
+      document.body.classList.remove('modo-taller');
+      const btn = document.getElementById('btn-modo-taller');
+      if (btn) { btn.classList.remove('activo'); btn.innerHTML = '🔧 Modo Taller'; }
+    },
+    toggle() {
+      this.activo ? this.desactivar() : this.activar();
+    },
+    init() {
+      // Activar en móvil automáticamente
+      const esMobil = window.innerWidth <= 768;
+      if (esMobil || this.activo) this.activar();
+    },
   },
 
   // ── Modales dinámicos (confirmaciones) ──
@@ -203,5 +300,5 @@ window.APP = {
 };
 
 // ===== INICIO =====
-// Cargar el dashboard al abrir la app
 nav('dashboard', document.querySelector('.ni.active'));
+APP.modoTaller.init();

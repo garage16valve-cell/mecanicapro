@@ -99,14 +99,22 @@ nav { padding: 8px; flex: 1; }
 .module-loading { display: flex; align-items: center; justify-content: center; height: 200px; color: var(--text-muted); font-size: 13px; gap: 8px; }
 
 /* COMPONENTS */
-.btn { padding: 6px 12px; border-radius: var(--radius); font-size: 12px; cursor: pointer; border: 0.5px solid var(--border-strong); background: transparent; color: var(--text-primary); display: inline-flex; align-items: center; gap: 5px; transition: all .12s; font-family: var(--font-sans); white-space: nowrap; }
+.btn { padding: 8px 14px; border-radius: var(--radius); font-size: 13px; cursor: pointer; border: 0.5px solid var(--border-strong); background: transparent; color: var(--text-primary); display: inline-flex; align-items: center; gap: 5px; transition: all .12s; font-family: var(--font-sans); white-space: nowrap; min-height: 36px; }
 .btn:hover { background: var(--surface-1); }
+.btn:disabled { opacity: .6; cursor: not-allowed; }
+.btn-accion { min-height: 48px; padding: 12px 20px; font-size: 14px; }
+.btn-xl { min-height: 56px; font-size: 16px; padding: 16px 24px; }
 .bpa { background: var(--fill-accent); color: #fff; border-color: var(--fill-accent); }
 .bpa:hover { background: var(--fill-accent-hover); border-color: var(--fill-accent-hover); }
 .bpg { background: var(--fill-success); color: #fff; border-color: var(--fill-success); }
 .bpg:hover { opacity: .9; }
 .bpw { background: #25d366; color: #fff; border-color: #25d366; }
 .bpw:hover { opacity: .9; }
+@media (max-width: 768px) {
+  .btn { min-height: 44px; font-size: 14px; padding: 10px 16px; }
+  .btn-accion { min-height: 52px; font-size: 15px; }
+  .btn-xl { min-height: 56px; }
+}
 .g2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px; }
 .g3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; margin-bottom: 14px; }
 .kgrid { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 10px; margin-bottom: 16px; }
@@ -409,6 +417,75 @@ nav { padding: 8px; flex: 1; }
 .ss-item.ss-empty { color: var(--text-muted); cursor: default; font-size: 11px; }
 .ss-meta { margin-left: auto; font-size: 10px; color: var(--text-muted); white-space: nowrap; flex-shrink: 0; }
 @media (max-width: 768px) { .ss-item { min-height: 48px; } }
+
+/* ===== TOOLTIPS DE AYUDA ===== */
+.tooltip-icon {
+  cursor: help;
+  color: var(--text-muted);
+  margin-left: 4px;
+  font-size: 12px;
+  position: relative;
+  display: inline-block;
+  vertical-align: middle;
+}
+.tooltip-icon:hover::after {
+  content: attr(data-tip);
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 6px);
+  transform: translateX(-50%);
+  background: var(--surface-2);
+  border: 1px solid var(--border-strong);
+  border-radius: 6px;
+  padding: 6px 10px;
+  font-size: 12px;
+  white-space: nowrap;
+  z-index: 200;
+  color: var(--text-secondary);
+  box-shadow: 0 4px 12px rgba(0,0,0,.2);
+  pointer-events: none;
+}
+
+/* ===== AUTOGUARDADO — indicador ===== */
+.borrador-status {
+  font-size: 11px;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  transition: opacity .3s;
+}
+
+/* ===== MODO TALLER ===== */
+body.modo-taller .btn { min-height: 56px; font-size: 16px; padding: 14px 22px; }
+body.modo-taller .fg label { font-size: 13px; }
+body.modo-taller .fg input,
+body.modo-taller .fg select,
+body.modo-taller .fg textarea { font-size: 14px; padding: 10px 12px; min-height: 44px; }
+body.modo-taller .tbl { font-size: 14px; }
+body.modo-taller .tbl td { padding: 12px 6px; }
+body.modo-taller .ni { padding: 10px 12px; font-size: 13px; min-height: 44px; }
+body.modo-taller .ct { font-size: 15px; }
+body.modo-taller .fg { gap: 5px; margin-bottom: 14px; }
+
+/* Toggle modo taller en topbar */
+.modo-taller-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  font-size: 12px;
+  color: var(--text-secondary);
+  padding: 5px 10px;
+  border-radius: var(--radius);
+  border: 0.5px solid var(--border);
+  background: transparent;
+  transition: all .12s;
+  user-select: none;
+  white-space: nowrap;
+}
+.modo-taller-toggle:hover { background: var(--surface-1); }
+.modo-taller-toggle.activo { background: var(--bg-warning); border-color: var(--border-warning); color: var(--text-warning); font-weight: 500; }
 
 /* ── Smart Select ─────────────────────────────────────────────────────── */
 .smart-select { position: relative; width: 100%; }
