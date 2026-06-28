@@ -309,6 +309,7 @@
               <div onclick="cambiarEstadoOTDet('cancelo')"   style="padding:9px 12px;cursor:pointer;font-size:12px;display:flex;gap:8px;border-top:0.5px solid var(--border)">🚫 <span><strong>Cliente canceló</strong><div style="font-size:10px;color:var(--text-muted)">Registra la cancelación</div></span></div>
               <div onclick="cambiarEstadoOTDet('cotizacion')" style="padding:9px 12px;cursor:pointer;font-size:12px;display:flex;gap:8px;border-top:0.5px solid var(--border)">📋 <span><strong>Cotización</strong><div style="font-size:10px;color:var(--text-muted)">Activa modo cotización</div></span></div>
               <div onclick="completarOT()" style="padding:9px 12px;cursor:pointer;font-size:12px;display:flex;gap:8px;border-top:0.5px solid var(--border)">🏁 <span><strong>Completar OT</strong><div style="font-size:10px;color:var(--text-muted)">Registra salida y genera publicación</div></span></div>
+              <div onclick="mostrarModalAprobacionIngreso()" style="padding:9px 12px;cursor:pointer;font-size:12px;display:flex;gap:8px;border-top:0.5px solid var(--border)">🔬 <span><strong>Avanzar a Diagnóstico</strong><div style="font-size:10px;color:var(--text-muted)">Solicitar aprobación del cliente</div></span></div>
             </div>
           </div>
           <button class="btn bpa" id="det-btn-editar" onclick="toggleEditarOT()"><i class="ti ti-edit"></i> Editar</button>
@@ -518,6 +519,55 @@
       </div><!-- /modal-body -->
     </div><!-- /modal-grande -->
   </div><!-- /#ot-detalle -->
+
+  <!-- ===== MODAL: MÉTODO DE APROBACIÓN ===== -->
+  <div id="modal-aprobacion-metodo" class="modal-overlay" style="display:none" onclick="if(event.target===this)cerrarModalAprobMetodo()">
+    <div class="modal-pequeno">
+      <div class="modal-header">
+        <h3 style="font-size:14px;font-weight:600;margin:0">🔬 Avanzar a Diagnóstico</h3>
+        <button class="modal-close" onclick="cerrarModalAprobMetodo()">×</button>
+      </div>
+      <div class="modal-body" style="padding:20px">
+        <p style="font-size:12px;color:var(--text-secondary);margin:0 0 18px">¿Cómo deseas solicitar la aprobación del cliente para ingresar el vehículo?</p>
+        <div style="display:flex;flex-direction:column;gap:10px">
+          <button class="btn bpw" style="justify-content:center;padding:14px;font-size:13px;font-weight:600" onclick="aprobacionViaWhatsApp()">
+            <i class="ti ti-brand-whatsapp" style="font-size:16px"></i>&nbsp; 📱 VÍA WHATSAPP
+          </button>
+          <button class="btn" style="justify-content:center;padding:14px;font-size:13px;font-weight:600" onclick="mostrarModalAprobVerbal()">
+            <i class="ti ti-message-circle" style="font-size:16px"></i>&nbsp; 💬 VERBAL (en persona)
+          </button>
+          <button class="btn" style="justify-content:center;padding:10px;font-size:12px;color:var(--text-muted)" onclick="cerrarModalAprobMetodo()">
+            Salir
+          </button>
+        </div>
+      </div>
+    </div>
+  </div><!-- /#modal-aprobacion-metodo -->
+
+  <!-- ===== MODAL: CONFIRMACIÓN APROBACIÓN VERBAL ===== -->
+  <div id="modal-aprobacion-verbal" class="modal-overlay" style="display:none" onclick="if(event.target===this)cerrarModalAprobVerbal()">
+    <div class="modal-pequeno">
+      <div class="modal-header">
+        <h3 style="font-size:14px;font-weight:600;margin:0">💬 Aprobación verbal</h3>
+        <button class="modal-close" onclick="cerrarModalAprobVerbal()">×</button>
+      </div>
+      <div class="modal-body" style="padding:20px">
+        <div style="background:var(--surface-1);border:0.5px solid var(--border);border-radius:var(--radius);padding:14px;margin-bottom:18px;font-size:12px;color:var(--text-secondary);line-height:1.6">
+          ¿Confirmas que el cliente revisó el estado del vehículo y <strong>aprobó verbalmente</strong> el ingreso al taller?<br>
+          <span style="font-size:11px;color:var(--text-muted)">Esta acción quedará registrada con fecha, hora y usuario en el historial de la OT.</span>
+        </div>
+        <div style="display:flex;gap:10px">
+          <button class="btn" style="flex:1;justify-content:center;padding:12px" onclick="cerrarModalAprobVerbal()">
+            <i class="ti ti-x"></i> Cancelar
+          </button>
+          <button class="btn bpa" style="flex:2;justify-content:center;padding:12px;font-size:13px;font-weight:700" onclick="confirmarAprobacionVerbal()">
+            <i class="ti ti-check"></i> Sí, confirmar
+          </button>
+        </div>
+      </div>
+    </div>
+  </div><!-- /#modal-aprobacion-verbal -->
+
 </div><!-- /#pg-ot -->
 
 <!-- CLIENTES -->

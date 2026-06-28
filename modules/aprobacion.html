@@ -1,0 +1,873 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Aprobación de Ingreso — MecánicaPro</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #f4f6fa;
+      color: #1a1a2e;
+      min-height: 100vh;
+      padding: 0 0 60px;
+    }
+    /* Header */
+    .ap-header {
+      background: #fff;
+      border-bottom: 1px solid #e2e8f0;
+      padding: 16px 20px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      box-shadow: 0 2px 8px rgba(0,0,0,.06);
+    }
+    .ap-logo {
+      width: 48px;
+      height: 48px;
+      border-radius: 10px;
+      object-fit: cover;
+      border: 1px solid #e2e8f0;
+    }
+    .ap-logo-placeholder {
+      width: 48px;
+      height: 48px;
+      border-radius: 10px;
+      background: #2563eb;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      font-size: 22px;
+      flex-shrink: 0;
+    }
+    .ap-header-info { flex: 1; min-width: 0; }
+    .ap-header-taller { font-size: 14px; font-weight: 700; color: #1a1a2e; }
+    .ap-header-sub { font-size: 11px; color: #64748b; margin-top: 2px; }
+    .ap-btn-pdf {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 14px;
+      background: #f1f5f9;
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 600;
+      color: #374151;
+      cursor: pointer;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+    .ap-btn-pdf:hover { background: #e2e8f0; }
+
+    /* Container */
+    .ap-container { max-width: 680px; margin: 0 auto; padding: 20px 16px; }
+
+    /* Sección */
+    .ap-section {
+      background: #fff;
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      margin-bottom: 14px;
+      overflow: hidden;
+    }
+    .ap-section-title {
+      padding: 12px 16px;
+      font-size: 12px;
+      font-weight: 700;
+      color: #374151;
+      text-transform: uppercase;
+      letter-spacing: .04em;
+      border-bottom: 1px solid #f1f5f9;
+      background: #f8fafc;
+      display: flex;
+      align-items: center;
+      gap: 7px;
+    }
+    .ap-section-body { padding: 14px 16px; }
+
+    /* Grid de datos */
+    .ap-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    @media (max-width: 480px) { .ap-grid { grid-template-columns: 1fr; } }
+    .ap-field label { font-size: 10px; font-weight: 600; color: #94a3b8; text-transform: uppercase; letter-spacing: .04em; display: block; margin-bottom: 3px; }
+    .ap-field span { font-size: 13px; font-weight: 500; color: #1a1a2e; }
+
+    /* Listas con check */
+    .ap-checklist { list-style: none; display: flex; flex-direction: column; gap: 4px; }
+    .ap-checklist li { font-size: 12px; display: flex; align-items: center; gap: 7px; }
+    .ap-checklist li::before { content: '✓'; color: #16a34a; font-weight: 700; flex-shrink: 0; }
+    .ap-checklist li.empty::before { content: '—'; color: #94a3b8; }
+
+    /* Galería de fotos */
+    .ap-fotos-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 8px; }
+    .ap-foto { width: 100%; aspect-ratio: 4/3; object-fit: cover; border-radius: 8px; border: 1px solid #e2e8f0; }
+    .ap-fotos-vacio { font-size: 12px; color: #94a3b8; text-align: center; padding: 16px 0; }
+
+    /* Términos */
+    .ap-terminos {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 14px;
+      font-size: 11px;
+      color: #475569;
+      line-height: 1.65;
+      margin-bottom: 14px;
+    }
+    .ap-terminos ul { padding-left: 16px; margin-top: 6px; }
+    .ap-terminos ul li { margin-bottom: 3px; }
+
+    /* Checkboxes */
+    .ap-checkbox-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      padding: 10px 0;
+      border-bottom: 1px solid #f1f5f9;
+      cursor: pointer;
+    }
+    .ap-checkbox-item:last-child { border-bottom: none; }
+    .ap-checkbox-item input[type="checkbox"] {
+      width: 18px;
+      height: 18px;
+      accent-color: #2563eb;
+      cursor: pointer;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+    .ap-checkbox-item span { font-size: 12px; color: #374151; line-height: 1.5; }
+
+    /* Canvas firma */
+    .ap-firma-wrap {
+      position: relative;
+      border: 2px dashed #cbd5e1;
+      border-radius: 10px;
+      background: #fff;
+      overflow: hidden;
+      touch-action: none;
+    }
+    .ap-firma-guide {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 12px;
+      color: #cbd5e1;
+      pointer-events: none;
+      text-align: center;
+      white-space: nowrap;
+    }
+    canvas#firma-canvas {
+      display: block;
+      width: 100%;
+      height: 150px;
+      cursor: crosshair;
+    }
+    .ap-btn-borrar {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 6px 12px;
+      background: #f1f5f9;
+      border: 1px solid #cbd5e1;
+      border-radius: 7px;
+      font-size: 11px;
+      color: #64748b;
+      cursor: pointer;
+      margin-top: 8px;
+    }
+    .ap-btn-borrar:hover { background: #fee2e2; border-color: #fca5a5; color: #dc2626; }
+
+    /* Botones finales */
+    .ap-actions { display: flex; gap: 10px; margin-top: 20px; }
+    .ap-btn-noapruebo {
+      flex: 1;
+      padding: 14px;
+      border: 1.5px solid #374151;
+      background: #1a1a2e;
+      color: #fff;
+      border-radius: 10px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .ap-btn-noapruebo:hover { background: #374151; }
+    .ap-btn-apruebo {
+      flex: 2;
+      padding: 14px;
+      border: none;
+      background: #16a34a;
+      color: #fff;
+      border-radius: 10px;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+    .ap-btn-apruebo:hover { background: #15803d; }
+    .ap-btn-apruebo:disabled { background: #86efac; cursor: not-allowed; }
+
+    /* Panel rechazo */
+    .ap-rechazo-panel {
+      display: none;
+      background: #fff7ed;
+      border: 1px solid #fed7aa;
+      border-radius: 8px;
+      padding: 14px;
+      margin-top: 12px;
+    }
+    .ap-rechazo-panel label { font-size: 12px; font-weight: 600; color: #92400e; display: block; margin-bottom: 6px; }
+    .ap-rechazo-panel textarea {
+      width: 100%;
+      min-height: 80px;
+      border: 1px solid #fed7aa;
+      border-radius: 7px;
+      padding: 8px 10px;
+      font-size: 12px;
+      background: #fff;
+      color: #1a1a2e;
+      resize: vertical;
+    }
+    .ap-btn-confirmar-rechazo {
+      margin-top: 10px;
+      padding: 10px 18px;
+      background: #dc2626;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      width: 100%;
+    }
+
+    /* Pantallas de resultado */
+    .ap-resultado {
+      display: none;
+      text-align: center;
+      padding: 48px 24px;
+    }
+    .ap-resultado.visible { display: block; }
+    .ap-resultado-icon { font-size: 64px; margin-bottom: 16px; }
+    .ap-resultado-titulo { font-size: 20px; font-weight: 700; margin-bottom: 8px; }
+    .ap-resultado-sub { font-size: 14px; color: #64748b; line-height: 1.6; }
+
+    /* Error / OT no encontrada */
+    .ap-error {
+      display: none;
+      text-align: center;
+      padding: 64px 24px;
+    }
+    .ap-error.visible { display: block; }
+
+    /* Dañado */
+    .ap-dano-tag {
+      display: inline-block;
+      background: #fee2e2;
+      color: #dc2626;
+      border: 1px solid #fca5a5;
+      border-radius: 5px;
+      padding: 2px 8px;
+      font-size: 11px;
+      font-weight: 600;
+      margin: 2px 3px 2px 0;
+    }
+
+    /* OT badge */
+    .ap-ot-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      background: #eff6ff;
+      border: 1px solid #bfdbfe;
+      border-radius: 20px;
+      padding: 4px 12px;
+      font-size: 12px;
+      font-weight: 700;
+      color: #1d4ed8;
+    }
+  </style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="ap-header" id="ap-header" style="display:none">
+  <div id="ap-logo-wrap"></div>
+  <div class="ap-header-info">
+    <div class="ap-header-taller" id="ap-nombre-taller">Integral Automotriz SPA</div>
+    <div class="ap-header-sub">Orden de Servicio — <span id="ap-ot-num">—</span></div>
+  </div>
+  <button class="ap-btn-pdf" onclick="generarPDF()">⬇️ PDF</button>
+</div>
+
+<!-- ESTADO: OT no encontrada -->
+<div class="ap-error" id="ap-error">
+  <div style="font-size:52px;margin-bottom:16px">🔍</div>
+  <div style="font-size:18px;font-weight:700;margin-bottom:8px">OT no encontrada</div>
+  <div style="font-size:13px;color:#64748b">El link de aprobación no corresponde a ninguna orden de trabajo activa.<br>Contacta al taller para obtener un nuevo enlace.</div>
+</div>
+
+<!-- RESULTADO: Aprobado -->
+<div class="ap-resultado" id="ap-resultado-ok">
+  <div class="ap-resultado-icon">✅</div>
+  <div class="ap-resultado-titulo" style="color:#16a34a">¡Gracias por tu aprobación!</div>
+  <div class="ap-resultado-sub">Tu aprobación fue registrada correctamente.<br>En breve nos pondremos en contacto contigo.</div>
+  <div style="margin-top:24px;padding:14px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;font-size:12px;color:#166534">
+    Tu firma y autorización quedan guardadas de forma segura conforme a la Ley 19.628 de Protección de Datos de Chile.
+  </div>
+</div>
+
+<!-- RESULTADO: Rechazado -->
+<div class="ap-resultado" id="ap-resultado-no">
+  <div class="ap-resultado-icon">📞</div>
+  <div class="ap-resultado-titulo" style="color:#374151">Gracias por avisarnos</div>
+  <div class="ap-resultado-sub">Nuestro equipo se comunicará contigo<br>para resolver tus dudas o inquietudes.</div>
+</div>
+
+<!-- CONTENIDO PRINCIPAL -->
+<div class="ap-container" id="ap-main" style="display:none">
+
+  <!-- SECCIÓN 1 — DATOS DEL VEHÍCULO -->
+  <div class="ap-section">
+    <div class="ap-section-title">🚗 Datos del vehículo</div>
+    <div class="ap-section-body">
+      <div class="ap-grid">
+        <div class="ap-field"><label>Marca</label><span id="d-marca">—</span></div>
+        <div class="ap-field"><label>Modelo</label><span id="d-modelo">—</span></div>
+        <div class="ap-field"><label>Año</label><span id="d-anio">—</span></div>
+        <div class="ap-field"><label>Patente</label><span id="d-patente" style="font-family:monospace;letter-spacing:.08em;font-weight:700">—</span></div>
+        <div class="ap-field"><label>Fecha de ingreso</label><span id="d-fecha">—</span></div>
+        <div class="ap-field"><label>Kilometraje</label><span id="d-km">—</span></div>
+        <div class="ap-field"><label>Nivel de combustible</label><span id="d-comb">—</span></div>
+        <div class="ap-field"><label>Prueba de ruta</label><span id="d-ruta">—</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SECCIÓN 2 — ESTADO AL INGRESO -->
+  <div class="ap-section" id="sec-estado-ingreso">
+    <div class="ap-section-title">🔎 Estado al ingreso</div>
+    <div class="ap-section-body">
+      <div class="ap-grid" style="margin-bottom:12px">
+        <div>
+          <div style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;margin-bottom:7px">Fluidos verificados</div>
+          <ul class="ap-checklist" id="d-fluidos"><li class="empty">No registrados</li></ul>
+        </div>
+        <div>
+          <div style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;margin-bottom:7px">Inventario</div>
+          <ul class="ap-checklist" id="d-inventario"><li class="empty">No registrado</li></ul>
+        </div>
+      </div>
+      <div style="margin-bottom:10px">
+        <div style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;margin-bottom:6px">Daños documentados</div>
+        <div id="d-danos" style="font-size:12px;color:#374151">Sin daños registrados</div>
+      </div>
+      <div style="margin-bottom:10px" id="d-objetos-wrap">
+        <div style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;margin-bottom:4px">Objetos de valor</div>
+        <div id="d-objetos" style="font-size:12px;color:#374151">—</div>
+      </div>
+      <div id="d-docs-wrap">
+        <div style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;margin-bottom:4px">Documentos entregados</div>
+        <div id="d-docs" style="font-size:12px;color:#374151">—</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SECCIÓN 3 — FOTOS DE INGRESO -->
+  <div class="ap-section" id="sec-fotos">
+    <div class="ap-section-title">📷 Fotos del estado al ingreso al taller</div>
+    <div class="ap-section-body">
+      <div class="ap-fotos-grid" id="d-fotos"></div>
+    </div>
+  </div>
+
+  <!-- SECCIÓN 4 — SERVICIOS SOLICITADOS -->
+  <div class="ap-section">
+    <div class="ap-section-title">🔧 Servicios solicitados</div>
+    <div class="ap-section-body">
+      <ul id="d-servicios" style="list-style:none;display:flex;flex-direction:column;gap:6px"></ul>
+    </div>
+  </div>
+
+  <!-- SECCIÓN 5 — TÉRMINOS Y CONDICIONES -->
+  <div class="ap-section">
+    <div class="ap-section-title">📋 Términos y condiciones</div>
+    <div class="ap-section-body">
+      <div class="ap-terminos" id="d-terminos"></div>
+
+      <div style="display:flex;flex-direction:column;gap:0">
+        <label class="ap-checkbox-item">
+          <input type="checkbox" id="cb-apruebo">
+          <span>Acepto y apruebo la orden de servicio</span>
+        </label>
+        <label class="ap-checkbox-item">
+          <input type="checkbox" id="cb-datos">
+          <span>Acepto el tratamiento de mis datos personales conforme a la Ley 19.628</span>
+        </label>
+        <label class="ap-checkbox-item">
+          <input type="checkbox" id="cb-estado">
+          <span>Confirmo haber revisado el estado del vehículo al ingreso</span>
+        </label>
+      </div>
+    </div>
+  </div>
+
+  <!-- SECCIÓN 6 — FIRMA DIGITAL -->
+  <div class="ap-section">
+    <div class="ap-section-title">✍️ Firma digital</div>
+    <div class="ap-section-body">
+      <div class="ap-firma-wrap" id="firma-wrap">
+        <canvas id="firma-canvas" width="680" height="150"></canvas>
+        <div class="ap-firma-guide" id="firma-guide">Firme aquí con su dedo o mouse</div>
+      </div>
+      <button class="ap-btn-borrar" onclick="borrarFirma()">🗑️ Borrar firma</button>
+    </div>
+  </div>
+
+  <!-- BOTONES FINALES -->
+  <div class="ap-actions">
+    <button class="ap-btn-noapruebo" onclick="mostrarRechazo()">NO APRUEBO</button>
+    <button class="ap-btn-apruebo" id="btn-aprobar" onclick="aprobar()">✅ SÍ, APRUEBO</button>
+  </div>
+
+  <!-- PANEL RECHAZO -->
+  <div class="ap-rechazo-panel" id="panel-rechazo">
+    <label>¿Por qué no aprueba?</label>
+    <textarea id="motivo-rechazo" placeholder="Describe el motivo de tu rechazo…"></textarea>
+    <button class="ap-btn-confirmar-rechazo" onclick="confirmarRechazo()">Confirmar rechazo</button>
+  </div>
+
+</div><!-- /#ap-main -->
+
+<script>
+// ── Leer OT desde localStorage (clave sin prefijo, igual que APP.lsGet) ──
+const params = new URLSearchParams(window.location.search);
+const otId   = params.get('ot');
+
+let _ot     = null;
+let _config = null;
+let _firmaVacia = true;
+
+function _ls(key, def) {
+  try { return JSON.parse(localStorage.getItem(key)) ?? def; } catch { return def; }
+}
+function _lsSet(key, val) {
+  try { localStorage.setItem(key, JSON.stringify(val)); } catch(e) { console.error(e); }
+}
+
+function init() {
+  const ots    = _ls('mp_ots', []);
+  _config      = _ls('mp_config', {});
+
+  _ot = ots.find(o => o.id === otId);
+  if (!_ot) {
+    document.getElementById('ap-error').classList.add('visible');
+    return;
+  }
+
+  // Si ya fue aprobada o rechazada, mostrar resultado
+  const ap = _ot.aprobacion_ingreso;
+  if (ap && ap.estado === 'aprobado') {
+    mostrarResultado('ok'); return;
+  }
+  if (ap && ap.estado === 'rechazado') {
+    mostrarResultado('no'); return;
+  }
+
+  renderHeader();
+  renderDatos();
+  renderFotos();
+  renderServicios();
+  renderTerminos();
+  initCanvas();
+
+  document.getElementById('ap-header').style.display  = 'flex';
+  document.getElementById('ap-main').style.display     = 'block';
+}
+
+function renderHeader() {
+  const taller = _config.nombre || 'Integral Automotriz SPA';
+  document.getElementById('ap-nombre-taller').textContent = taller;
+  document.getElementById('ap-ot-num').textContent        = _ot.id || '—';
+  document.title = 'Aprobación ' + (_ot.id || '') + ' — ' + taller;
+
+  const logoWrap = document.getElementById('ap-logo-wrap');
+  if (_config.logo) {
+    logoWrap.innerHTML = `<img class="ap-logo" src="${_esc(_config.logo)}" alt="Logo">`;
+  } else {
+    logoWrap.innerHTML = `<div class="ap-logo-placeholder">🔧</div>`;
+  }
+}
+
+function renderDatos() {
+  const s = (id, val) => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = val || '—';
+  };
+  s('d-marca',   _ot.marca);
+  s('d-modelo',  _ot.modelo);
+  s('d-anio',    _ot.anio);
+  s('d-patente', _ot.patente);
+  s('d-km',      _ot.km ? Number(_ot.km).toLocaleString('es-CL') + ' km' : '—');
+
+  // Fecha de ingreso
+  const fecha = _ot.creado ? new Date(_ot.creado).toLocaleDateString('es-CL', { day:'2-digit', month:'long', year:'numeric' }) : '—';
+  s('d-fecha', fecha);
+
+  // Combustible
+  const combMap = { vacio:'Vacío', '1/4':'1/4', '1/2':'1/2', '3/4':'3/4', lleno:'Lleno' };
+  const comb = (_ot.nivel_combustible || (_ot.recepcion && _ot.recepcion.combustible) || '');
+  s('d-comb', combMap[comb] || comb || '—');
+
+  // Prueba de ruta
+  s('d-ruta', _ot.autoriza_prueba_ruta ? 'Autorizada ✓' : (_ot.autoriza_prueba_ruta === false ? 'No autorizada' : '—'));
+
+  // Fluidos
+  const rec   = _ot.recepcion || {};
+  const fluMap = { aceite_motor:'Aceite motor', liq_frenos:'Líq. frenos', liq_embrague:'Líq. embrague', refrigerante:'Refrigerante', aceite_hidraulico:'Aceite hidráulico', limpiaparabrisas:'Limpiaparabrisas' };
+  const fluEl = document.getElementById('d-fluidos');
+  const fluidos = rec.fluidos_ok || [];
+  fluEl.innerHTML = fluidos.length
+    ? fluidos.map(f => `<li>${fluMap[f] || f}</li>`).join('')
+    : '<li class="empty">No registrados</li>';
+
+  // Inventario
+  const invMap = { llanta_repuesto:'Llanta repuesto', kit_carretera:'Kit carretera', herramientas:'Herramientas', botiquin:'Botiquín', extintor:'Extintor' };
+  const invEl = document.getElementById('d-inventario');
+  const inv   = rec.inventario || [];
+  invEl.innerHTML = inv.length
+    ? inv.map(i => `<li>${invMap[i] || i}</li>`).join('')
+    : '<li class="empty">No registrado</li>';
+
+  // Daños
+  const danoMap = { rayado:'Rayado', fogueado:'Fogueado', sumido:'Sumido', picado:'Picado', golpeado:'Golpeado', sin_danos:'Sin daños' };
+  const danoEl  = document.getElementById('d-danos');
+  const danos   = rec.danos || [];
+  const descDanos = rec.descripcion_danos || '';
+  if (danos.length) {
+    danoEl.innerHTML = danos.map(d => `<span class="ap-dano-tag">${danoMap[d] || d}</span>`).join('');
+    if (descDanos) danoEl.innerHTML += `<div style="margin-top:6px;font-size:12px;color:#6b7280">${_esc(descDanos)}</div>`;
+  } else {
+    danoEl.textContent = 'Sin daños registrados';
+  }
+
+  // Objetos de valor
+  document.getElementById('d-objetos').textContent = rec.objetos_valor || _ot.notas || '—';
+
+  // Documentos
+  document.getElementById('d-docs').textContent = rec.documentos || '—';
+}
+
+function renderFotos() {
+  const rec    = _ot.recepcion || {};
+  const fotos  = rec.fotos_ingreso || [];
+  const fotosEl = document.getElementById('d-fotos');
+  const sec     = document.getElementById('sec-fotos');
+  if (!fotos.length) { sec.style.display = 'none'; return; }
+  fotosEl.innerHTML = fotos.map(f => `<img class="ap-foto" src="${f}" alt="Foto de ingreso">`).join('');
+}
+
+function renderServicios() {
+  const el    = document.getElementById('d-servicios');
+  const items = _ot.serviciosItems || [];
+  const motivos = _ot.motivos || [];
+
+  let html = '';
+  if (motivos.length) {
+    html = motivos.map(m =>
+      `<li style="display:flex;align-items:flex-start;gap:8px;padding:6px 0;border-bottom:1px solid #f1f5f9">
+        <span style="color:#2563eb;font-size:14px">•</span>
+        <span style="font-size:12px;color:#374151">${_esc(m.descripcion || m.servicio_id || '—')}</span>
+      </li>`
+    ).join('');
+  } else if (items.length) {
+    html = items.map(s =>
+      `<li style="display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:1px solid #f1f5f9">
+        <span style="font-size:12px;color:#374151">${_esc(s.nombre)}</span>
+        ${s.valor ? `<span style="font-size:12px;font-weight:600;color:#2563eb">$${Number(s.valor).toLocaleString('es-CL')}</span>` : ''}
+      </li>`
+    ).join('');
+  } else if (_ot.servicio) {
+    html = `<li style="font-size:12px;color:#374151;padding:6px 0">${_esc(_ot.servicio)}</li>`;
+  } else {
+    html = '<li style="font-size:12px;color:#94a3b8">Sin servicios registrados</li>';
+  }
+  el.innerHTML = html;
+}
+
+function renderTerminos() {
+  const taller = _config.nombre || 'Integral Automotriz SPA';
+  const texto  = _config.terminos
+    || `Al firmar confirma que:\n- Autoriza a ${taller} a realizar los trabajos descritos en esta orden de servicio.\n- Ha verificado el estado del vehículo al ingreso.\n- Reconoce los daños pre-existentes documentados.\n- Acepta las condiciones de garantía del taller.\n- Sus datos se tratarán conforme a la Ley 19.628 de Protección de Datos de Chile.`;
+
+  const el = document.getElementById('d-terminos');
+  const parts = texto.split('\n');
+  const intro = parts[0];
+  const items = parts.slice(1).filter(l => l.startsWith('-')).map(l => l.replace(/^-\s*/, ''));
+
+  el.innerHTML = `<strong>${_esc(intro)}</strong>`
+    + (items.length ? `<ul>${items.map(i => `<li>${_esc(i)}</li>`).join('')}</ul>` : '');
+}
+
+// ── CANVAS FIRMA ──
+function initCanvas() {
+  const canvas  = document.getElementById('firma-canvas');
+  const ctx     = canvas.getContext('2d');
+  const guide   = document.getElementById('firma-guide');
+  let drawing   = false;
+  let lastX     = 0, lastY = 0;
+
+  // Escala para resolución correcta
+  const dpr = window.devicePixelRatio || 1;
+  const rect = canvas.getBoundingClientRect();
+  canvas.width  = rect.width  * dpr || 680;
+  canvas.height = 150 * dpr;
+  ctx.scale(dpr, dpr);
+  ctx.strokeStyle = '#1a1a2e';
+  ctx.lineWidth   = 2.5;
+  ctx.lineCap     = 'round';
+  ctx.lineJoin    = 'round';
+
+  function getPos(e) {
+    const r = canvas.getBoundingClientRect();
+    const src = e.touches ? e.touches[0] : e;
+    return { x: (src.clientX - r.left), y: (src.clientY - r.top) };
+  }
+
+  function start(e) {
+    e.preventDefault();
+    drawing = true;
+    const p = getPos(e);
+    lastX = p.x; lastY = p.y;
+    guide.style.display = 'none';
+  }
+  function move(e) {
+    e.preventDefault();
+    if (!drawing) return;
+    const p = getPos(e);
+    ctx.beginPath();
+    ctx.moveTo(lastX, lastY);
+    ctx.lineTo(p.x, p.y);
+    ctx.stroke();
+    lastX = p.x; lastY = p.y;
+    _firmaVacia = false;
+  }
+  function end(e) { e.preventDefault(); drawing = false; }
+
+  canvas.addEventListener('mousedown',  start, { passive: false });
+  canvas.addEventListener('mousemove',  move,  { passive: false });
+  canvas.addEventListener('mouseup',    end,   { passive: false });
+  canvas.addEventListener('mouseleave', end,   { passive: false });
+  canvas.addEventListener('touchstart', start, { passive: false });
+  canvas.addEventListener('touchmove',  move,  { passive: false });
+  canvas.addEventListener('touchend',   end,   { passive: false });
+}
+
+function borrarFirma() {
+  const canvas = document.getElementById('firma-canvas');
+  const ctx    = canvas.getContext('2d');
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  _firmaVacia = true;
+  document.getElementById('firma-guide').style.display = 'block';
+}
+
+// ── APROBAR ──
+function aprobar() {
+  const cb1 = document.getElementById('cb-apruebo').checked;
+  const cb2 = document.getElementById('cb-datos').checked;
+  const cb3 = document.getElementById('cb-estado').checked;
+
+  if (!cb1 || !cb2 || !cb3) {
+    alert('Por favor marca todas las casillas para continuar.');
+    return;
+  }
+  if (_firmaVacia) {
+    alert('Por favor firma en el recuadro de firma antes de aprobar.');
+    return;
+  }
+
+  const canvas = document.getElementById('firma-canvas');
+  const firma  = canvas.toDataURL('image/png');
+  const ahora  = Date.now();
+
+  const ots = _ls('mp_ots', []);
+  const idx = ots.findIndex(o => o.id === _ot.id);
+  if (idx < 0) { alert('Error: OT no encontrada.'); return; }
+
+  ots[idx].aprobacion_ingreso = {
+    metodo:                     'digital',
+    firma,
+    fecha:                      ahora,
+    aprobado_por:               _ot.clienteNombre || '—',
+    terminos_aceptados:         true,
+    datos_personales_aceptados: true,
+    estado:                     'aprobado',
+  };
+  ots[idx].fase = 'diagnostico';
+  ots[idx].historial = [...(ots[idx].historial || []), {
+    estado:  'aprobado_digital',
+    label:   'Aprobación digital con firma — OT avanza a Diagnóstico',
+    emoji:   '✅',
+    ts:      new Date(ahora).toISOString(),
+    hora:    new Date(ahora).toLocaleTimeString('es-CL', { hour:'2-digit', minute:'2-digit' }),
+    fecha:   new Date(ahora).toLocaleDateString('es-CL'),
+    detalle: 'Firma digital registrada por el cliente.',
+  }];
+  _lsSet('mp_ots', ots);
+
+  mostrarResultado('ok');
+}
+
+// ── RECHAZAR ──
+function mostrarRechazo() {
+  const panel = document.getElementById('panel-rechazo');
+  panel.style.display = panel.style.display === 'none' || !panel.style.display ? 'block' : 'none';
+}
+
+function confirmarRechazo() {
+  const motivo = (document.getElementById('motivo-rechazo').value || '').trim();
+
+  const ots = _ls('mp_ots', []);
+  const idx = ots.findIndex(o => o.id === _ot.id);
+  if (idx >= 0) {
+    const ahora = Date.now();
+    ots[idx].aprobacion_ingreso = {
+      ...(ots[idx].aprobacion_ingreso || {}),
+      estado:       'rechazado',
+      motivo_rechazo: motivo,
+      fecha_rechazo: new Date(ahora).toISOString(),
+    };
+    ots[idx].historial = [...(ots[idx].historial || []), {
+      estado:  'rechazado_cliente',
+      label:   'Cliente rechazó el ingreso',
+      emoji:   '❌',
+      ts:      new Date(ahora).toISOString(),
+      hora:    new Date(ahora).toLocaleTimeString('es-CL', { hour:'2-digit', minute:'2-digit' }),
+      fecha:   new Date(ahora).toLocaleDateString('es-CL'),
+      detalle: motivo || 'Sin motivo especificado.',
+    }];
+    _lsSet('mp_ots', ots);
+  }
+
+  mostrarResultado('no');
+}
+
+function mostrarResultado(tipo) {
+  document.getElementById('ap-header').style.display  = 'none';
+  document.getElementById('ap-main').style.display    = 'none';
+  if (tipo === 'ok') document.getElementById('ap-resultado-ok').classList.add('visible');
+  else               document.getElementById('ap-resultado-no').classList.add('visible');
+}
+
+// ── GENERAR PDF ──
+function generarPDF() {
+  if (typeof window.jspdf === 'undefined') {
+    alert('Cargando generador de PDF…'); return;
+  }
+  const { jsPDF } = window.jspdf;
+  const doc  = new jsPDF({ unit: 'mm', format: 'a4' });
+  const taller = _config.nombre || 'Integral Automotriz SPA';
+  const ot     = _ot;
+
+  // Cabecera
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(16);
+  doc.text(taller, 20, 20);
+
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(11);
+  doc.text('Orden de Servicio ' + (ot.id || ''), 20, 28);
+  doc.text('Fecha: ' + new Date(ot.creado || Date.now()).toLocaleDateString('es-CL'), 20, 35);
+
+  // Separador
+  doc.setDrawColor(180);
+  doc.line(20, 38, 190, 38);
+
+  // Datos del vehículo
+  let y = 46;
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(12);
+  doc.text('DATOS DEL VEHÍCULO', 20, y); y += 7;
+
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(10);
+  const campos = [
+    ['Marca / Modelo', (ot.marca || '—') + ' ' + (ot.modelo || '')],
+    ['Año',            ot.anio || '—'],
+    ['Patente',        ot.patente || '—'],
+    ['Kilometraje',    ot.km ? ot.km + ' km' : '—'],
+    ['Combustible',    ot.nivel_combustible || '—'],
+  ];
+  campos.forEach(([lbl, val]) => {
+    doc.setFont('helvetica', 'bold');   doc.text(lbl + ':', 20, y);
+    doc.setFont('helvetica', 'normal'); doc.text(String(val), 80, y);
+    y += 6;
+  });
+
+  // Servicios
+  y += 4;
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(12);
+  doc.text('SERVICIOS SOLICITADOS', 20, y); y += 7;
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(10);
+  const svcs = ot.serviciosItems || (ot.servicio ? [{ nombre: ot.servicio }] : []);
+  svcs.forEach(s => { doc.text('• ' + (s.nombre || '—'), 20, y); y += 6; });
+  if (!svcs.length) { doc.text('Sin servicios registrados', 20, y); y += 6; }
+
+  // Términos
+  y += 4;
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(12);
+  doc.text('TÉRMINOS ACEPTADOS', 20, y); y += 7;
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(9);
+  doc.text('✓ Acepto y apruebo la orden de servicio', 20, y); y += 5;
+  doc.text('✓ Acepto el tratamiento de datos (Ley 19.628)', 20, y); y += 5;
+  doc.text('✓ Confirmo haber revisado el estado del vehículo', 20, y); y += 5;
+
+  // Firma (si hay aprobación digital guardada)
+  const ap = ot.aprobacion_ingreso;
+  if (ap && ap.firma) {
+    y += 6;
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(12);
+    doc.text('FIRMA DIGITAL', 20, y); y += 5;
+    try {
+      doc.addImage(ap.firma, 'PNG', 20, y, 80, 25);
+      y += 28;
+    } catch(e) { /* imagen no disponible */ }
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9);
+    doc.text('Firmado por: ' + (ap.aprobado_por || '—'), 20, y); y += 5;
+    const fAprobacion = ap.fecha ? new Date(ap.fecha).toLocaleString('es-CL') : '—';
+    doc.text('Fecha y hora: ' + fAprobacion, 20, y); y += 5;
+  }
+
+  // Pie de página
+  doc.setFontSize(8);
+  doc.setTextColor(120);
+  doc.text('Documento generado por MecánicaPro — Datos protegidos por Ley 19.628', 20, 285);
+
+  doc.save('OT-' + (ot.id || 'aprobacion').replace('#','') + '-aprobacion.pdf');
+}
+
+// ── Utilidades ──
+function _esc(s) {
+  return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// ── Inicio ──
+document.addEventListener('DOMContentLoaded', init);
+</script>
+</body>
+</html>
