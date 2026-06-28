@@ -1,82 +1,144 @@
 <!-- SERVICIOS -->
 <div class="page active" id="pg-servicios">
 
-  <!-- Catálogo de servicios -->
-  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
-    <div>
-      <span class="ct">Catálogo de servicios</span>
-      <span id="adm-cat-count" style="font-size:11px;color:var(--text-muted);margin-left:8px"></span>
-    </div>
-    <div style="display:flex;gap:6px">
-      <input id="adm-cat-buscar" type="text" placeholder="Buscar servicio…" style="font-size:11px;padding:4px 9px;width:160px;border:0.5px solid var(--border-strong);border-radius:var(--radius);background:var(--surface-1);color:var(--text-primary)"
-        oninput="_admCatRender(this.value)">
-      <button class="btn bpa" onclick="admCatNuevo()" style="font-size:11px"><i class="ti ti-plus"></i> Nuevo</button>
-    </div>
+  <!-- Tab bar: Catálogo | Configuración -->
+  <div style="display:flex;gap:0;margin-bottom:14px;border-bottom:0.5px solid var(--border)">
+    <button id="svc-tab-btn-cat" class="btn" onclick="svcSetTab('cat')"
+      style="border:none;border-radius:0;border-bottom:2px solid var(--fill-accent);color:var(--text-accent);font-size:12px;padding:8px 16px">
+      <i class="ti ti-tools" style="font-size:13px;vertical-align:-2px;margin-right:4px"></i>Catálogo
+    </button>
+    <button id="svc-tab-btn-config" class="btn" onclick="svcSetTab('config')"
+      style="border:none;border-radius:0;border-bottom:2px solid transparent;color:var(--text-secondary);font-size:12px;padding:8px 16px">
+      <i class="ti ti-settings" style="font-size:13px;vertical-align:-2px;margin-right:4px"></i>Configuración
+    </button>
   </div>
 
-  <!-- Lista de servicios -->
-  <div id="adm-cat-lista" style="margin-top:6px"></div>
+  <!-- ═══════ TAB: CATÁLOGO ═══════ -->
+  <div id="svc-tab-catalogo">
 
-  <!-- Panel Nuevo / Editar servicio -->
-  <div id="adm-cat-panel" style="display:none;margin-top:14px;border-top:0.5px solid var(--border);padding-top:14px">
-    <div class="ch" style="margin-bottom:12px">
-      <span class="ct" id="adm-cat-titulo">Nuevo servicio</span>
-      <button id="adm-cat-btn-del" class="btn" style="color:var(--text-danger);display:none" onclick="admCatEliminar()">
-        <i class="ti ti-trash"></i> Eliminar
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+      <div>
+        <span class="ct">Catálogo de servicios</span>
+        <span id="adm-cat-count" style="font-size:11px;color:var(--text-muted);margin-left:8px"></span>
+      </div>
+      <div style="display:flex;gap:6px">
+        <input id="adm-cat-buscar" type="text" placeholder="Buscar servicio…" style="font-size:11px;padding:4px 9px;width:160px;border:0.5px solid var(--border-strong);border-radius:var(--radius);background:var(--surface-1);color:var(--text-primary)"
+          oninput="_admCatRender(this.value)">
+        <button class="btn bpa" onclick="admCatNuevo()" style="font-size:11px"><i class="ti ti-plus"></i> Nuevo</button>
+      </div>
+    </div>
+
+    <div id="adm-cat-lista" style="margin-top:6px"></div>
+
+    <div id="adm-cat-panel" style="display:none;margin-top:14px;border-top:0.5px solid var(--border);padding-top:14px">
+      <div class="ch" style="margin-bottom:12px">
+        <span class="ct" id="adm-cat-titulo">Nuevo servicio</span>
+        <button id="adm-cat-btn-del" class="btn" style="color:var(--text-danger);display:none" onclick="admCatEliminar()">
+          <i class="ti ti-trash"></i> Eliminar
+        </button>
+        <button class="btn" onclick="admCatCerrarPanel()" style="padding:4px 9px"><i class="ti ti-x"></i></button>
+      </div>
+      <div class="g2">
+        <div class="fg"><label>Nombre del servicio</label><input id="adm-cat-f-nombre" placeholder="Ej: Cambio de aceite"></div>
+        <div class="fg">
+          <label>Categoría</label>
+          <select id="adm-cat-f-cat" style="width:100%">
+            <option>Mantención</option>
+            <option>Frenos</option>
+            <option>Motor</option>
+            <option>Eléctrico</option>
+            <option>Suspensión</option>
+            <option>Otro</option>
+          </select>
+        </div>
+      </div>
+      <div class="g2">
+        <div class="fg">
+          <label>Horas estimadas</label>
+          <input id="adm-cat-f-hest" type="number" min="0" step="0.5" placeholder="1.5">
+        </div>
+        <div class="fg">
+          <label>Precio fijo de venta</label>
+          <input id="adm-cat-f-precio" type="number" min="0" step="500" placeholder="45000" style="font-family:var(--font-mono)">
+        </div>
+      </div>
+      <div class="g2">
+        <div class="fg">
+          <label>Precio mínimo de venta</label>
+          <input id="adm-cat-f-precio-min" type="number" min="0" step="500" placeholder="38000" style="font-family:var(--font-mono)">
+          <div style="font-size:10px;color:var(--text-muted);margin-top:3px">Solo visible para Admin. Alerta si se cobra menos.</div>
+        </div>
+        <div class="fg" style="align-self:flex-end">
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:12px;margin-bottom:6px">
+            <input id="adm-cat-f-iva" type="checkbox">
+            Precio incluye IVA (19%)
+          </label>
+          <div style="font-size:10px;color:var(--text-muted)">El precio mostrado al cliente incluirá IVA.</div>
+        </div>
+      </div>
+      <div style="margin-top:12px">
+        <div class="ch" style="margin-bottom:8px">
+          <span style="font-size:11px;font-weight:500">Repuestos sugeridos</span>
+          <button class="btn" onclick="admCatAgregarRep()" style="font-size:11px"><i class="ti ti-plus"></i> Agregar</button>
+        </div>
+        <div id="adm-cat-rep-lista"></div>
+      </div>
+      <button class="btn bpa" style="width:100%;justify-content:center;margin-top:14px" onclick="admCatGuardar()">
+        <i class="ti ti-device-floppy"></i> Guardar servicio
       </button>
-      <button class="btn" onclick="admCatCerrarPanel()" style="padding:4px 9px"><i class="ti ti-x"></i></button>
     </div>
-    <div class="g2">
-      <div class="fg"><label>Nombre del servicio</label><input id="adm-cat-f-nombre" placeholder="Ej: Cambio de aceite"></div>
-      <div class="fg">
-        <label>Categoría</label>
-        <select id="adm-cat-f-cat" style="width:100%">
-          <option>Mantención</option>
-          <option>Frenos</option>
-          <option>Motor</option>
-          <option>Eléctrico</option>
-          <option>Suspensión</option>
-          <option>Otro</option>
-        </select>
-      </div>
+
+  </div>
+
+  <!-- ═══════ TAB: CONFIGURACIÓN ═══════ -->
+  <div id="svc-tab-config" style="display:none">
+
+    <!-- Sub-tab bar -->
+    <div style="display:flex;gap:0;margin-bottom:14px;border-bottom:0.5px solid var(--border)">
+      <button id="svc-subtab-btn-cat" class="btn" onclick="svcSetSubTab('cat')"
+        style="border:none;border-radius:0;border-bottom:2px solid var(--fill-accent);color:var(--text-accent);font-size:12px;padding:8px 16px">
+        Categorías
+      </button>
+      <button id="svc-subtab-btn-perm" class="btn" onclick="svcSetSubTab('perm')"
+        style="border:none;border-radius:0;border-bottom:2px solid transparent;color:var(--text-secondary);font-size:12px;padding:8px 16px">
+        Permisos por operario
+      </button>
     </div>
-    <div class="g2">
-      <div class="fg">
-        <label>Horas estimadas</label>
-        <input id="adm-cat-f-hest" type="number" min="0" step="0.5" placeholder="1.5">
-      </div>
-      <div class="fg">
-        <label>Precio fijo de venta</label>
-        <input id="adm-cat-f-precio" type="number" min="0" step="500" placeholder="45000" style="font-family:var(--font-mono)">
-      </div>
-    </div>
-    <div class="g2">
-      <div class="fg">
-        <label>Precio mínimo de venta</label>
-        <input id="adm-cat-f-precio-min" type="number" min="0" step="500" placeholder="38000" style="font-family:var(--font-mono)">
-        <div style="font-size:10px;color:var(--text-muted);margin-top:3px">Solo visible para Admin. Alerta si se cobra menos.</div>
-      </div>
-      <div class="fg" style="align-self:flex-end">
-        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:12px;margin-bottom:6px">
-          <input id="adm-cat-f-iva" type="checkbox">
-          Precio incluye IVA (19%)
-        </label>
-        <div style="font-size:10px;color:var(--text-muted)">El precio mostrado al cliente incluirá IVA.</div>
+
+    <!-- Sub-tab: Categorías -->
+    <div id="svc-subtab-cat">
+      <div class="card">
+        <div class="ch">
+          <span class="ct"><i class="ti ti-tags"></i> Categorías de servicios</span>
+          <button class="btn bpa" onclick="svcCatAgregar()" style="font-size:11px"><i class="ti ti-plus"></i> Agregar categoría</button>
+        </div>
+        <div id="svc-cat-tabla" style="margin-top:10px"></div>
+        <button id="svc-cat-guardar" class="btn bpa" style="display:none;width:100%;justify-content:center;margin-top:12px" onclick="svcCatGuardar()">
+          <i class="ti ti-device-floppy"></i> Guardar cambios
+        </button>
       </div>
     </div>
 
-    <!-- Repuestos sugeridos -->
-    <div style="margin-top:12px">
-      <div class="ch" style="margin-bottom:8px">
-        <span style="font-size:11px;font-weight:500">Repuestos sugeridos</span>
-        <button class="btn" onclick="admCatAgregarRep()" style="font-size:11px"><i class="ti ti-plus"></i> Agregar</button>
+    <!-- Sub-tab: Permisos por operario -->
+    <div id="svc-subtab-perm" style="display:none">
+      <div class="card">
+        <div class="ch">
+          <span class="ct"><i class="ti ti-users"></i> Permisos por operario</span>
+        </div>
+        <div class="fg" style="margin-top:8px">
+          <label>Seleccionar operario</label>
+          <select id="svc-perm-operario" onchange="svcPermCargar(this.value)" style="width:100%">
+            <option value="">— Selecciona un operario —</option>
+          </select>
+        </div>
+        <div id="svc-perm-info" style="display:none;margin-top:12px;padding:12px;background:var(--bg-accent);border:0.5px solid var(--border-accent);border-radius:var(--radius);font-size:11px;color:var(--text-accent)"></div>
+        <div id="svc-perm-tabla" style="display:none;margin-top:12px"></div>
+        <button id="svc-perm-guardar" class="btn bpa" style="display:none;width:100%;justify-content:center;margin-top:12px" onclick="svcPermGuardar()">
+          <i class="ti ti-device-floppy"></i> Guardar permisos
+        </button>
       </div>
-      <div id="adm-cat-rep-lista"></div>
     </div>
 
-    <button class="btn bpa" style="width:100%;justify-content:center;margin-top:14px" onclick="admCatGuardar()">
-      <i class="ti ti-device-floppy"></i> Guardar servicio
-    </button>
   </div>
 
 </div>

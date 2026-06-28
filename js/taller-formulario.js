@@ -126,6 +126,10 @@ function nfPoblarSelectores() {
     if (!mecanicos.length) {
       tecEl.innerHTML += '<option value="Sin asignar">Sin asignar</option>';
     }
+    tecEl.addEventListener('change', function() {
+      const buscar = document.getElementById('nf-svc-buscar');
+      if (buscar && buscar.value.trim()) nfBuscarServicio(buscar.value);
+    });
   }
   // Combustible
   const combEl = document.getElementById('nf-combustible');
@@ -324,7 +328,16 @@ function nfBuscarServicio(q) {
   const drop = document.getElementById('nf-svc-drop');
   if (!drop) return;
   if (!q || q.length < 1) { nfCerrarDropServicio(); return; }
-  const servicios = APP.lsGet('servicios') || [];
+  let servicios = APP.lsGet('servicios') || [];
+  // Filtrar por permisos del técnico seleccionado
+  if (typeof svcGetPermitidosPara === 'function') {
+    const tecId = (document.getElementById('nf-tecnico')?.value || '');
+    if (tecId) {
+      const allowed = svcGetPermitidosPara(tecId);
+      const names   = new Set(allowed.map(s => s.nombre.toLowerCase()));
+      servicios = servicios.filter(s => names.has((s.nombre || '').toLowerCase()));
+    }
+  }
   const qLow = q.toLowerCase();
   const matches = servicios.filter(s => (s.nombre || '').toLowerCase().includes(qLow)).slice(0, 10);
   drop.style.display = 'block';

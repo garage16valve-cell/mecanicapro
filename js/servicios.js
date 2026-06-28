@@ -1,9 +1,177 @@
 // ===== MÓDULO: SERVICIOS =====
 // Catálogo de servicios — reutiliza funciones de admin.js
 
+// ===== ESTADO INTERNO =====
+let _svcCategorias = [];
+
 // ===== INIT =====
 function init_servicios() {
+  _svcCategorias = APP.lsGet('svc_categorias', []);
   if (typeof _admCatRender === 'function') _admCatRender();
+  svcPermPoblarOperarios();
+}
+
+// ===== TAB PRINCIPAL =====
+function svcSetTab(tab) {
+  const cat  = document.getElementById('svc-tab-catalogo');
+  const cfg  = document.getElementById('svc-tab-config');
+  const bCat = document.getElementById('svc-tab-btn-cat');
+  const bCfg = document.getElementById('svc-tab-btn-config');
+  if (!cat || !cfg) return;
+  if (tab === 'config') {
+    cat.style.display = 'none'; cfg.style.display = '';
+    bCat.style.borderBottomColor = 'transparent'; bCat.style.color = 'var(--text-secondary)';
+    bCfg.style.borderBottomColor = 'var(--fill-accent)'; bCfg.style.color = 'var(--text-accent)';
+    svcCatRender();
+  } else {
+    cat.style.display = ''; cfg.style.display = 'none';
+    bCat.style.borderBottomColor = 'var(--fill-accent)'; bCat.style.color = 'var(--text-accent)';
+    bCfg.style.borderBottomColor = 'transparent'; bCfg.style.color = 'var(--text-secondary)';
+  }
+}
+
+// ===== SUB-TAB =====
+function svcSetSubTab(tab) {
+  const sCat  = document.getElementById('svc-subtab-cat');
+  const sPerm = document.getElementById('svc-subtab-perm');
+  const bCat  = document.getElementById('svc-subtab-btn-cat');
+  const bPerm = document.getElementById('svc-subtab-btn-perm');
+  if (!sCat || !sPerm) return;
+  if (tab === 'perm') {
+    sCat.style.display = 'none'; sPerm.style.display = '';
+    bCat.style.borderBottomColor = 'transparent'; bCat.style.color = 'var(--text-secondary)';
+    bPerm.style.borderBottomColor = 'var(--fill-accent)'; bPerm.style.color = 'var(--text-accent)';
+    svcPermCargar(document.getElementById('svc-perm-operario')?.value || '');
+  } else {
+    sCat.style.display = ''; sPerm.style.display = 'none';
+    bCat.style.borderBottomColor = 'var(--fill-accent)'; bCat.style.color = 'var(--text-accent)';
+    bPerm.style.borderBottomColor = 'transparent'; bPerm.style.color = 'var(--text-secondary)';
+    svcCatRender();
+  }
+}
+
+// ===== CATEGORÍAS DE SERVICIOS =====
+function svcCatRender() {
+  const el  = document.getElementById('svc-cat-tabla');
+  const btn = document.getElementById('svc-cat-guardar');
+  if (!el) return;
+  if (!_svcCategorias.length) {
+    el.innerHTML = '<div style="text-align:center;padding:24px;color:var(--text-muted);font-size:11px"><i class="ti ti-tags" style="font-size:26px;display:block;margin-bottom:6px;opacity:.3"></i>Sin categorías. Usa <strong>+ Agregar categoría</strong> para crear la primera.</div>';
+    if (btn) btn.style.display = 'none';
+    return;
+  }
+  el.innerHTML = `<table style="width:100%;border-collapse:collapse;font-size:12px">
+    <thead><tr>
+      <th style="text-align:left;padding:6px 8px;border-bottom:0.5px solid var(--border);font-size:10px;color:var(--text-muted);font-weight:500">Nombre</th>
+      <th style="text-align:left;padding:6px 8px;border-bottom:0.5px solid var(--border);font-size:10px;color:var(--text-muted);font-weight:500">Color</th>
+      <th style="text-align:center;padding:6px 8px;border-bottom:0.5px solid var(--border);font-size:10px;color:var(--text-muted);font-weight:500;width:40px"></th>
+    </tr></thead>
+    <tbody>${_svcCategorias.map((c, i) => `<tr>
+      <td style="padding:4px 8px;border-bottom:0.5px solid var(--border-light)">
+        <input id="svc-cat-n-${i}" value="${_esc(c.nombre)}" placeholder="Nombre de la categoría" style="width:100%;font-size:12px;border:0.5px solid var(--border);border-radius:4px;padding:4px 6px;background:var(--surface-1);color:var(--text-primary)">
+      </td>
+      <td style="padding:4px 8px;border-bottom:0.5px solid var(--border-light)">
+        <input id="svc-cat-c-${i}" type="color" value="${c.color_hex || '#3b82f6'}" style="width:40px;height:30px;border:0.5px solid var(--border);border-radius:4px;padding:2px;cursor:pointer">
+      </td>
+      <td style="padding:4px 8px;border-bottom:0.5px solid var(--border-light);text-align:center">
+        <button onclick="svcCatEliminar(${i})" style="background:none;border:none;cursor:pointer;color:var(--text-danger);font-size:16px;padding:4px;line-height:1" title="Eliminar categoría">×</button>
+      </td>
+    </tr>`).join('')}</tbody>
+  </table>`;
+  if (btn) btn.style.display = '';
+}
+
+function svcCatAgregar() {
+  _svcCategorias.push({ id: 'cat-' + Date.now(), nombre: '', color_hex: '#3b82f6' });
+  svcCatRender();
+}
+
+function svcCatEliminar(idx) {
+  APP.modal.confirmar('¿Eliminar esta categoría?', () => {
+    _svcCategorias.splice(idx, 1);
+    svcCatRender();
+  }, 'Eliminar', 'Cancelar');
+}
+
+function svcCatGuardar() {
+  const cats  = _svcCategorias;
+  const errors = [];
+  cats.forEach((c, i) => {
+    const nombre = (document.getElementById('svc-cat-n-' + i)?.value || '').trim();
+    const color  = document.getElementById('svc-cat-c-' + i)?.value || '#3b82f6';
+    if (!nombre) errors.push('Fila ' + (i + 1) + ': el nombre es obligatorio');
+    c.nombre    = nombre;
+    c.color_hex = color;
+  });
+  if (errors.length) { APP.toast.show('⚠️ ' + errors.join('. '), 'warning'); return; }
+  APP.lsSet('svc_categorias', cats);
+  APP.toast.show('Categorías guardadas');
+}
+
+// ===== PERMISOS POR OPERARIO =====
+function svcPermPoblarOperarios() {
+  const sel = document.getElementById('svc-perm-operario');
+  if (!sel) return;
+  const usuarios = APP.lsGet('usuarios', []);
+  const ops = usuarios.filter(u => u.rol === 'mecanico' || u.rol === 'administrador');
+  sel.innerHTML = '<option value="">— Selecciona un operario —</option>' +
+    ops.map(u => '<option value="' + _esc(u.id) + '">' + _esc(u.nombre || '') + ' ' + _esc(u.apellido || '') + '</option>').join('');
+}
+
+function svcPermCargar(idOperario) {
+  const tabla   = document.getElementById('svc-perm-tabla');
+  const info    = document.getElementById('svc-perm-info');
+  const guardar = document.getElementById('svc-perm-guardar');
+  if (!idOperario) {
+    tabla.style.display = 'none'; info.style.display = 'none'; guardar.style.display = 'none';
+    return;
+  }
+  const todos     = APP.lsGet('mp_servicios', []);
+  const permisos  = APP.lsGet('operarios_servicios', []);
+  const operPerms = permisos.filter(p => String(p.id_operario) === String(idOperario)).map(p => p.id_servicio);
+  if (!operPerms.length) {
+    info.style.display = 'block';
+    info.innerHTML = '<i class="ti ti-checkbox"></i> Sin restricciones — este operario puede hacer todos los servicios.';
+    tabla.style.display = 'none';
+    guardar.style.display = '';
+    guardar.textContent = 'Restringir servicios';
+    return;
+  }
+  info.style.display = 'none';
+  guardar.style.display = '';
+  guardar.textContent = 'Guardar permisos';
+  tabla.style.display = 'block';
+  tabla.innerHTML = '<div style="font-size:10px;color:var(--text-muted);margin-bottom:8px;text-transform:uppercase;letter-spacing:.03em">Servicios permitidos</div>' +
+    todos.map(s => {
+      const checked = operPerms.includes(s.id);
+      return '<label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:5px 0;border-bottom:0.5px solid var(--border-light);font-size:12px">' +
+        '<input type="checkbox" class="svc-perm-cb" value="' + _esc(s.id) + '" ' + (checked ? 'checked' : '') + '> ' +
+        _esc(s.nombre) + '</label>';
+    }).join('');
+}
+
+function svcPermGuardar() {
+  const idOperario = document.getElementById('svc-perm-operario').value;
+  if (!idOperario) return;
+  const cbs = document.querySelectorAll('#svc-perm-tabla .svc-perm-cb');
+  const seleccionados = [];
+  cbs.forEach(cb => { if (cb.checked) seleccionados.push(cb.value); });
+  let permisos = APP.lsGet('operarios_servicios', []);
+  permisos = permisos.filter(p => String(p.id_operario) !== String(idOperario));
+  seleccionados.forEach(idServicio => {
+    permisos.push({ id_operario: idOperario, id_servicio: idServicio });
+  });
+  APP.lsSet('operarios_servicios', permisos);
+  APP.toast.show('Permisos guardados');
+  svcPermCargar(idOperario);
+}
+
+function svcGetPermitidosPara(idOperario) {
+  if (!idOperario) return APP.lsGet('mp_servicios', []);
+  const permisos  = APP.lsGet('operarios_servicios', []);
+  const operPerms = permisos.filter(p => String(p.id_operario) === String(idOperario)).map(p => p.id_servicio);
+  if (!operPerms.length) return APP.lsGet('mp_servicios', []);
+  return APP.lsGet('mp_servicios', []).filter(s => operPerms.includes(s.id));
 }
 
 // ===== GESTIÓN DE PROVEEDORES =====
