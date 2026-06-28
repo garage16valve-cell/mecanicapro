@@ -35,7 +35,12 @@ function nfAbrirFormulario() {
   const overlay = document.getElementById('ot-nueva');
   overlay.style.display = 'flex';
   // No cerrar al hacer clic fuera del modal (solo con botones/X)
-  overlay.onclick = null;
+  overlay.onclick = function(e) {
+    if (e.target === this) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+  };
   // Poblar selects
   nfPoblarSelectores();
   // Enfocar buscador de cliente
