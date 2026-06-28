@@ -362,4 +362,82 @@
     </button>
   </div>
 
+  <!-- Catálogo de servicios -->
+  <div class="card" style="margin-top:14px">
+    <div class="ch">
+      <span class="ct"><i class="ti ti-tools" style="font-size:13px"></i> Catálogo de servicios</span>
+      <span id="adm-cat-count" style="font-size:11px;color:var(--text-muted);margin-left:6px"></span>
+      <div style="display:flex;gap:6px;margin-left:auto">
+        <input id="adm-cat-buscar" type="text" placeholder="Buscar servicio…" style="font-size:11px;padding:4px 9px;width:160px"
+          oninput="_admCatRender(this.value)">
+        <button class="btn bpa" onclick="admCatNuevo()" style="font-size:11px"><i class="ti ti-plus"></i> Nuevo</button>
+      </div>
+    </div>
+
+    <!-- Lista de servicios -->
+    <div id="adm-cat-lista" style="margin-top:6px"></div>
+
+    <!-- Panel Nuevo / Editar servicio -->
+    <div id="adm-cat-panel" style="display:none;margin-top:14px;border-top:0.5px solid var(--border);padding-top:14px">
+      <div class="ch" style="margin-bottom:12px">
+        <span class="ct" id="adm-cat-titulo">Nuevo servicio</span>
+        <button id="adm-cat-btn-del" class="btn" style="color:var(--text-danger);display:none" onclick="admCatEliminar()">
+          <i class="ti ti-trash"></i> Eliminar
+        </button>
+        <button class="btn" onclick="admCatCerrarPanel()" style="padding:4px 9px"><i class="ti ti-x"></i></button>
+      </div>
+      <div class="g2">
+        <div class="fg"><label>Nombre del servicio</label><input id="adm-cat-f-nombre" placeholder="Ej: Cambio de aceite"></div>
+        <div class="fg">
+          <label>Categoría</label>
+          <select id="adm-cat-f-cat" style="width:100%">
+            <option>Mantención</option>
+            <option>Frenos</option>
+            <option>Motor</option>
+            <option>Eléctrico</option>
+            <option>Suspensión</option>
+            <option>Otro</option>
+          </select>
+        </div>
+      </div>
+      <div class="g2">
+        <div class="fg">
+          <label>Horas estimadas</label>
+          <input id="adm-cat-f-hest" type="number" min="0" step="0.5" placeholder="1.5">
+        </div>
+        <div class="fg">
+          <label>Precio fijo de venta</label>
+          <input id="adm-cat-f-precio" type="number" min="0" step="500" placeholder="45000" style="font-family:var(--font-mono)">
+        </div>
+      </div>
+      <div class="g2">
+        <div class="fg">
+          <label>Precio mínimo de venta</label>
+          <input id="adm-cat-f-precio-min" type="number" min="0" step="500" placeholder="38000" style="font-family:var(--font-mono)">
+          <div style="font-size:10px;color:var(--text-muted);margin-top:3px">Solo visible para Admin. Alerta si se cobra menos.</div>
+        </div>
+        <div class="fg" style="align-self:flex-end">
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:12px;margin-bottom:6px">
+            <input id="adm-cat-f-iva" type="checkbox">
+            Precio incluye IVA (19%)
+          </label>
+          <div style="font-size:10px;color:var(--text-muted)">El precio mostrado al cliente incluirá IVA.</div>
+        </div>
+      </div>
+
+      <!-- Repuestos sugeridos -->
+      <div style="margin-top:12px">
+        <div class="ch" style="margin-bottom:8px">
+          <span style="font-size:11px;font-weight:500">Repuestos sugeridos</span>
+          <button class="btn" onclick="admCatAgregarRep()" style="font-size:11px"><i class="ti ti-plus"></i> Agregar</button>
+        </div>
+        <div id="adm-cat-rep-lista"></div>
+      </div>
+
+      <button class="btn bpa" style="width:100%;justify-content:center;margin-top:14px" onclick="admCatGuardar()">
+        <i class="ti ti-device-floppy"></i> Guardar servicio
+      </button>
+    </div>
+  </div>
+
 </div>
