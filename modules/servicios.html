@@ -103,6 +103,10 @@
         style="border:none;border-radius:0;border-bottom:2px solid transparent;color:var(--text-secondary);font-size:12px;padding:8px 16px">
         Permisos por operario
       </button>
+      <button id="svc-subtab-btn-op" class="btn" onclick="svcSetSubTab('op')"
+        style="border:none;border-radius:0;border-bottom:2px solid transparent;color:var(--text-secondary);font-size:12px;padding:8px 16px">
+        Operarios
+      </button>
     </div>
 
     <!-- Sub-tab: Categorías -->
@@ -133,9 +137,36 @@
         </div>
         <div id="svc-perm-info" style="display:none;margin-top:12px;padding:12px;background:var(--bg-accent);border:0.5px solid var(--border-accent);border-radius:var(--radius);font-size:11px;color:var(--text-accent)"></div>
         <div id="svc-perm-tabla" style="display:none;margin-top:12px"></div>
-        <button id="svc-perm-guardar" class="btn bpa" style="display:none;width:100%;justify-content:center;margin-top:12px" onclick="svcPermGuardar()">
-          <i class="ti ti-device-floppy"></i> Guardar permisos
-        </button>
+      </div>
+    </div>
+
+    <!-- Sub-tab: Operarios -->
+    <div id="svc-subtab-op" style="display:none">
+      <div class="card">
+        <div class="ch">
+          <span class="ct"><i class="ti ti-tool"></i> Operarios del taller</span>
+          <button class="btn bpa" onclick="svcOpNuevo()" style="font-size:11px"><i class="ti ti-plus"></i> Nuevo operario</button>
+        </div>
+        <div id="svc-op-lista" style="margin-top:10px"></div>
+      </div>
+      <!-- Modal operario -->
+      <div id="svc-op-modal" class="modal-overlay" style="display:none">
+        <div class="modal-mediano">
+          <div class="modal-header">
+            <h2 id="svc-op-titulo">Nuevo operario</h2>
+            <button class="modal-close" onclick="svcOpCerrar()">×</button>
+          </div>
+          <div class="modal-body">
+            <div class="fg"><label>Nombre</label><input id="svc-op-f-nombre" placeholder="Nombre"></div>
+            <div class="fg"><label>Apellido</label><input id="svc-op-f-apellido" placeholder="Apellido"></div>
+            <div class="fg"><label>RUT</label><input id="svc-op-f-rut" placeholder="12.345.678-9"></div>
+            <div class="fg"><label>WhatsApp</label><input id="svc-op-f-wz" type="tel" placeholder="+56 9 XXXX XXXX"></div>
+            <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px">
+              <button class="btn" onclick="svcOpCerrar()">Cancelar</button>
+              <button class="btn bpa" onclick="svcOpGuardar()">Guardar</button>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
 

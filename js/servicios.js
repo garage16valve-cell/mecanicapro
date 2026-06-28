@@ -8,7 +8,6 @@ let _svcCategorias = [];
 function init_servicios() {
   _svcCategorias = APP.lsGet('svc_categorias', []);
   if (typeof _admCatRender === 'function') _admCatRender();
-  svcPermPoblarOperarios();
 }
 
 // ===== TAB PRINCIPAL =====
@@ -34,18 +33,26 @@ function svcSetTab(tab) {
 function svcSetSubTab(tab) {
   const sCat  = document.getElementById('svc-subtab-cat');
   const sPerm = document.getElementById('svc-subtab-perm');
+  const sOp   = document.getElementById('svc-subtab-op');
   const bCat  = document.getElementById('svc-subtab-btn-cat');
   const bPerm = document.getElementById('svc-subtab-btn-perm');
-  if (!sCat || !sPerm) return;
+  const bOp   = document.getElementById('svc-subtab-btn-op');
+  [sCat, sPerm, sOp].forEach(e => { if (e) e.style.display = 'none'; });
+  [bCat, bPerm, bOp].forEach(e => {
+    if (e) { e.style.borderBottomColor = 'transparent'; e.style.color = 'var(--text-secondary)'; }
+  });
   if (tab === 'perm') {
-    sCat.style.display = 'none'; sPerm.style.display = '';
-    bCat.style.borderBottomColor = 'transparent'; bCat.style.color = 'var(--text-secondary)';
-    bPerm.style.borderBottomColor = 'var(--fill-accent)'; bPerm.style.color = 'var(--text-accent)';
+    if (sPerm) sPerm.style.display = '';
+    if (bPerm) { bPerm.style.borderBottomColor = 'var(--fill-accent)'; bPerm.style.color = 'var(--text-accent)'; }
+    svcLoadOperarios();
     svcPermCargar(document.getElementById('svc-perm-operario')?.value || '');
+  } else if (tab === 'op') {
+    if (sOp) sOp.style.display = '';
+    if (bOp) { bOp.style.borderBottomColor = 'var(--fill-accent)'; bOp.style.color = 'var(--text-accent)'; }
+    svcOpRender();
   } else {
-    sCat.style.display = ''; sPerm.style.display = 'none';
-    bCat.style.borderBottomColor = 'var(--fill-accent)'; bCat.style.color = 'var(--text-accent)';
-    bPerm.style.borderBottomColor = 'transparent'; bPerm.style.color = 'var(--text-secondary)';
+    if (sCat) sCat.style.display = '';
+    if (bCat) { bCat.style.borderBottomColor = 'var(--fill-accent)'; bCat.style.color = 'var(--text-accent)'; }
     svcCatRender();
   }
 }
@@ -109,21 +116,20 @@ function svcCatGuardar() {
 }
 
 // ===== PERMISOS POR OPERARIO =====
-function svcPermPoblarOperarios() {
+function svcLoadOperarios() {
   const sel = document.getElementById('svc-perm-operario');
   if (!sel) return;
   const usuarios = APP.lsGet('usuarios', []);
-  const ops = usuarios.filter(u => u.rol === 'mecanico' || u.rol === 'administrador');
+  const ops = usuarios.filter(u => u.rol === 'mecanico' || u.rol === 'técnico');
   sel.innerHTML = '<option value="">— Selecciona un operario —</option>' +
     ops.map(u => '<option value="' + _esc(u.id) + '">' + _esc(u.nombre || '') + ' ' + _esc(u.apellido || '') + '</option>').join('');
 }
 
 function svcPermCargar(idOperario) {
-  const tabla   = document.getElementById('svc-perm-tabla');
-  const info    = document.getElementById('svc-perm-info');
-  const guardar = document.getElementById('svc-perm-guardar');
+  const tabla = document.getElementById('svc-perm-tabla');
+  const info  = document.getElementById('svc-perm-info');
   if (!idOperario) {
-    tabla.style.display = 'none'; info.style.display = 'none'; guardar.style.display = 'none';
+    tabla.style.display = 'none'; info.style.display = 'none';
     return;
   }
   const todos     = APP.lsGet('mp_servicios', []);
@@ -133,37 +139,28 @@ function svcPermCargar(idOperario) {
     info.style.display = 'block';
     info.innerHTML = '<i class="ti ti-checkbox"></i> Sin restricciones — este operario puede hacer todos los servicios.';
     tabla.style.display = 'none';
-    guardar.style.display = '';
-    guardar.textContent = 'Restringir servicios';
     return;
   }
   info.style.display = 'none';
-  guardar.style.display = '';
-  guardar.textContent = 'Guardar permisos';
   tabla.style.display = 'block';
   tabla.innerHTML = '<div style="font-size:10px;color:var(--text-muted);margin-bottom:8px;text-transform:uppercase;letter-spacing:.03em">Servicios permitidos</div>' +
     todos.map(s => {
       const checked = operPerms.includes(s.id);
       return '<label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:5px 0;border-bottom:0.5px solid var(--border-light);font-size:12px">' +
-        '<input type="checkbox" class="svc-perm-cb" value="' + _esc(s.id) + '" ' + (checked ? 'checked' : '') + '> ' +
+        '<input type="checkbox" id="perm-svc-' + _esc(s.id) + '" value="' + _esc(s.id) + '" ' + (checked ? 'checked' : '') +
+        ' onchange="svcUpdatePermiso(\'' + _esc(idOperario) + '\',\'' + _esc(s.id) + '\',this.checked)"> ' +
         _esc(s.nombre) + '</label>';
     }).join('');
 }
 
-function svcPermGuardar() {
-  const idOperario = document.getElementById('svc-perm-operario').value;
-  if (!idOperario) return;
-  const cbs = document.querySelectorAll('#svc-perm-tabla .svc-perm-cb');
-  const seleccionados = [];
-  cbs.forEach(cb => { if (cb.checked) seleccionados.push(cb.value); });
+function svcUpdatePermiso(idOp, idSvc, permitido) {
   let permisos = APP.lsGet('operarios_servicios', []);
-  permisos = permisos.filter(p => String(p.id_operario) !== String(idOperario));
-  seleccionados.forEach(idServicio => {
-    permisos.push({ id_operario: idOperario, id_servicio: idServicio });
-  });
+  if (permitido) {
+    permisos.push({ id_operario: idOp, id_servicio: idSvc });
+  } else {
+    permisos = permisos.filter(p => !(String(p.id_operario) === String(idOp) && String(p.id_servicio) === String(idSvc)));
+  }
   APP.lsSet('operarios_servicios', permisos);
-  APP.toast.show('Permisos guardados');
-  svcPermCargar(idOperario);
 }
 
 function svcGetPermitidosPara(idOperario) {
@@ -172,6 +169,101 @@ function svcGetPermitidosPara(idOperario) {
   const operPerms = permisos.filter(p => String(p.id_operario) === String(idOperario)).map(p => p.id_servicio);
   if (!operPerms.length) return APP.lsGet('mp_servicios', []);
   return APP.lsGet('mp_servicios', []).filter(s => operPerms.includes(s.id));
+}
+
+// ===== OPERARIOS CRUD =====
+function svcOpRender() {
+  const el = document.getElementById('svc-op-lista');
+  if (!el) return;
+  const usuarios = APP.lsGet('usuarios', []);
+  const ops = usuarios.filter(u => u.rol === 'mecanico' || u.rol === 'técnico');
+  if (!ops.length) {
+    el.innerHTML = '<div style="text-align:center;padding:24px;color:var(--text-muted);font-size:11px"><i class="ti ti-tool" style="font-size:26px;display:block;margin-bottom:6px;opacity:.3"></i>Sin operarios registrados. Usa <strong>+ Nuevo operario</strong> para agregar.</div>';
+    return;
+  }
+  el.innerHTML = `<table style="width:100%;border-collapse:collapse;font-size:12px">
+    <thead><tr>
+      <th style="text-align:left;padding:6px 8px;border-bottom:0.5px solid var(--border);font-size:10px;color:var(--text-muted);font-weight:500">Nombre</th>
+      <th style="text-align:left;padding:6px 8px;border-bottom:0.5px solid var(--border);font-size:10px;color:var(--text-muted);font-weight:500">Apellido</th>
+      <th style="text-align:left;padding:6px 8px;border-bottom:0.5px solid var(--border);font-size:10px;color:var(--text-muted);font-weight:500">RUT</th>
+      <th style="text-align:left;padding:6px 8px;border-bottom:0.5px solid var(--border);font-size:10px;color:var(--text-muted);font-weight:500">WhatsApp</th>
+      <th style="text-align:center;padding:6px 8px;border-bottom:0.5px solid var(--border);font-size:10px;color:var(--text-muted);font-weight:500;width:80px">Acción</th>
+    </tr></thead>
+    <tbody>${ops.map((u, i) => `<tr>
+      <td style="padding:4px 8px;border-bottom:0.5px solid var(--border-light)">${_esc(u.nombre || '')}</td>
+      <td style="padding:4px 8px;border-bottom:0.5px solid var(--border-light)">${_esc(u.apellido || '')}</td>
+      <td style="padding:4px 8px;border-bottom:0.5px solid var(--border-light);font-family:var(--font-mono);font-size:11px">${_esc(u.rut || '—')}</td>
+      <td style="padding:4px 8px;border-bottom:0.5px solid var(--border-light)">${_esc(u.whatsapp || u.wz || '—')}</td>
+      <td style="padding:4px 8px;border-bottom:0.5px solid var(--border-light);text-align:center">
+        <button onclick="svcOpEditar('${_esc(u.id)}')" style="background:none;border:none;cursor:pointer;color:var(--text-accent);font-size:13px;padding:2px 6px" title="Editar">✎</button>
+        <button onclick="svcOpEliminar('${_esc(u.id)}')" style="background:none;border:none;cursor:pointer;color:var(--text-danger);font-size:13px;padding:2px 6px" title="Eliminar">×</button>
+      </td>
+    </tr>`).join('')}</tbody>
+  </table>`;
+}
+
+let _svcOpEditId = null;
+
+function svcOpNuevo() {
+  _svcOpEditId = null;
+  ['svc-op-f-nombre','svc-op-f-apellido','svc-op-f-rut','svc-op-f-wz'].forEach(id => {
+    const el = document.getElementById(id); if (el) el.value = '';
+  });
+  const t = document.getElementById('svc-op-titulo');
+  if (t) t.textContent = 'Nuevo operario';
+  const m = document.getElementById('svc-op-modal');
+  if (m) m.style.display = '';
+}
+
+function svcOpEditar(id) {
+  const usuarios = APP.lsGet('usuarios', []);
+  const u = usuarios.find(x => String(x.id) === String(id));
+  if (!u) return;
+  _svcOpEditId = id;
+  const s = (elId, v) => { const el = document.getElementById(elId); if (el) el.value = v || ''; };
+  s('svc-op-f-nombre',   u.nombre);
+  s('svc-op-f-apellido', u.apellido);
+  s('svc-op-f-rut',      u.rut);
+  s('svc-op-f-wz',       u.whatsapp || u.wz || '');
+  const t = document.getElementById('svc-op-titulo');
+  if (t) t.textContent = 'Editar: ' + (u.nombre || '') + ' ' + (u.apellido || '');
+  const m = document.getElementById('svc-op-modal');
+  if (m) m.style.display = '';
+}
+
+function svcOpGuardar() {
+  const g = id => (document.getElementById(id)?.value || '').trim();
+  const nombre   = g('svc-op-f-nombre');
+  const apellido = g('svc-op-f-apellido');
+  if (!nombre && !apellido) { APP.toast.show('⚠️ Ingresa al menos el nombre.', 'warning'); return; }
+  let usuarios = APP.lsGet('usuarios', []);
+  const dato = { nombre, apellido, rut: g('svc-op-f-rut'), wz: g('svc-op-f-wz'), rol: 'mecanico' };
+  if (_svcOpEditId) {
+    const idx = usuarios.findIndex(x => String(x.id) === String(_svcOpEditId));
+    if (idx >= 0) { usuarios[idx] = { ...usuarios[idx], ...dato, whatsapp: dato.wz, wz: dato.wz }; }
+  } else {
+    dato.id = 'op-' + Date.now();
+    dato.creado = new Date().toISOString();
+    dato.whatsapp = dato.wz;
+    usuarios.push(dato);
+  }
+  APP.lsSet('usuarios', usuarios);
+  svcOpCerrar();
+  svcOpRender();
+  APP.toast.show('Operario guardado');
+}
+
+function svcOpEliminar(id) {
+  APP.modal.confirmar('¿Eliminar este operario?', () => {
+    APP.lsSet('usuarios', APP.lsGet('usuarios', []).filter(u => String(u.id) !== String(id)));
+    svcOpRender();
+  }, 'Eliminar', 'Cancelar');
+}
+
+function svcOpCerrar() {
+  const m = document.getElementById('svc-op-modal');
+  if (m) m.style.display = 'none';
+  _svcOpEditId = null;
 }
 
 // ===== GESTIÓN DE PROVEEDORES =====

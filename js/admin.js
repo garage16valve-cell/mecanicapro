@@ -207,7 +207,6 @@ function init_admin() {
   _admRenderIntegraciones();
   _admPanelServicios();
   _admCatRender();
-  _admRenderOperarios();
   _admRenderUpselling();
   _admCargarAlertasConfig();
   _admRenderLog();
@@ -732,83 +731,6 @@ function _admPanelServicios() {
   if (lista) lista.innerHTML = svcs.length
     ? svcs.map(s => `<span class="tag" style="margin:2px">${_admEsc(s.nombre)}</span>`).join('')
     : '<span style="font-size:11px;color:var(--text-muted)">Sin servicios. Ve al módulo Servicios para crear el catálogo.</span>';
-}
-
-// ===== OPERARIOS =====
-function _admRenderOperarios() {
-  const lista = document.getElementById('adm-operarios-lista');
-  if (!lista) return;
-  const ops = APP.lsGet('mp_operarios', []);
-  if (!ops.length) {
-    lista.innerHTML = '<div style="color:var(--text-muted);font-size:11px;padding:6px 0">Sin mecánicos configurados. Usa el botón + para agregar.</div>';
-    return;
-  }
-  const INP = `style="font-size:11px;border:0.5px solid var(--border);border-radius:var(--radius);padding:5px 8px;background:var(--surface-0);color:var(--text-primary);"`;
-  lista.innerHTML = ops.map((op, i) => {
-    const color  = op.color || _ADM_COLORES_OP[i % _ADM_COLORES_OP.length];
-    const activo = op.activo !== false;
-    return `<div style="display:flex;gap:8px;align-items:center;padding:8px 10px;background:var(--surface-1);border-radius:var(--radius)">
-      <div title="Clic para cambiar color" onclick="admCambiarColorOp('${op.id}')"
-        style="width:24px;height:24px;border-radius:50%;background:${color};cursor:pointer;flex-shrink:0;border:2px solid var(--border);opacity:${activo?1:0.4};transition:opacity .15s"></div>
-      <input value="${_admEsc(op.nombre)}" placeholder="Nombre del mecánico" ${INP} style="flex:1;font-size:11px;border:0.5px solid var(--border);border-radius:var(--radius);padding:5px 8px;background:var(--surface-0);color:var(--text-primary)"
-        onchange="admActualizarOp('${op.id}','nombre',this.value)">
-      <input value="${_admEsc(op.wz || '')}" placeholder="+569XXXXXXXX" ${INP} style="width:148px;font-size:11px;font-family:var(--font-mono);border:0.5px solid var(--border);border-radius:var(--radius);padding:5px 8px;background:var(--surface-0);color:var(--text-primary)"
-        onchange="admActualizarOp('${op.id}','wz',this.value)">
-      <button class="btn${activo?' bpg':''}" style="font-size:10px;padding:4px 9px;white-space:nowrap"
-        onclick="admToggleOperario('${op.id}')">${activo ? '✓ Activo' : '○ Inactivo'}</button>
-      <button class="btn" style="padding:4px 7px;font-size:11px;flex-shrink:0"
-        onclick="admEliminarOperario('${op.id}')"><i class="ti ti-x"></i></button>
-    </div>`;
-  }).join('');
-}
-
-function admAgregarOperario() {
-  const ops = APP.lsGet('mp_operarios', []);
-  ops.push({ id:'op-'+Date.now(), nombre:'', wz:'', color:_ADM_COLORES_OP[ops.length % _ADM_COLORES_OP.length], activo:true, creado:new Date().toISOString() });
-  APP.lsSet('mp_operarios', ops);
-  _admRenderOperarios();
-}
-
-function admActualizarOp(id, campo, val) {
-  const ops = APP.lsGet('mp_operarios', []);
-  const idx = ops.findIndex(o => o.id === id);
-  if (idx < 0) return;
-  ops[idx][campo] = val.trim();
-  APP.lsSet('mp_operarios', ops);
-  if (campo === 'nombre' || campo === 'color') _admSyncColoresCalendario(ops);
-}
-
-function admCambiarColorOp(id) {
-  const ops = APP.lsGet('mp_operarios', []);
-  const idx = ops.findIndex(o => o.id === id);
-  if (idx < 0) return;
-  ops[idx].color = _ADM_COLORES_OP[(_ADM_COLORES_OP.indexOf(ops[idx].color) + 1) % _ADM_COLORES_OP.length];
-  APP.lsSet('mp_operarios', ops);
-  _admRenderOperarios();
-  _admSyncColoresCalendario(ops);
-}
-
-function admToggleOperario(id) {
-  const ops = APP.lsGet('mp_operarios', []);
-  const idx = ops.findIndex(o => o.id === id);
-  if (idx < 0) return;
-  ops[idx].activo = !(ops[idx].activo !== false);
-  APP.lsSet('mp_operarios', ops);
-  _admRenderOperarios();
-}
-
-function admEliminarOperario(id) {
-  APP.modal.confirmar('¿Eliminar este operario?', () => {
-    APP.lsSet('mp_operarios', APP.lsGet('mp_operarios', []).filter(o => o.id !== id));
-    _admRenderOperarios();
-  }, 'Eliminar', 'Cancelar');
-}
-
-function _admSyncColoresCalendario(ops) {
-  const cfg = APP.lsGet('mp_taller_config', {});
-  cfg.mecanicosColores = {};
-  ops.forEach(op => { if (op.nombre && op.color) cfg.mecanicosColores[op.nombre] = op.color; });
-  APP.lsSet('mp_taller_config', cfg);
 }
 
 // ===== UPSELLING =====
