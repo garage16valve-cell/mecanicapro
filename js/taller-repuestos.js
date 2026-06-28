@@ -43,11 +43,21 @@ function _repCalcItem(it) {
 // ── Persistir items en OT ────────────────────────────────────────────────────
 
 function _repSaveItems(items, otId) {
-  const ots = APP.lsGet('mp_ots', []);
-  const idx = ots.findIndex(o => o.id === (otId || _repOtId));
-  if (idx < 0) return;
-  ots[idx].repuestos_cotizados = items;
-  APP.lsSet('mp_ots', ots);
+  const id = otId || _repOtId;
+  // Nuevo store
+  const otsNew = APP.lsGet('ots', []);
+  const idxN = otsNew.findIndex(o => o.id === id);
+  if (idxN >= 0) {
+    otsNew[idxN].repuestos_cotizados = items;
+    APP.lsSet('ots', otsNew);
+  }
+  // Legacy store
+  const otsOld = APP.lsGet('mp_ots', []);
+  const idxO = otsOld.findIndex(o => o.id === id);
+  if (idxO >= 0) {
+    otsOld[idxO].repuestos_cotizados = items;
+    APP.lsSet('mp_ots', otsOld);
+  }
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -300,6 +310,44 @@ function abrirModalCotizacion(otId) {
   _cotDescGlobal = 0;
   const m = document.getElementById('modal-cotizacion');
   if (!m) return;
+  // Si el OT no tiene repuestos_cotizados, migrar desde servicios
+  const ot = _cotGetOT();
+  if (ot && !ot.repuestos_cotizados && ot.servicios && ot.servicios.length) {
+    ot.repuestos_cotizados = [];
+    ot.servicios.forEach(sv => {
+      // Mano de obra como ítem
+      if (sv.valor) {
+        ot.repuestos_cotizados.push({
+          tipo: 'mano_obra',
+          item: sv.nombre || 'Mano de obra',
+          referencia: '',
+          cantidad: 1,
+          costo: Math.round(sv.valor * 0.7),
+          rentabilidad: 0,
+          descuento: 0,
+          impuesto: 19,
+          valor_unitario: sv.valor,
+          estado_aprobacion: 'pendiente',
+        });
+      }
+      // Repuestos del servicio
+      (sv.repuestos || []).forEach(r => {
+        ot.repuestos_cotizados.push({
+          tipo: 'repuesto',
+          item: r.nombre || '—',
+          referencia: '',
+          cantidad: r.cantidad || 1,
+          costo: 0,
+          rentabilidad: 0,
+          descuento: 0,
+          impuesto: 19,
+          valor_unitario: 0,
+          estado_aprobacion: 'pendiente',
+        });
+      });
+    });
+    _repSaveItems(ot.repuestos_cotizados, otId);
+  }
   m.style.display = 'flex';
   const dgEl = document.getElementById('cot-desc-global');
   if (dgEl) dgEl.value = 0;
@@ -314,7 +362,10 @@ function cerrarModalCotizacion() {
 }
 
 function _cotGetOT() {
-  const ots = APP.lsGet('mp_ots', []);
+  let ots = APP.lsGet('ots', []);
+  let ot = ots.find(o => o.id === _cotOtId);
+  if (ot) return ot;
+  ots = APP.lsGet('mp_ots', []);
   return ots.find(o => o.id === _cotOtId) || null;
 }
 

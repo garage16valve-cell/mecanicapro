@@ -1517,50 +1517,92 @@ function _renderHistorialDet(historial) {
 function _generarCotizacion(ot) {
   const fecha = new Date().toLocaleDateString('es-CL');
   const _v = (n, a) => ot[n] ?? ot[a] ?? '';
+  const cliNombre = _v('cliente_nombre','clienteNombre') || '—';
+  const cliApellido = _v('cliente_apellido','') || '';
+  const cliWhatsapp = _v('cliente_whatsapp','wz') || _v('cliente_whatsapp','cliente_whatsapp') || '—';
+  const cliEmail = _v('cliente_email','mail') || '—';
   const vehiculo = [_v('vehiculo_marca','marca'), _v('vehiculo_modelo','modelo'), _v('vehiculo_anio','anio')].filter(Boolean).join(' ') || '—';
+  const patente = _v('vehiculo_patente','patente') || '—';
+  const km = _v('vehiculo_km_entrada','km') || '—';
   const lines = [
-    '════════════════════════════════',
-    '       COTIZACIÓN DE SERVICIOS',
-    '   Integral Automotriz Spa — Valparaíso',
-    '════════════════════════════════',
+    '═══════════════════════════════════════════',
+    '         COTIZACIÓN DE SERVICIOS',
+    '   Integral Automotriz Spa',
+    '   Valparaíso, Chile',
+    '   WhatsApp: +569 5165 5331',
+    '═══════════════════════════════════════════',
     '',
-    `Fecha:    ${fecha}`,
-    `OT:       ${ot.id || '—'}`,
-    `Patente:  ${_v('vehiculo_patente','patente') || '—'}`,
-    `Vehículo: ${vehiculo}`,
-    `Cliente:  ${_v('cliente_nombre','clienteNombre') || '—'}`,
+    `Fecha:        ${fecha}`,
+    `OT N°:        ${ot.id || '—'}`,
     '',
-    '──────── SERVICIOS ────────',
-    (() => {
-      const svNombre = (ot.servicios && ot.servicios[0] ? ot.servicios[0].nombre : ot.servicio) || 'Por determinar';
-      const svValor = ot.valor || (ot.servicios ? ot.servicios.reduce((a, sv) => a + (sv.valor || 0), 0) : 0);
-      return `• ${svNombre}${svValor ? ':  $' + Number(svValor).toLocaleString('es-CL') : ''}`;
-    })(),
+    '────────── DATOS DEL CLIENTE ──────────',
+    `Cliente:      ${cliNombre} ${cliApellido}`.trim(),
+    `WhatsApp:     ${cliWhatsapp}`,
+    `Email:        ${cliEmail}`,
     '',
+    '────────── DATOS DEL VEHÍCULO ──────────',
+    `Patente:      ${patente}`,
+    `Vehículo:     ${vehiculo}`,
+    `Kilometraje:  ${km} km`,
+    '',
+    '────────── SERVICIOS ──────────',
   ];
+  // Servicios
+  const servicios = ot.servicios || [];
+  let totalServicios = 0;
+  if (servicios.length) {
+    servicios.forEach((sv, i) => {
+      const nom = sv.nombre || 'Servicio ' + (i + 1);
+      const val = sv.valor || 0;
+      totalServicios += val;
+      lines.push(`${i + 1}. ${nom}${val ? '  $' + Number(val).toLocaleString('es-CL') : ''}`);
+      if (sv.horas) lines.push(`   ⏱ ${sv.horas} h`);
+    });
+  } else if (ot.servicio) {
+    const val = ot.valor || 0;
+    totalServicios = val;
+    lines.push(`1. ${ot.servicio}${val ? '  $' + Number(val).toLocaleString('es-CL') : ''}`);
+  } else {
+    lines.push('   (Sin servicios registrados)');
+  }
+  lines.push('');
   // Repuestos desde servicios o texto libre
   let repuestosStr = '';
-  if (ot.servicios && ot.servicios.length) {
-    repuestosStr = ot.servicios.flatMap(sv => (sv.repuestos || []).map(r => `${r.nombre} — Cant: ${r.cantidad} ${r.unidad || ''}`)).join('\n');
+  if (servicios.length) {
+    repuestosStr = servicios.flatMap(sv => (sv.repuestos || []).map(r => `${r.nombre} — Cant: ${r.cantidad} ${r.unidad || ''}`)).join('\n');
+  }
+  // También repuestos cotizados
+  if (!repuestosStr && ot.repuestos_cotizados && ot.repuestos_cotizados.length) {
+    repuestosStr = ot.repuestos_cotizados
+      .filter(r => r.tipo !== 'mano_obra')
+      .map(r => `${r.item} — Cant: ${r.cantidad || 1} ${r.valor_unitario ? '$' + Number(r.valor_unitario * (r.cantidad || 1)).toLocaleString('es-CL') : ''}`)
+      .join('\n');
   }
   const repText = repuestosStr || ot.repuestos || '';
   if (repText.trim()) {
-    lines.push('──────── REPUESTOS / MATERIALES ────────');
+    lines.push('────────── REPUESTOS / MATERIALES ──────────');
     repText.split('\n').forEach(r => { if (r.trim()) lines.push('• ' + r.trim()); });
     lines.push('');
   }
-  const totalValor = ot.valor || (ot.servicios ? ot.servicios.reduce((a, sv) => a + (sv.valor || 0), 0) : 0);
-  if (totalValor) lines.push(`TOTAL ESTIMADO:  $${Number(totalValor).toLocaleString('es-CL')}`, '');
+  // Total desde repuestos_cotizados si existe (más preciso)
+  let totalFinal = totalServicios;
+  if (ot.repuestos_cotizados && ot.repuestos_cotizados.length) {
+    const totRep = ot.repuestos_cotizados
+      .filter(r => r.tipo !== 'mano_obra')
+      .reduce((a, r) => a + ((r.valor_unitario || 0) * (r.cantidad || 1)), 0);
+    totalFinal = totalServicios + totRep;
+  }
+  if (totalFinal) lines.push(`TOTAL ESTIMADO:  $${Number(totalFinal).toLocaleString('es-CL')}`, '');
   lines.push(
-    '──────── CONDICIONES ────────',
+    '────────── CONDICIONES ──────────',
     '• Válido por 15 días hábiles',
     '• Precios incluyen IVA',
     '• Sujeto a revisión del vehículo',
     '',
-    '──────── CONTACTO ────────',
+    '────────── CONTACTO ──────────',
     'WhatsApp: +569 5165 5331',
     'https://integral-automotriz-spa.reservio.com/booking',
-    '════════════════════════════════',
+    '──────────────────────────────────────────────────',
   );
   return lines.join('\n');
 }
