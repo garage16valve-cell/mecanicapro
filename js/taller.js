@@ -26,7 +26,7 @@ function init_taller() {
   });
   // Cerrar dropdowns al hacer click fuera
   document.addEventListener('click', e => {
-    if (!e.target.closest('.ss') && !e.target.closest('.ss-drop')) _ssCloseAll();
+    if (!e.target.closest('.ss-trig') && !e.target.closest('.ss-drop')) _ssCloseAll();
   });
 }
 
@@ -189,6 +189,16 @@ function _ssSetVal(id, val, label) {
 }
 
 function _ssGetVal(id) { return (_SS[id] || {}).val || ''; }
+
+// Exponer al window para onclick/oninput en HTML
+window._ssInit    = _ssInit;
+window._ssTrig    = _ssTrig;
+window._ssQ       = _ssQ;
+window._ssSetVal  = _ssSetVal;
+window._ssReset   = _ssReset;
+window._ssGetVal  = _ssGetVal;
+window._ssSelect  = _ssSelect;
+window._ssCloseAll = _ssCloseAll;
 
 function _ssReset(id) {
   const state = _SS[id];
