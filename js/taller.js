@@ -1231,9 +1231,14 @@ function toggleEditarOT() {
 
 function guardarCambiosOT() {
   if (!_otDetalleId) return;
-  const ots = APP.lsGet('mp_ots', []);
-  const idx = ots.findIndex(o => o.id === _otDetalleId);
-  if (idx < 0) return;
+  // Detectar en qué store está la OT
+  const otsNew = APP.lsGet('ots', []);
+  const otsOld = APP.lsGet('mp_ots', []);
+  const idxNew = otsNew.findIndex(o => o.id === _otDetalleId);
+  const idxOld = otsOld.findIndex(o => o.id === _otDetalleId);
+  if (idxNew < 0 && idxOld < 0) return;
+  const enNuevo = idxNew >= 0;
+  const ot = enNuevo ? otsNew[idxNew] : otsOld[idxOld];
 
   const g = id => (document.getElementById(id)?.value || '').trim();
   const tec  = document.getElementById('det-tec');
@@ -1241,68 +1246,109 @@ function guardarCambiosOT() {
   // Registrar cambios en historial
   const ahora = new Date();
   const entrada = {
-    estado: 'editado', label: 'OT modificada', emoji: '✏️',
-    ts:    ahora.toISOString(),
-    hora:  ahora.toLocaleTimeString('es-CL', { hour:'2-digit', minute:'2-digit' }),
-    fecha: ahora.toLocaleDateString('es-CL'),
-    detalle: `Cliente: ${g('det-nombre')} · Vehículo: ${g('det-marca')} ${g('det-modelo')}`,
+    accion: 'OT modificada',
+    fecha: Date.now(),
+    usuario: 'Sistema',
   };
 
   // Hora entrada/salida reales y cálculo automático de tiempoReal
   const horaEntrada = g('det-hora-entrada');
   const horaSalida  = g('det-hora-salida');
-  let nuevaEntradaTs = ots[idx].entrada_ts;
-  let nuevaSalidaTs  = ots[idx].salida_ts;
-  let nuevoTiempoReal = ots[idx].tiempoReal;
+  let nuevaEntradaTs = ot.entrada_ts;
+  let nuevaSalidaTs  = ot.salida_ts;
+  let nuevoTiempoReal = ot.tiempoReal;
 
+  const fc = ot.fecha_cita || ot.fechaCita;
   if (horaEntrada) {
     const [hh, mm] = horaEntrada.split(':').map(Number);
-    const base = ots[idx].fechaCita ? new Date(ots[idx].fechaCita) : new Date();
+    const base = fc ? new Date(fc) : new Date();
     base.setHours(hh, mm, 0, 0);
     nuevaEntradaTs = base.toISOString();
   }
   if (horaSalida) {
     const [hh, mm] = horaSalida.split(':').map(Number);
-    const base = ots[idx].fechaCita ? new Date(ots[idx].fechaCita) : new Date();
+    const base = fc ? new Date(fc) : new Date();
     base.setHours(hh, mm, 0, 0);
     nuevaSalidaTs = base.toISOString();
   }
   if (nuevaEntradaTs && nuevaSalidaTs) {
     nuevoTiempoReal = Math.round((new Date(nuevaSalidaTs) - new Date(nuevaEntradaTs)) / 60000);
-    if (nuevoTiempoReal < 0) nuevoTiempoReal = null; // sanity check
+    if (nuevoTiempoReal < 0) nuevoTiempoReal = null;
   }
 
   // Repuestos dinámicos
   const repItems = _detRepItems.filter(it => it.desc);
   const repTexto = _detRepToTexto();
 
-  ots[idx] = {
-    ...ots[idx],
-    clienteNombre: g('det-nombre'), rut:  g('det-rut'),
-    wz:            g('det-wz'),     mail: g('det-mail'),
-    km:            g('det-km'),     tecnico: tec?.value  || ots[idx].tecnico,
-    marca:         g('det-marca'),  modelo:  g('det-modelo'),
-    anio:          g('det-anio'),   motor:   g('det-motor'),
-    comb:          g('det-comb'),   tipo:    g('det-tipo'),
-    vin:           g('det-vin'),    nmotor:  g('det-nmotor'),
-    fechaCita:     g('det-fecha'),  horaCita: g('det-hora'),
-    servicio:      ots[idx].servicio,
-    notas:         g('det-notas'),
-    valor:         g('det-valor'),
-    repuestos:     repTexto,
-    repuestosItems: repItems,
-    entrada_ts:    nuevaEntradaTs,
-    salida_ts:     nuevaSalidaTs,
-    horaEntrada:   horaEntrada || ots[idx].horaEntrada,
-    horaSalida:    horaSalida  || ots[idx].horaSalida,
-    tiempoReal:    nuevoTiempoReal,
-    historial: [...(ots[idx].historial || []), entrada],
+  // Mapeo de campos comunes
+  const _v = (nuevo, antiguo) => ot[nuevo] ?? ot[antiguo] ?? '';
+  const camposComunes = {
+    cliente_nombre: g('det-nombre'),
+    cliente_whatsapp: g('det-wz'),
+    cliente_email: g('det-mail'),
+    vehiculo_km_entrada: g('det-km'),
+    tecnico_id: tec?.value || _v('tecnico_id','tecnico'),
+    vehiculo_marca: g('det-marca'),
+    vehiculo_modelo: g('det-modelo'),
+    vehiculo_anio: g('det-anio'),
+    vehiculo_motor: g('det-motor'),
+    vehiculo_chasis: g('det-vin'),
+    fecha_cita: g('det-fecha') || _v('fecha_cita','fechaCita'),
+    motivo_ingreso: g('det-notas'),
   };
 
-  APP.lsSet('mp_ots', ots);
+  if (enNuevo) {
+    // --- Guardar en nuevo formato (ots) ---
+    Object.assign(otsNew[idxNew], camposComunes, {
+      historial_eventos: [...(ot.historial_eventos || ot.historial || []), entrada],
+      entrada_ts: nuevaEntradaTs,
+      salida_ts: nuevaSalidaTs,
+      horaEntrada: horaEntrada || ot.horaEntrada,
+      horaSalida: horaSalida || ot.horaSalida,
+      tiempoReal: nuevoTiempoReal,
+    });
+    APP.lsSet('ots', otsNew);
+    // También actualizar mp_ots si existe ahí
+    if (idxOld >= 0) {
+      Object.assign(otsOld[idxOld], camposComunes, {
+        historial: [...(otsOld[idxOld].historial || []), { ...entrada, estado: 'editado', label: 'OT modificada', emoji: '✏️', ts: new Date().toISOString(), hora: ahora.toLocaleTimeString('es-CL', { hour:'2-digit', minute:'2-digit' }), fecha: ahora.toLocaleDateString('es-CL'), detalle: `Cliente: ${g('det-nombre')} · Vehículo: ${g('det-marca')} ${g('det-modelo')}` }],
+        entrada_ts: nuevaEntradaTs,
+        salida_ts: nuevaSalidaTs,
+        horaEntrada: horaEntrada || otsOld[idxOld].horaEntrada,
+        horaSalida: horaSalida || otsOld[idxOld].horaSalida,
+        tiempoReal: nuevoTiempoReal,
+      });
+      APP.lsSet('mp_ots', otsOld);
+    }
+  } else {
+    // --- Guardar en formato legacy (mp_ots) ---
+    Object.assign(otsOld[idxOld], {
+      clienteNombre: g('det-nombre'), rut: g('det-rut'),
+      wz: g('det-wz'), mail: g('det-mail'),
+      km: g('det-km'), tecnico: tec?.value || otsOld[idxOld].tecnico,
+      marca: g('det-marca'), modelo: g('det-modelo'),
+      anio: g('det-anio'), motor: g('det-motor'),
+      comb: g('det-comb'), tipo: g('det-tipo'),
+      vin: g('det-vin'), nmotor: g('det-nmotor'),
+      fechaCita: g('det-fecha'), horaCita: g('det-hora'),
+      servicio: otsOld[idxOld].servicio,
+      notas: g('det-notas'),
+      valor: g('det-valor'),
+      repuestos: repTexto,
+      repuestosItems: repItems,
+      entrada_ts: nuevaEntradaTs,
+      salida_ts: nuevaSalidaTs,
+      horaEntrada: horaEntrada || otsOld[idxOld].horaEntrada,
+      horaSalida: horaSalida || otsOld[idxOld].horaSalida,
+      tiempoReal: nuevoTiempoReal,
+      historial: [...(otsOld[idxOld].historial || []), { ...entrada, estado: 'editado', label: 'OT modificada', emoji: '✏️', ts: new Date().toISOString(), hora: ahora.toLocaleTimeString('es-CL', { hour:'2-digit', minute:'2-digit' }), fecha: ahora.toLocaleDateString('es-CL'), detalle: `Cliente: ${g('det-nombre')} · Vehículo: ${g('det-marca')} ${g('det-modelo')}` }],
+    });
+    APP.lsSet('mp_ots', otsOld);
+  }
+
   _otEditando = false;
   APP.toast.show('✓ Cambios guardados', 'success');
-  abrirDetalleOT(_otDetalleId); // refresca la vista
+  abrirDetalleOT(_otDetalleId);
 }
 
 // --- Dropdown estado en detalle ---
