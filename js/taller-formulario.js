@@ -878,6 +878,7 @@ function nfGuardarOT() {
 function _nfEsc(s) { return (s || '').replace(/'/g, "\\'").replace(/"/g, '&quot;'); }
 
 // Exponer funciones
+window.nfPoblarSelectores = nfPoblarSelectores;
 window.nfAbrirFormulario = nfAbrirFormulario;
 window.nfCerrarFormulario = nfCerrarFormulario;
 window.nfGuardarOT = nfGuardarOT;

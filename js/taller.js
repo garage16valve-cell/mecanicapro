@@ -662,6 +662,8 @@ function abrirFormNuevaOT() {
     el.style.display = 'flex';
     el.onclick = function(e) { if (e.target === this) { e.preventDefault(); e.stopPropagation(); } };
   }
+  // Inicializar smart selectors del nuevo formulario (nf-*)
+  if (typeof nfPoblarSelectores === 'function') nfPoblarSelectores();
 }
 
 function cerrarFormNuevaOT() {
