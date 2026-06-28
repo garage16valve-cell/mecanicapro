@@ -311,6 +311,8 @@
               <div onclick="completarOT()" style="padding:9px 12px;cursor:pointer;font-size:12px;display:flex;gap:8px;border-top:0.5px solid var(--border)">🏁 <span><strong>Completar OT</strong><div style="font-size:10px;color:var(--text-muted)">Registra salida y genera publicación</div></span></div>
               <div onclick="mostrarModalAprobacionIngreso()" style="padding:9px 12px;cursor:pointer;font-size:12px;display:flex;gap:8px;border-top:0.5px solid var(--border)">🔬 <span><strong>Avanzar a Diagnóstico</strong><div style="font-size:10px;color:var(--text-muted)">Solicitar aprobación del cliente</div></span></div>
               <div onclick="abrirModalDiagnostico()" style="padding:9px 12px;cursor:pointer;font-size:12px;display:flex;gap:8px;border-top:0.5px solid var(--border)">🔍 <span><strong>Realizar diagnóstico</strong><div style="font-size:10px;color:var(--text-muted)">Diagnóstico técnico por motivo de ingreso</div></span></div>
+              <div onclick="abrirModalRepuestos(window._otDetalleId)" style="padding:9px 12px;cursor:pointer;font-size:12px;display:flex;gap:8px;border-top:0.5px solid var(--border)">📦 <span><strong>Lista de repuestos</strong><div style="font-size:10px;color:var(--text-muted)">Agregar repuestos e insumos con precios</div></span></div>
+              <div onclick="abrirModalCotizacion(window._otDetalleId)" style="padding:9px 12px;cursor:pointer;font-size:12px;display:flex;gap:8px;border-top:0.5px solid var(--border)">📋 <span><strong>Generar cotización</strong><div style="font-size:10px;color:var(--text-muted)">Enviar presupuesto al cliente por WhatsApp</div></span></div>
             </div>
           </div>
           <button class="btn bpa" id="det-btn-editar" onclick="toggleEditarOT()"><i class="ti ti-edit"></i> Editar</button>
@@ -411,6 +413,26 @@
         </div>
       </div>
     </div><!-- /g2 -->
+
+    <!-- PANEL REPUESTOS (visible cuando fase = repuestos/aprobacion/...) -->
+    <div id="det-panel-repuestos" style="display:none;margin-top:14px">
+      <div class="card" style="border-color:#7c3aed">
+        <div class="ch">
+          <span class="ct" style="color:#7c3aed">📦 Lista de Repuestos y Cotización</span>
+          <span style="font-size:11px;color:var(--text-muted)">
+            <span id="rep-panel-count">0 ítems</span> · <span id="rep-panel-total">$0</span>
+          </span>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:4px">
+          <button class="btn bpa" style="flex:1;justify-content:center;padding:12px;font-weight:700" onclick="abrirModalRepuestos(window._otDetalleId)">
+            <i class="ti ti-tool"></i>&nbsp; EDITAR LISTA DE REPUESTOS
+          </button>
+          <button class="btn" style="justify-content:center;padding:12px;border-color:#7c3aed;color:#7c3aed" onclick="abrirModalCotizacion(window._otDetalleId)">
+            <i class="ti ti-file-invoice"></i>&nbsp; GENERAR COTIZACIÓN
+          </button>
+        </div>
+      </div>
+    </div>
 
     <!-- PANEL DIAGNÓSTICO (visible cuando fase = diagnostico) -->
     <div id="det-panel-diagnostico" style="display:none;margin-top:14px">
@@ -706,6 +728,177 @@
       </div>
     </div>
   </div><!-- /#modal-aprobacion-verbal -->
+
+
+  <!-- ===== MODAL: LISTA DE REPUESTOS ===== -->
+  <div id="modal-repuestos" class="modal-overlay" style="display:none" onclick="if(event.target===this)cerrarModalRepuestos()">
+    <div class="modal-grande" style="max-width:1000px">
+      <div class="modal-header">
+        <h3 style="font-size:14px;font-weight:600;margin:0">📦 Lista de Repuestos e Insumos</h3>
+        <button class="modal-close" onclick="cerrarModalRepuestos()">×</button>
+      </div>
+      <div class="modal-body">
+
+        <!-- Pestañas -->
+        <div style="display:flex;gap:6px;margin-bottom:14px">
+          <button id="rep-tab-info"    class="kanban-tab" onclick="_repActivarPestana('info')">ℹ️ INFORMACIÓN</button>
+          <button id="rep-tab-precios" class="kanban-tab kanban-tab-active" onclick="_repActivarPestana('precios')">$ PRECIOS</button>
+        </div>
+
+        <!-- Panel INFORMACIÓN -->
+        <div id="rep-panel-info" style="display:none">
+          <div class="card"><div id="rep-info-body" style="font-size:12px">Cargando…</div></div>
+        </div>
+
+        <!-- Panel PRECIOS -->
+        <div id="rep-panel-precios">
+          <div style="font-size:11px;color:var(--text-muted);margin-bottom:10px;padding:8px 10px;background:var(--surface-1);border:0.5px solid var(--border);border-radius:var(--radius)">
+            ℹ️ Esta lista <strong>no incluye mano de obra</strong>. Los precios de mano de obra se configuran en el diagnóstico.
+          </div>
+
+          <!-- Tabla scrolleable -->
+          <div style="overflow-x:auto;margin-bottom:10px">
+            <table style="width:100%;border-collapse:collapse;font-size:11px;min-width:800px">
+              <thead>
+                <tr style="background:var(--surface-1);font-size:10px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.03em">
+                  <th style="padding:7px 6px;text-align:left;border-bottom:0.5px solid var(--border)">#</th>
+                  <th style="padding:7px 6px;text-align:left;border-bottom:0.5px solid var(--border)">Tipo</th>
+                  <th style="padding:7px 6px;text-align:left;border-bottom:0.5px solid var(--border)">Ítem</th>
+                  <th style="padding:7px 6px;text-align:left;border-bottom:0.5px solid var(--border)">Referencia</th>
+                  <th id="rep-th-costo"  style="padding:7px 6px;text-align:right;border-bottom:0.5px solid var(--border)">Costo</th>
+                  <th id="rep-th-rent"   style="padding:7px 6px;text-align:right;border-bottom:0.5px solid var(--border)">Rent%</th>
+                  <th style="padding:7px 6px;text-align:right;border-bottom:0.5px solid var(--border)">Valor Unit.</th>
+                  <th style="padding:7px 6px;text-align:center;border-bottom:0.5px solid var(--border)">Desc%</th>
+                  <th style="padding:7px 6px;text-align:center;border-bottom:0.5px solid var(--border)">IVA</th>
+                  <th style="padding:7px 6px;text-align:right;border-bottom:0.5px solid var(--border)">Subtotal</th>
+                  <th style="padding:7px 6px;text-align:center;border-bottom:0.5px solid var(--border)">Cant.</th>
+                  <th style="padding:7px 6px;text-align:right;border-bottom:0.5px solid var(--border)">Total</th>
+                  <th style="padding:7px 6px;text-align:center;border-bottom:0.5px solid var(--border)">Opc.</th>
+                </tr>
+              </thead>
+              <tbody id="rep-tabla-body">
+                <tr><td colspan="13" style="text-align:center;color:var(--text-muted);padding:20px;font-size:12px">Sin ítems.</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div id="rep-totales"></div>
+
+          <!-- Formulario agregar ítem -->
+          <div class="card" style="margin-top:12px">
+            <div class="ch"><span class="ct" style="font-size:11px">+ Agregar ítem</span></div>
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:8px">
+              <div class="fg" style="margin:0">
+                <label>Tipo</label>
+                <select id="rep-add-tipo" style="width:100%;font-size:11px;border:0.5px solid var(--border);border-radius:var(--radius);padding:5px 8px;background:var(--surface-1);color:var(--text-primary)">
+                  <option value="repuesto">Repuesto</option>
+                  <option value="insumo">Insumo</option>
+                </select>
+              </div>
+              <div class="fg" style="margin:0;grid-column:2/-1">
+                <label>Buscar ítem</label>
+                <input id="rep-add-nombre" placeholder="Nombre del repuesto o insumo…" style="width:100%;font-size:11px;border:0.5px solid var(--border);border-radius:var(--radius);padding:5px 8px;background:var(--surface-1);color:var(--text-primary)">
+              </div>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr 1fr;gap:8px">
+              <div class="fg" style="margin:0">
+                <label>Referencia</label>
+                <input id="rep-add-ref" placeholder="Código" style="width:100%;font-size:11px;border:0.5px solid var(--border);border-radius:var(--radius);padding:5px 8px;background:var(--surface-1);color:var(--text-primary)">
+              </div>
+              <div class="fg" style="margin:0">
+                <label>Base imponible</label>
+                <input id="rep-add-base" type="number" min="0" step="100" placeholder="0" style="width:100%;font-size:11px;border:0.5px solid var(--border);border-radius:var(--radius);padding:5px 8px;background:var(--surface-1);color:var(--text-primary)">
+              </div>
+              <div class="fg" style="margin:0">
+                <label>IVA%</label>
+                <select id="rep-add-iva" style="width:100%;font-size:11px;border:0.5px solid var(--border);border-radius:var(--radius);padding:5px 8px;background:var(--surface-1);color:var(--text-primary)">
+                  <option value="0">Sin IVA</option>
+                  <option value="19" selected>19%</option>
+                </select>
+              </div>
+              <div class="fg" style="margin:0">
+                <label>Precio venta</label>
+                <input id="rep-add-precio" type="number" min="0" step="100" placeholder="0" style="width:100%;font-size:11px;border:0.5px solid var(--border);border-radius:var(--radius);padding:5px 8px;background:var(--surface-1);color:var(--text-primary)">
+              </div>
+              <div class="fg" style="margin:0">
+                <label>Cantidad</label>
+                <input id="rep-add-cant" type="number" min="1" step="1" value="1" style="width:100%;font-size:11px;border:0.5px solid var(--border);border-radius:var(--radius);padding:5px 8px;background:var(--surface-1);color:var(--text-primary)">
+              </div>
+            </div>
+            <button class="btn bpa" style="width:100%;justify-content:center;margin-top:10px" onclick="_repAgregarItemForm()">
+              <i class="ti ti-plus"></i> AGREGAR
+            </button>
+          </div>
+
+        </div><!-- /rep-panel-precios -->
+      </div><!-- /modal-body -->
+
+      <div class="modal-footer">
+        <button class="btn" onclick="cerrarModalRepuestos()"><i class="ti ti-x"></i> SALIR</button>
+        <button class="btn" onclick="repGuardarCambios()"><i class="ti ti-device-floppy"></i> 1. GUARDAR CAMBIOS</button>
+        <button class="btn bpa" style="background:#7c3aed;border-color:#7c3aed" onclick="repFinalizarYEnviar()"><i class="ti ti-send"></i> 2. FINALIZAR Y ENVIAR →</button>
+      </div>
+    </div>
+  </div><!-- /#modal-repuestos -->
+
+  <!-- ===== MODAL: GENERAR COTIZACIÓN ===== -->
+  <div id="modal-cotizacion" class="modal-overlay" style="display:none" onclick="if(event.target===this)cerrarModalCotizacion()">
+    <div class="modal-grande" style="max-width:900px">
+      <div class="modal-header">
+        <h3 style="font-size:14px;font-weight:600;margin:0">📋 Generar Cotización</h3>
+        <button class="modal-close" onclick="cerrarModalCotizacion()">×</button>
+      </div>
+      <div class="modal-body">
+
+        <!-- Controles superiores -->
+        <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px;padding:10px 12px;background:var(--surface-1);border:0.5px solid var(--border);border-radius:var(--radius)">
+          <button class="btn bpa" style="font-size:11px;padding:5px 12px" onclick="_cotAprobarTodo()">✓ Aprobar todo</button>
+          <div style="display:flex;align-items:center;gap:8px;margin-left:auto">
+            <label style="font-size:11px;color:var(--text-muted);white-space:nowrap">Descuento global:</label>
+            <input id="cot-desc-global" type="number" min="0" max="100" step="1" value="0"
+              style="width:60px;font-size:12px;font-weight:600;border:0.5px solid var(--border);border-radius:var(--radius);padding:5px 8px;background:var(--surface-1);color:var(--text-primary);text-align:center"
+              oninput="_cotActualizarDescGlobal(this.value)">
+            <span style="font-size:12px;font-weight:600">%</span>
+          </div>
+        </div>
+
+        <!-- Tabla de ítems con estado -->
+        <div style="overflow-x:auto;margin-bottom:14px">
+          <table style="width:100%;border-collapse:collapse;font-size:11px;min-width:720px">
+            <thead>
+              <tr style="background:var(--surface-1);font-size:10px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.03em">
+                <th style="padding:7px 6px;text-align:left;border-bottom:0.5px solid var(--border)">#</th>
+                <th style="padding:7px 6px;text-align:left;border-bottom:0.5px solid var(--border)">Tipo</th>
+                <th style="padding:7px 6px;text-align:left;border-bottom:0.5px solid var(--border)">Ítem</th>
+                <th style="padding:7px 6px;text-align:left;border-bottom:0.5px solid var(--border)">Referencia</th>
+                <th style="padding:7px 6px;text-align:right;border-bottom:0.5px solid var(--border)">Valor Unit.</th>
+                <th style="padding:7px 6px;text-align:center;border-bottom:0.5px solid var(--border)">Cant.</th>
+                <th style="padding:7px 6px;text-align:right;border-bottom:0.5px solid var(--border)">Subtotal</th>
+                <th style="padding:7px 6px;text-align:right;border-bottom:0.5px solid var(--border)">Total</th>
+                <th style="padding:7px 6px;text-align:center;border-bottom:0.5px solid var(--border)">Estado</th>
+              </tr>
+            </thead>
+            <tbody id="cot-tabla-body">
+              <tr><td colspan="9" style="text-align:center;color:var(--text-muted);padding:20px">Sin ítems</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Resumen financiero -->
+        <div class="card">
+          <div class="ch"><span class="ct">💰 Resumen Financiero</span></div>
+          <div id="cot-resumen"></div>
+        </div>
+
+      </div><!-- /modal-body -->
+
+      <div class="modal-footer">
+        <button class="btn" onclick="cerrarModalCotizacion()"><i class="ti ti-x"></i> SALIR</button>
+        <button class="btn" onclick="cotAvanzarSinEnviar()"><i class="ti ti-arrow-right"></i> AVANZAR SIN ENVIAR</button>
+        <button class="btn" onclick="cotGuardar()"><i class="ti ti-device-floppy"></i> 1. GUARDAR</button>
+        <button class="btn bpw" onclick="cotFinalizarYEnviar()"><i class="ti ti-brand-whatsapp"></i> 2. FINALIZAR Y ENVIAR</button>
+      </div>
+    </div>
+  </div><!-- /#modal-cotizacion -->
 
 </div><!-- /#pg-ot -->
 

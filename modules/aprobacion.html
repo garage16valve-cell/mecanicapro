@@ -333,6 +333,81 @@
   <div class="ap-resultado-sub">Nuestro equipo se comunicará contigo<br>para resolver tus dudas o inquietudes.</div>
 </div>
 
+<!-- CONTENIDO PRINCIPAL: PRESUPUESTO -->
+<div class="ap-container" id="ap-main-presupuesto" style="display:none">
+
+  <!-- SECCIÓN — DATOS OT -->
+  <div class="ap-section">
+    <div class="ap-section-title">🔧 Detalle del presupuesto</div>
+    <div class="ap-section-body">
+      <div class="ap-grid" style="margin-bottom:12px">
+        <div class="ap-field"><label>Cliente</label><span id="pp-cliente">—</span></div>
+        <div class="ap-field"><label>Vehículo</label><span id="pp-vehiculo">—</span></div>
+        <div class="ap-field"><label>Patente</label><span id="pp-patente" style="font-family:monospace;letter-spacing:.08em;font-weight:700">—</span></div>
+        <div class="ap-field"><label>OT N°</label><span id="pp-ot">—</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SECCIÓN — TABLA DE ÍTEMS -->
+  <div class="ap-section">
+    <div class="ap-section-title">📋 Ítems de la cotización</div>
+    <div class="ap-section-body" style="padding:0">
+      <div style="overflow-x:auto">
+        <table style="width:100%;border-collapse:collapse;font-size:12px">
+          <thead>
+            <tr style="background:#f8fafc;font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.03em">
+              <th style="padding:10px 14px;text-align:left;border-bottom:1px solid #f1f5f9">#</th>
+              <th style="padding:10px 14px;text-align:left;border-bottom:1px solid #f1f5f9">Tipo</th>
+              <th style="padding:10px 14px;text-align:left;border-bottom:1px solid #f1f5f9">Ítem</th>
+              <th style="padding:10px 14px;text-align:left;border-bottom:1px solid #f1f5f9">Referencia</th>
+              <th style="padding:10px 14px;text-align:right;border-bottom:1px solid #f1f5f9">Precio Unit.</th>
+              <th style="padding:10px 14px;text-align:center;border-bottom:1px solid #f1f5f9">Cant.</th>
+              <th style="padding:10px 14px;text-align:right;border-bottom:1px solid #f1f5f9">Total</th>
+              <th style="padding:10px 14px;text-align:center;border-bottom:1px solid #f1f5f9">Estado</th>
+            </tr>
+          </thead>
+          <tbody id="pp-items-body"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- SECCIÓN — RESUMEN -->
+  <div class="ap-section">
+    <div class="ap-section-title">💰 Resumen</div>
+    <div class="ap-section-body">
+      <div id="pp-resumen" style="font-size:13px"></div>
+    </div>
+  </div>
+
+  <!-- SECCIÓN — FIRMA DIGITAL -->
+  <div class="ap-section">
+    <div class="ap-section-title">✍️ Firma de aprobación</div>
+    <div class="ap-section-body">
+      <div class="ap-terminos" style="margin-bottom:12px">
+        Al firmar confirmo que he revisado el presupuesto y apruebo la ejecución de los trabajos e ítems indicados.
+      </div>
+      <label class="ap-checkbox-item">
+        <input type="checkbox" id="pp-cb-apruebo">
+        <span>Con mi firma apruebo el presupuesto de los ítems seleccionados</span>
+      </label>
+      <div class="ap-firma-wrap" id="pp-firma-wrap" style="margin-top:12px">
+        <canvas id="pp-firma-canvas" width="680" height="150"></canvas>
+        <div class="ap-firma-guide" id="pp-firma-guide">Firme aquí con su dedo o mouse</div>
+      </div>
+      <button class="ap-btn-borrar" onclick="ppBorrarFirma()">🗑️ Borrar firma</button>
+    </div>
+  </div>
+
+  <!-- BOTONES FINALES -->
+  <div class="ap-actions">
+    <button class="ap-btn-noapruebo" onclick="ppRechazar()">NO</button>
+    <button class="ap-btn-apruebo" id="pp-btn-aprobar" onclick="ppAprobar()">✅ SÍ, APRUEBO</button>
+  </div>
+
+</div><!-- /#ap-main-presupuesto -->
+
 <!-- CONTENIDO PRINCIPAL -->
 <div class="ap-container" id="ap-main" style="display:none">
 
@@ -452,10 +527,12 @@
 // ── Leer OT desde localStorage (clave sin prefijo, igual que APP.lsGet) ──
 const params = new URLSearchParams(window.location.search);
 const otId   = params.get('ot');
+const _tipo  = params.get('tipo') || 'ingreso'; // 'ingreso' | 'presupuesto'
 
 let _ot     = null;
 let _config = null;
-let _firmaVacia = true;
+let _firmaVacia    = true;
+let _ppFirmaVacia  = true;
 
 function _ls(key, def) {
   try { return JSON.parse(localStorage.getItem(key)) ?? def; } catch { return def; }
@@ -472,6 +549,10 @@ function init() {
   if (!_ot) {
     document.getElementById('ap-error').classList.add('visible');
     return;
+  }
+
+  if (_tipo === 'presupuesto') {
+    initPresupuesto(); return;
   }
 
   // Si ya fue aprobada o rechazada, mostrar resultado
@@ -492,6 +573,195 @@ function init() {
 
   document.getElementById('ap-header').style.display  = 'flex';
   document.getElementById('ap-main').style.display     = 'block';
+}
+
+// ════════════════════════════════════════════════════════════
+// PRESUPUESTO
+// ════════════════════════════════════════════════════════════
+
+function initPresupuesto() {
+  // Si ya aprobado
+  const fp = _ot.firma_aprobacion_presupuesto;
+  if (fp && fp.imagen) { mostrarResultado('ok'); return; }
+
+  renderHeader();
+
+  // Datos básicos
+  const s = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v || '—'; };
+  s('pp-cliente',  _ot.clienteNombre);
+  s('pp-vehiculo', [_ot.marca, _ot.modelo].filter(Boolean).join(' '));
+  s('pp-patente',  _ot.patente);
+  s('pp-ot',       _ot.id);
+
+  ppRenderItems();
+  ppRenderResumen();
+  ppInitCanvas();
+
+  document.getElementById('ap-header').style.display       = 'flex';
+  document.getElementById('ap-main-presupuesto').style.display = 'block';
+  document.title = 'Cotización ' + (_ot.id || '') + ' — ' + (_config.nombre || 'MecánicaPro');
+}
+
+function ppCalcItem(it) {
+  const vu   = Number(it.valor_unitario || it.costo || 0);
+  const cant = Number(it.cantidad || 1);
+  const desc = Number(it.descuento || 0);
+  const imp  = Number(it.impuesto || 0);
+  const dg   = Number(_ot.cotizacion_descuento_global || 0);
+  const sub  = vu * cant;
+  const base = sub * (1 - desc / 100) * (1 - dg / 100);
+  const iva  = base * imp / 100;
+  return { vu, subtotal: sub, base, iva, total: base + iva };
+}
+
+function _ppFmt(n) {
+  return '$' + Math.round(n || 0).toLocaleString('es-CL');
+}
+
+function ppRenderItems() {
+  const items = _ot.repuestos_cotizados || [];
+  const el = document.getElementById('pp-items-body');
+  if (!el) return;
+  if (!items.length) {
+    el.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:20px;color:#94a3b8">Sin ítems en la cotización</td></tr>';
+    return;
+  }
+  el.innerHTML = items.map((it, i) => {
+    const c = ppCalcItem(it);
+    const aprobado = it.estado_aprobacion === 'aprobado';
+    const badge = aprobado
+      ? `<span style="background:#dcfce7;color:#16a34a;border:1px solid #16a34a;border-radius:10px;padding:2px 8px;font-size:10px;font-weight:700">APROBADO</span>`
+      : `<span style="background:#fee2e2;color:#dc2626;border:1px solid #dc2626;border-radius:10px;padding:2px 8px;font-size:10px;font-weight:700">PENDIENTE</span>`;
+    const tipoBadge = it.tipo === 'insumo'
+      ? `<span style="background:#fef3c7;color:#d97706;border:1px solid #d97706;border-radius:4px;padding:1px 6px;font-size:10px">Insumo</span>`
+      : `<span style="background:#dcfce7;color:#16a34a;border:1px solid #16a34a;border-radius:4px;padding:1px 6px;font-size:10px">Repuesto</span>`;
+
+    return `<tr style="border-bottom:1px solid #f1f5f9${aprobado?';background:#f0fdf4':''}">
+      <td style="padding:10px 14px;color:#94a3b8">${i+1}</td>
+      <td style="padding:10px 14px">${tipoBadge}</td>
+      <td style="padding:10px 14px;font-weight:500">${_esc(it.item||'—')}</td>
+      <td style="padding:10px 14px;color:#64748b;font-size:11px">${_esc(it.referencia||'—')}</td>
+      <td style="padding:10px 14px;text-align:right">${_ppFmt(c.vu)}</td>
+      <td style="padding:10px 14px;text-align:center">${it.cantidad||1}</td>
+      <td style="padding:10px 14px;text-align:right;font-weight:600">${_ppFmt(c.total)}</td>
+      <td style="padding:10px 14px;text-align:center">
+        ${badge}
+        <button onclick="ppToggleItem(${i})"
+          style="display:block;margin:4px auto 0;font-size:11px;padding:3px 10px;background:${aprobado?'#fee2e2':'#f0fdf4'};border:1px solid ${aprobado?'#fca5a5':'#86efac'};border-radius:5px;cursor:pointer;color:${aprobado?'#dc2626':'#16a34a'};font-weight:600">
+          ${aprobado ? '✕ Quitar' : '✓ Aprobar'}
+        </button>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function ppToggleItem(idx) {
+  const items = _ot.repuestos_cotizados || [];
+  if (!items[idx]) return;
+  items[idx].estado_aprobacion = items[idx].estado_aprobacion === 'aprobado' ? 'pendiente' : 'aprobado';
+  const ots = _ls('mp_ots', []);
+  const i   = ots.findIndex(o => o.id === _ot.id);
+  if (i >= 0) { ots[i].repuestos_cotizados = items; _lsSet('mp_ots', ots); }
+  ppRenderItems();
+  ppRenderResumen();
+}
+
+function ppRenderResumen() {
+  const items = _ot.repuestos_cotizados || [];
+  let subtotal=0, base=0, iva=0, total=0;
+  items.filter(it => it.estado_aprobacion === 'aprobado').forEach(it => {
+    const c = ppCalcItem(it);
+    subtotal += c.subtotal;
+    base     += c.base;
+    iva      += c.iva;
+    total    += c.total;
+  });
+  const el = document.getElementById('pp-resumen');
+  if (!el) return;
+  el.innerHTML = `
+    <div style="display:flex;flex-direction:column;gap:6px">
+      <div style="display:flex;justify-content:space-between"><span style="color:#64748b">Subtotal</span><span>${_ppFmt(subtotal)}</span></div>
+      <div style="display:flex;justify-content:space-between"><span style="color:#64748b">Base imponible</span><span>${_ppFmt(base)}</span></div>
+      <div style="display:flex;justify-content:space-between"><span style="color:#64748b">IVA (19%)</span><span>${_ppFmt(iva)}</span></div>
+      <div style="display:flex;justify-content:space-between;font-size:15px;font-weight:700;padding-top:8px;border-top:1px solid #e2e8f0;margin-top:4px">
+        <span>TOTAL APROBADO</span><span style="color:#16a34a">${_ppFmt(total)}</span>
+      </div>
+    </div>`;
+}
+
+function ppInitCanvas() {
+  const canvas = document.getElementById('pp-firma-canvas');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const dpr = window.devicePixelRatio || 1;
+  const rect = canvas.getBoundingClientRect();
+  canvas.width  = (rect.width || 680) * dpr;
+  canvas.height = 150 * dpr;
+  ctx.scale(dpr, dpr);
+  ctx.strokeStyle = '#1a1a2e';
+  ctx.lineWidth   = 2.5;
+  ctx.lineCap     = 'round';
+  ctx.lineJoin    = 'round';
+
+  let drawing = false, lastX = 0, lastY = 0;
+  function getPos(e) {
+    const r = canvas.getBoundingClientRect();
+    const s = e.touches ? e.touches[0] : e;
+    return { x: s.clientX - r.left, y: s.clientY - r.top };
+  }
+  function start(e) { e.preventDefault(); drawing=true; const p=getPos(e); lastX=p.x; lastY=p.y; document.getElementById('pp-firma-guide').style.display='none'; }
+  function move(e)  { e.preventDefault(); if(!drawing) return; const p=getPos(e); ctx.beginPath(); ctx.moveTo(lastX,lastY); ctx.lineTo(p.x,p.y); ctx.stroke(); lastX=p.x; lastY=p.y; _ppFirmaVacia=false; }
+  function end(e)   { e.preventDefault(); drawing=false; }
+  canvas.addEventListener('mousedown',  start, {passive:false});
+  canvas.addEventListener('mousemove',  move,  {passive:false});
+  canvas.addEventListener('mouseup',    end,   {passive:false});
+  canvas.addEventListener('mouseleave', end,   {passive:false});
+  canvas.addEventListener('touchstart', start, {passive:false});
+  canvas.addEventListener('touchmove',  move,  {passive:false});
+  canvas.addEventListener('touchend',   end,   {passive:false});
+}
+
+function ppBorrarFirma() {
+  const canvas = document.getElementById('pp-firma-canvas');
+  if (!canvas) return;
+  canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height);
+  _ppFirmaVacia = true;
+  document.getElementById('pp-firma-guide').style.display = 'block';
+}
+
+function ppAprobar() {
+  const cb = document.getElementById('pp-cb-apruebo');
+  if (!cb || !cb.checked) { alert('Marca la casilla de aprobación para continuar.'); return; }
+  if (_ppFirmaVacia) { alert('Por favor firma en el recuadro antes de aprobar.'); return; }
+
+  const aprobados = (_ot.repuestos_cotizados || []).filter(it => it.estado_aprobacion === 'aprobado');
+  if (!aprobados.length) { alert('Aprueba al menos un ítem antes de continuar.'); return; }
+
+  const canvas = document.getElementById('pp-firma-canvas');
+  const firma  = canvas.toDataURL('image/png');
+  const ahora  = Date.now();
+
+  const ots = _ls('mp_ots', []);
+  const idx = ots.findIndex(o => o.id === _ot.id);
+  if (idx < 0) { alert('Error: OT no encontrada.'); return; }
+
+  ots[idx].firma_aprobacion_presupuesto = { imagen: firma, fecha: ahora };
+  ots[idx].fase = 'reparacion';
+  ots[idx].historial = [...(ots[idx].historial || []), {
+    estado:  'presupuesto_aprobado',
+    label:   'Presupuesto aprobado digitalmente — OT avanza a Reparación',
+    emoji:   '✅',
+    ts:      new Date(ahora).toISOString(),
+    hora:    new Date(ahora).toLocaleTimeString('es-CL', {hour:'2-digit',minute:'2-digit'}),
+    fecha:   new Date(ahora).toLocaleDateString('es-CL'),
+    detalle: `${aprobados.length} ítem(s) aprobados`,
+  }];
+  _lsSet('mp_ots', ots);
+  mostrarResultado('ok');
+}
+
+function ppRechazar() {
+  mostrarResultado('no');
 }
 
 function renderHeader() {
