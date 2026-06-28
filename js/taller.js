@@ -1123,7 +1123,7 @@ function abrirDetalleOT(id) {
   // Rellenar campos
   const s = (elId, val) => { const el = document.getElementById(elId); if (el) el.value = val || ''; };
   document.getElementById('det-titulo').textContent = 'OT ' + ot.id + ' — ' + _v('vehiculo_patente','patente') + ' · ' + _v('vehiculo_marca','marca') + ' ' + _v('vehiculo_modelo','modelo') + ' ' + _v('vehiculo_anio','anio');
-  s('det-nombre', _v('cliente_nombre','clienteNombre')); s('det-rut', _v('rut','rut'));
+  s('det-nombre', _v('cliente_nombre','clienteNombre')); s('det-apellido', _v('cliente_apellido','apellido')); s('det-rut', _v('rut','rut'));
   s('det-wz',     _v('cliente_whatsapp','wz'));          s('det-mail', _v('cliente_email','mail'));
   s('det-km',     _v('vehiculo_km_entrada','km'));
   const tec = document.getElementById('det-tec');
@@ -1131,6 +1131,7 @@ function abrirDetalleOT(id) {
 
   s('det-marca',  _v('vehiculo_marca','marca'));  s('det-modelo', _v('vehiculo_modelo','modelo'));
   s('det-anio',   _v('vehiculo_anio','anio'));     s('det-motor',  _v('vehiculo_motor','motor'));
+  s('det-color',  _v('vehiculo_color','color'));
   s('det-comb',   _v('vehiculo_combustible','comb'));
   s('det-tipo',   _v('vehiculo_tipo','tipo'));
   s('det-vin',    _v('vehiculo_chasis','vin'));
@@ -1138,10 +1139,7 @@ function abrirDetalleOT(id) {
   s('det-patente', _v('vehiculo_patente','patente'));
 
   s('det-fecha', _v('fecha_cita','fechaCita'));
-  // Extraer hora de fecha_cita si es timestamp
-  const fc = ot.fecha_cita || ot.fechaCita;
-  const horaStr = ot.horaCita || (fc && !isNaN(new Date(fc)) ? new Date(fc).toLocaleTimeString('es-CL',{hour:'2-digit',minute:'2-digit'}) : '');
-  s('det-hora',  horaStr);
+  s('det-hora',  ot.hora_cita || ot.horaCita || '');
   _renderDetServicios(ot);
   s('det-notas',  _v('motivo_ingreso','notas'));
   // Valor total desde servicios si no está en root
@@ -1165,8 +1163,8 @@ function abrirDetalleOT(id) {
   if (addBtn) addBtn.style.display = 'none';
 
   // Campos readonly por defecto
-  ['det-nombre','det-rut','det-wz','det-mail','det-km',
-   'det-marca','det-modelo','det-anio','det-motor',
+  ['det-nombre','det-apellido','det-rut','det-wz','det-mail','det-km',
+   'det-marca','det-modelo','det-anio','det-motor','det-color',
    'det-vin','det-nmotor','det-patente',
    'det-fecha','det-hora','det-hora-entrada','det-hora-salida','det-notas','det-valor']
     .forEach(id => { const el = document.getElementById(id); if (el) el.setAttribute('readonly',''); });
@@ -1221,8 +1219,8 @@ function _actualizarBadgeDet(codigo) {
 
 function toggleEditarOT() {
   _otEditando = !_otEditando;
-  const campos = ['det-nombre','det-rut','det-wz','det-mail','det-km',
-    'det-marca','det-modelo','det-anio','det-motor',
+  const campos = ['det-nombre','det-apellido','det-rut','det-wz','det-mail','det-km',
+    'det-marca','det-modelo','det-anio','det-motor','det-color',
     'det-vin','det-nmotor','det-patente',
     'det-fecha','det-hora','det-hora-entrada','det-hora-salida','det-notas','det-valor'];
   const camposSelect = ['det-comb','det-tipo'];
@@ -1310,6 +1308,8 @@ function guardarCambiosOT() {
   const _v = (nuevo, antiguo) => ot[nuevo] ?? ot[antiguo] ?? '';
   const camposComunes = {
     cliente_nombre: g('det-nombre'),
+    cliente_apellido: g('det-apellido'),
+    cliente_rut: g('det-rut'),
     cliente_whatsapp: g('det-wz'),
     cliente_email: g('det-mail'),
     vehiculo_km_entrada: g('det-km'),
@@ -1318,12 +1318,14 @@ function guardarCambiosOT() {
     vehiculo_modelo: g('det-modelo'),
     vehiculo_anio: g('det-anio'),
     vehiculo_motor: g('det-motor'),
+    vehiculo_color: g('det-color'),
     vehiculo_chasis: g('det-vin'),
     vehiculo_combustible: g('det-comb'),
     vehiculo_tipo: g('det-tipo'),
     vehiculo_nmotor: g('det-nmotor'),
     vehiculo_patente: g('det-patente'),
     fecha_cita: g('det-fecha') || _v('fecha_cita','fechaCita'),
+    hora_cita: g('det-hora'),
     motivo_ingreso: g('det-notas'),
   };
 

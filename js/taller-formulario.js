@@ -697,6 +697,7 @@ function nfGuardarOT() {
   const patente = g('nf-patente').toUpperCase().replace(/[^A-Z0-9]/g, '');
   const clienteNombre = g('nf-cliente-nombre');
   const clienteApellido = g('nf-cliente-apellido');
+  const clienteRut = g('nf-cliente-rut');
   const whatsapp = g('nf-cliente-whatsapp');
   const email = g('nf-cliente-email');
 
@@ -711,9 +712,6 @@ function nfGuardarOT() {
 
   const fechaCitaStr = g('nf-fecha-cita');
   const horaCitaStr = g('nf-hora-cita');
-  const fechaTs = (esExpress || !fechaCitaStr)
-    ? Date.now()
-    : new Date(fechaCitaStr + 'T' + (horaCitaStr || '00:00')).getTime();
 
   const estado = esExpress ? 'en_proceso'
     : esGarantia ? 'cotizacion'
@@ -724,7 +722,7 @@ function nfGuardarOT() {
   const modelo = g('nf-modelo');
   const anio = g('nf-anio');
   const color = g('nf-color');
-  const km = parseInt(g('nf-km')) || 0;
+  const km = parseInt(g('nf-km').replace(/\./g,'')) || 0;
   const chasis = g('nf-chasis');
   const motor = g('nf-motor');
 
@@ -753,6 +751,7 @@ function nfGuardarOT() {
       clienteId = existente.id;
       if (clienteNombre) existente.nombre = clienteNombre;
       if (clienteApellido) existente.apellido = clienteApellido;
+      if (clienteRut) existente.rut = clienteRut;
       if (whatsapp) { existente.whatsapp = whatsapp; existente.wz = whatsapp; }
       if (email) existente.email = email;
     } else {
@@ -761,6 +760,7 @@ function nfGuardarOT() {
         id: clienteId,
         nombre: clienteNombre || '',
         apellido: clienteApellido || '',
+        rut: clienteRut || '',
         whatsapp: whatsapp || '',
         wz: whatsapp || '',
         email: email || '',
@@ -774,6 +774,7 @@ function nfGuardarOT() {
     if (cli) {
       if (clienteNombre) cli.nombre = clienteNombre;
       if (clienteApellido) cli.apellido = clienteApellido;
+      if (clienteRut) cli.rut = clienteRut;
       if (whatsapp) { cli.whatsapp = whatsapp; cli.wz = whatsapp; }
       if (email) cli.email = email;
       APP.lsSet('clientes', clientes);
@@ -822,9 +823,11 @@ function nfGuardarOT() {
     es_garantia: esGarantia,
     autoriza_prueba_ruta: pruebaRuta,
     fecha_ingreso: Date.now(),
-    fecha_cita: fechaTs,
+    fecha_cita: fechaCitaStr || '',
+    hora_cita: horaCitaStr || '',
     cliente_nombre: clienteNombre || '',
     cliente_apellido: clienteApellido || '',
+    cliente_rut: clienteRut || '',
     cliente_whatsapp: whatsapp || '',
     cliente_email: email || '',
     cliente_id: clienteId,
