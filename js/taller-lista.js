@@ -198,9 +198,9 @@ function _renderOTCard(ot) {
       onclick="abrirDetalleOT('${ot.id}')">
       <i class="ti ti-list-details"></i> Detalle
     </button>
-    <button class="btn kanban-btn" title="Vista cliente"
-      onclick="vistaClienteOT('${ot.id}')">
-      <i class="ti ti-eye"></i>
+    <button class="btn kanban-btn" title="WhatsApp cliente"
+      onclick="vistaClienteOT('${ot.id}')" style="color:#25D366;border-color:#25D366">
+      <i class="ti ti-brand-whatsapp"></i>
     </button>
     <button class="btn kanban-btn" title="Eliminar OT"
       onclick="eliminarOT('${ot.id}')"
@@ -290,7 +290,7 @@ function editarOTKanban(id) {
 function vistaClienteOT(id) {
   const ot = _getOTs().find(o => o.id === id);
   if (!ot) return;
-  const wz = ot.cliente_wz || '';
+  const wz = ot.cliente_wz || ot.cliente_whatsapp || '';
   const msg = encodeURIComponent(
     `Hola ${ot.cliente_nombre || ''}, le informamos que su vehículo ` +
     `${[ot.vehiculo_marca, ot.vehiculo_modelo, ot.patente].filter(Boolean).join(' ')} ` +

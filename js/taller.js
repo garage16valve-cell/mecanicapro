@@ -1074,7 +1074,9 @@ function _renderDetServicios(ot) {
   if (!el) return;
   const items = (ot.serviciosItems && ot.serviciosItems.length)
     ? ot.serviciosItems
-    : ot.servicio ? [{ nombre: ot.servicio, horas: ot.tiempoEstimado || 0, valor: ot.valor || 0 }] : [];
+    : (ot.servicios && ot.servicios.length)
+      ? ot.servicios
+      : ot.servicio ? [{ nombre: ot.servicio, horas: ot.tiempoEstimado || 0, valor: ot.valor || 0 }] : [];
   if (!items.length) { el.innerHTML = '<div style="color:var(--text-muted);font-size:11px;padding:4px 0">—</div>'; return; }
   const totalMO = items.reduce((s, it) => s + (parseInt(it.valor) || 0), 0);
   el.innerHTML = items.map(s => `
@@ -1091,39 +1093,47 @@ function _renderDetServicios(ot) {
 }
 
 function abrirDetalleOT(id) {
-  const ots = APP.lsGet('mp_ots', []);
-  const ot  = ots.find(o => o.id === id);
+  // Buscar en ots (nuevo store) y mp_ots (store legacy)
+  const otsNew = APP.lsGet('ots', []);
+  const otsOld = APP.lsGet('mp_ots', []);
+  const ot = otsNew.find(o => o.id === id) || otsOld.find(o => o.id === id);
   if (!ot) return;
 
   _otDetalleId = id;
   _otEditando  = false;
 
+  // Helper: leer campo con fallback a nombre antiguo
+  const _v = (nuevo, antiguo) => ot[nuevo] ?? ot[antiguo] ?? '';
+
   // Rellenar campos
   const s = (elId, val) => { const el = document.getElementById(elId); if (el) el.value = val || ''; };
-  document.getElementById('det-titulo').textContent = 'OT ' + ot.id + ' — ' + (ot.patente || '') + ' · ' + (ot.marca || '') + ' ' + (ot.modelo || '') + ' ' + (ot.anio || '');
-  s('det-nombre', ot.clienteNombre); s('det-rut',  ot.rut);
-  s('det-wz',     ot.wz);           s('det-mail', ot.mail);
-  s('det-km',     ot.km);
+  document.getElementById('det-titulo').textContent = 'OT ' + ot.id + ' — ' + _v('vehiculo_patente','patente') + ' · ' + _v('vehiculo_marca','marca') + ' ' + _v('vehiculo_modelo','modelo') + ' ' + _v('vehiculo_anio','anio');
+  s('det-nombre', _v('cliente_nombre','clienteNombre')); s('det-rut', _v('rut','rut'));
+  s('det-wz',     _v('cliente_whatsapp','wz'));          s('det-mail', _v('cliente_email','mail'));
+  s('det-km',     _v('vehiculo_km_entrada','km'));
   const tec = document.getElementById('det-tec');
-  if (tec) { tec.value = ot.tecnico || tec.options[0]?.value || ''; tec.disabled = true; }
+  if (tec) { tec.value = _v('tecnico_id','tecnico') || tec.options[0]?.value || ''; tec.disabled = true; }
 
-  s('det-marca',  ot.marca);  s('det-modelo', ot.modelo);
-  s('det-anio',   ot.anio);   s('det-motor',  ot.motor);
-  s('det-comb',   ot.comb);   s('det-tipo',   ot.tipo);
-  s('det-vin',    ot.vin);    s('det-nmotor', ot.nmotor);
+  s('det-marca',  _v('vehiculo_marca','marca'));  s('det-modelo', _v('vehiculo_modelo','modelo'));
+  s('det-anio',   _v('vehiculo_anio','anio'));     s('det-motor',  _v('vehiculo_motor','motor'));
+  s('det-comb',   ot.comb || '');                  s('det-tipo',   ot.tipo || '');
+  s('det-vin',    _v('vehiculo_chasis','vin'));    s('det-nmotor', ot.nmotor || '');
 
-  s('det-fecha', ot.fechaCita || '');
-  s('det-hora',  ot.horaCita  || '');
+  s('det-fecha', _v('fecha_cita','fechaCita'));
+  // Extraer hora de fecha_cita si es timestamp
+  const fc = ot.fecha_cita || ot.fechaCita;
+  const horaStr = ot.horaCita || (fc && !isNaN(new Date(fc)) ? new Date(fc).toLocaleTimeString('es-CL',{hour:'2-digit',minute:'2-digit'}) : '');
+  s('det-hora',  horaStr);
   _renderDetServicios(ot);
-  s('det-notas',  ot.notas  || '');
-  s('det-valor',  ot.valor  || '');
+  s('det-notas',  _v('motivo_ingreso','notas'));
+  // Valor total desde servicios si no está en root
+  const totalValor = ot.valor || (ot.servicios ? ot.servicios.reduce((a, sv) => a + (sv.valor || 0), 0) : 0);
+  s('det-valor',  totalValor || '');
 
   // Hora entrada / salida reales
   const _toTimeInput = ts => {
     if (!ts) return '';
-    // Si ya es HH:MM (hora local guardada como string)
     if (/^\d{1,2}:\d{2}$/.test(ts)) return ts.padStart(5, '0');
-    // Si es ISO timestamp
     try { const d = new Date(ts); return d.toLocaleTimeString('es-CL',{hour:'2-digit',minute:'2-digit'}).padStart(5,'0'); } catch { return ''; }
   };
   s('det-hora-entrada', _toTimeInput(ot.entrada_ts || ot.horaEntrada || ''));
@@ -1150,7 +1160,7 @@ function abrirDetalleOT(id) {
   const bg = document.getElementById('det-btn-guardar'); if (bg) bg.style.display = 'none';
 
   // Historial
-  _renderHistorialDet(ot.historial || []);
+  _renderHistorialDet(ot.historial_eventos || ot.historial || []);
 
   // Paneles módulos 5/6/7
   _actualizarPanelesDet(ot);
@@ -1159,10 +1169,10 @@ function abrirDetalleOT(id) {
   const rp = document.getElementById('det-reagendar-panel'); if (rp) rp.style.display = 'none';
 
   // CRM historial del vehículo
-  _crmRenderDetalle(ot.patente, ot.id);
+  _crmRenderDetalle(_v('vehiculo_patente','patente'), ot.id);
 
   // Upselling inteligente
-  _upsellingRender(ot.patente, ot.servicio);
+  _upsellingRender(_v('vehiculo_patente','patente'), ot.servicio || (ot.servicios && ot.servicios[0] ? ot.servicios[0].nombre : ''));
 
   // Mostrar detalle, ocultar listado
   const listado = document.getElementById('ot-listado');
@@ -1385,11 +1395,25 @@ function _renderHistorialDet(historial) {
     el.innerHTML = '<div style="color:var(--text-muted);text-align:center;padding:16px">Sin eventos registrados</div>';
     return;
   }
-  el.innerHTML = [...historial].reverse().map((e, i) => `
-    <div style="display:flex;gap:10px;padding:8px 0;${i < historial.length - 1 ? 'border-bottom:0.5px solid var(--border)' : ''}">
+  // Normalizar cada entrada: nuevo formato {accion, fecha:timestamp, usuario} → display
+  const norm = historial.map(e => {
+    if (e.accion && typeof e.fecha === 'number') {
+      const d = new Date(e.fecha);
+      return {
+        emoji: '📋',
+        label: e.accion,
+        fecha: d.toLocaleDateString('es-CL'),
+        hora: d.toLocaleTimeString('es-CL', {hour:'2-digit',minute:'2-digit'}),
+        detalle: e.usuario ? 'Por ' + e.usuario : ''
+      };
+    }
+    return e;
+  });
+  el.innerHTML = [...norm].reverse().map((e, i) => `
+    <div style="display:flex;gap:10px;padding:8px 0;${i < norm.length - 1 ? 'border-bottom:0.5px solid var(--border)' : ''}">
       <div style="font-size:16px;flex-shrink:0;width:24px;text-align:center">${e.emoji || '📋'}</div>
       <div style="flex:1">
-        <div style="font-weight:500;font-size:12px">${e.label || e.estado}</div>
+        <div style="font-weight:500;font-size:12px">${e.label || e.estado || e.accion || ''}</div>
         <div style="font-size:10px;color:var(--text-muted)">${e.fecha || ''} ${e.hora || ''}</div>
         ${e.detalle    ? `<div style="font-size:10px;color:var(--text-muted);margin-top:2px">${e.detalle}</div>` : ''}
         ${e.motivo     ? `<div style="font-size:10px;color:var(--text-muted);margin-top:2px">Motivo: ${e.motivo}</div>` : ''}
@@ -1403,7 +1427,8 @@ function _renderHistorialDet(historial) {
 // ===== MÓDULO 5: COTIZACIÓN =====
 function _generarCotizacion(ot) {
   const fecha = new Date().toLocaleDateString('es-CL');
-  const vehiculo = [ot.marca, ot.modelo, ot.anio].filter(Boolean).join(' ') || '—';
+  const _v = (n, a) => ot[n] ?? ot[a] ?? '';
+  const vehiculo = [_v('vehiculo_marca','marca'), _v('vehiculo_modelo','modelo'), _v('vehiculo_anio','anio')].filter(Boolean).join(' ') || '—';
   const lines = [
     '════════════════════════════════',
     '       COTIZACIÓN DE SERVICIOS',
@@ -1412,20 +1437,31 @@ function _generarCotizacion(ot) {
     '',
     `Fecha:    ${fecha}`,
     `OT:       ${ot.id || '—'}`,
-    `Patente:  ${ot.patente || '—'}`,
+    `Patente:  ${_v('vehiculo_patente','patente') || '—'}`,
     `Vehículo: ${vehiculo}`,
-    `Cliente:  ${ot.clienteNombre || '—'}`,
+    `Cliente:  ${_v('cliente_nombre','clienteNombre') || '—'}`,
     '',
     '──────── SERVICIOS ────────',
-    `• ${ot.servicio || 'Por determinar'}${ot.valor ? ':  $' + Number(ot.valor).toLocaleString('es-CL') : ''}`,
+    (() => {
+      const svNombre = (ot.servicios && ot.servicios[0] ? ot.servicios[0].nombre : ot.servicio) || 'Por determinar';
+      const svValor = ot.valor || (ot.servicios ? ot.servicios.reduce((a, sv) => a + (sv.valor || 0), 0) : 0);
+      return `• ${svNombre}${svValor ? ':  $' + Number(svValor).toLocaleString('es-CL') : ''}`;
+    })(),
     '',
   ];
-  if (ot.repuestos && ot.repuestos.trim()) {
+  // Repuestos desde servicios o texto libre
+  let repuestosStr = '';
+  if (ot.servicios && ot.servicios.length) {
+    repuestosStr = ot.servicios.flatMap(sv => (sv.repuestos || []).map(r => `${r.nombre} — Cant: ${r.cantidad} ${r.unidad || ''}`)).join('\n');
+  }
+  const repText = repuestosStr || ot.repuestos || '';
+  if (repText.trim()) {
     lines.push('──────── REPUESTOS / MATERIALES ────────');
-    ot.repuestos.split('\n').forEach(r => { if (r.trim()) lines.push('• ' + r.trim()); });
+    repText.split('\n').forEach(r => { if (r.trim()) lines.push('• ' + r.trim()); });
     lines.push('');
   }
-  if (ot.valor) lines.push(`TOTAL ESTIMADO:  $${Number(ot.valor).toLocaleString('es-CL')}`, '');
+  const totalValor = ot.valor || (ot.servicios ? ot.servicios.reduce((a, sv) => a + (sv.valor || 0), 0) : 0);
+  if (totalValor) lines.push(`TOTAL ESTIMADO:  $${Number(totalValor).toLocaleString('es-CL')}`, '');
   lines.push(
     '──────── CONDICIONES ────────',
     '• Válido por 15 días hábiles',
@@ -1588,11 +1624,12 @@ function _finalizarOT(datoPago) {
 }
 
 function _generarPostIG(ot) {
-  const marca  = ot.marca  || '[Marca]';
-  const modelo = ot.modelo || '[Modelo]';
-  const anio   = ot.anio   ? ot.anio : '';
-  const serv   = ot.servicio || '[Servicio realizado]';
-  const extras = ot.notas ? '\n- ' + ot.notas : '';
+  const _v = (n, a) => ot[n] ?? ot[a] ?? '';
+  const marca  = _v('vehiculo_marca','marca') || '[Marca]';
+  const modelo = _v('vehiculo_modelo','modelo') || '[Modelo]';
+  const anio   = _v('vehiculo_anio','anio') || '';
+  const serv   = (ot.servicios && ot.servicios[0] ? ot.servicios[0].nombre : ot.servicio) || '[Servicio realizado]';
+  const extras = _v('motivo_ingreso','notas') ? '\n- ' + _v('motivo_ingreso','notas') : '';
   return `Mantenimiento correctivo ${marca} ${modelo} ${anio} 🏁
 🔧 Nuestros servicios incluyen:
 - ${serv}${extras}
