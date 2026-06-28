@@ -310,6 +310,7 @@
               <div onclick="cambiarEstadoOTDet('cotizacion')" style="padding:9px 12px;cursor:pointer;font-size:12px;display:flex;gap:8px;border-top:0.5px solid var(--border)">📋 <span><strong>Cotización</strong><div style="font-size:10px;color:var(--text-muted)">Activa modo cotización</div></span></div>
               <div onclick="completarOT()" style="padding:9px 12px;cursor:pointer;font-size:12px;display:flex;gap:8px;border-top:0.5px solid var(--border)">🏁 <span><strong>Completar OT</strong><div style="font-size:10px;color:var(--text-muted)">Registra salida y genera publicación</div></span></div>
               <div onclick="mostrarModalAprobacionIngreso()" style="padding:9px 12px;cursor:pointer;font-size:12px;display:flex;gap:8px;border-top:0.5px solid var(--border)">🔬 <span><strong>Avanzar a Diagnóstico</strong><div style="font-size:10px;color:var(--text-muted)">Solicitar aprobación del cliente</div></span></div>
+              <div onclick="abrirModalDiagnostico()" style="padding:9px 12px;cursor:pointer;font-size:12px;display:flex;gap:8px;border-top:0.5px solid var(--border)">🔍 <span><strong>Realizar diagnóstico</strong><div style="font-size:10px;color:var(--text-muted)">Diagnóstico técnico por motivo de ingreso</div></span></div>
             </div>
           </div>
           <button class="btn bpa" id="det-btn-editar" onclick="toggleEditarOT()"><i class="ti ti-edit"></i> Editar</button>
@@ -410,6 +411,22 @@
         </div>
       </div>
     </div><!-- /g2 -->
+
+    <!-- PANEL DIAGNÓSTICO (visible cuando fase = diagnostico) -->
+    <div id="det-panel-diagnostico" style="display:none;margin-top:14px">
+      <div class="card" style="border-color:#2563eb">
+        <div class="ch">
+          <span class="ct" style="color:#2563eb">🔬 Fase: Diagnóstico Técnico</span>
+          <span id="det-diag-progreso" style="font-size:11px;color:var(--text-muted)"></span>
+        </div>
+        <p style="font-size:12px;color:var(--text-secondary);margin:0 0 12px;line-height:1.5">
+          La OT está en fase de <strong>Diagnóstico</strong>. El mecánico debe inspeccionar cada motivo de ingreso y registrar sus hallazgos antes de cotizar al cliente.
+        </p>
+        <button id="det-diag-btn" class="btn bpa" style="width:100%;justify-content:center;padding:13px;font-size:13px;font-weight:700" onclick="abrirModalDiagnostico()">
+          <i class="ti ti-microscope"></i>&nbsp; REALIZAR DIAGNÓSTICO
+        </button>
+      </div>
+    </div>
 
     <!-- MÓDULO 5: COTIZACIÓN -->
     <div id="det-panel-cotizacion" style="display:none;margin-top:14px">
@@ -519,6 +536,128 @@
       </div><!-- /modal-body -->
     </div><!-- /modal-grande -->
   </div><!-- /#ot-detalle -->
+
+  <!-- ===== MODAL: DIAGNÓSTICO TÉCNICO ===== -->
+  <div id="modal-diagnostico" class="modal-overlay" style="display:none" onclick="if(event.target===this)cerrarModalDiagnostico()">
+    <div class="modal-grande" style="max-width:820px">
+      <div class="modal-header">
+        <h3 style="font-size:14px;font-weight:600;margin:0">🔬 Diagnóstico Técnico</h3>
+        <button class="modal-close" onclick="cerrarModalDiagnostico()">×</button>
+      </div>
+      <div class="modal-body">
+
+        <!-- Card resumen OT -->
+        <div style="display:flex;gap:18px;flex-wrap:wrap;padding:10px 12px;background:var(--surface-1);border:0.5px solid var(--border);border-radius:var(--radius);margin-bottom:12px;font-size:12px">
+          <div><span style="color:var(--text-muted)">OT N°</span> <strong id="diag-ot-num">—</strong></div>
+          <div><span style="color:var(--text-muted)">Cliente:</span> <strong id="diag-cliente">—</strong></div>
+          <div><span style="color:var(--text-muted)">Vehículo:</span> <strong id="diag-vehiculo">—</strong></div>
+          <div><span style="color:var(--text-muted)">Placa:</span> <strong id="diag-patente" style="font-family:var(--font-mono);letter-spacing:.05em">—</strong></div>
+          <div><span style="color:var(--text-muted)">Ingreso:</span> <strong id="diag-fecha-ingreso">—</strong></div>
+        </div>
+
+        <!-- Instrucción -->
+        <div style="font-size:12px;color:var(--text-secondary);margin-bottom:12px;padding:10px 12px;background:var(--surface-1);border-radius:var(--radius);border-left:3px solid var(--accent,#2563eb)">
+          Debes diagnosticar cada motivo de ingreso. Selecciona uno y completa el formulario.
+        </div>
+
+        <!-- Select motivo + badge -->
+        <div style="display:flex;align-items:flex-end;gap:10px;margin-bottom:14px">
+          <div class="fg" style="flex:1;margin:0">
+            <label>Seleccione el motivo</label>
+            <select id="diag-motivo-select" style="width:100%" onchange="diagCambiarMotivo()"></select>
+          </div>
+          <div id="diag-motivo-badge" style="font-size:10px;font-weight:700;padding:4px 10px;border-radius:10px;border:0.5px solid #d97706;background:#fef3c7;color:#d97706;white-space:nowrap;margin-bottom:2px">PENDIENTE</div>
+        </div>
+
+        <!-- Formulario diagnóstico -->
+        <div class="card" style="margin-bottom:14px">
+          <div class="ch"><span class="ct">📝 Diagnóstico del motivo</span></div>
+          <div class="fg">
+            <label>Diagnóstico <span style="color:#ef4444">*</span></label>
+            <textarea id="diag-diagnostico-text" placeholder="Describe detalladamente lo encontrado..." style="min-height:80px"></textarea>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+            <div class="fg">
+              <label>Tiempo reparación (Hrs)</label>
+              <input type="number" id="diag-horas" step="0.5" min="0" placeholder="0.0">
+            </div>
+            <div id="diag-mano-obra-grupo" class="fg">
+              <label>Valor mano de obra sin IVA ($CLP)</label>
+              <input type="number" id="diag-mano-obra" step="100" min="0" placeholder="0" oninput="_diagCalcIva()">
+            </div>
+          </div>
+          <div id="diag-iva-grupo" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:0">
+            <div class="fg">
+              <label>IVA</label>
+              <select id="diag-iva-sel" onchange="_diagCalcIva()">
+                <option value="0">Sin impuesto</option>
+                <option value="19">IVA 19%</option>
+              </select>
+            </div>
+            <div class="fg">
+              <label>Valor con IVA ($CLP)</label>
+              <input type="number" id="diag-valor-con-iva" readonly placeholder="Calculado automático" style="background:var(--surface-1)">
+            </div>
+          </div>
+        </div>
+
+        <!-- Dos columnas: Repuestos e Insumos -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px">
+
+          <!-- REPUESTOS -->
+          <div class="card">
+            <div class="ch"><span class="ct">🔩 Repuestos requeridos</span></div>
+            <div class="fg"><label>Nombre repuesto</label><input id="diag-rep-nombre" placeholder="Ej: Pastillas de freno"></div>
+            <div class="fg"><label>Referencia</label><input id="diag-rep-ref" placeholder="Código o referencia"></div>
+            <div class="fg"><label>Cantidad</label><input type="number" id="diag-rep-cant" min="1" value="1" step="1"></div>
+            <div class="fg"><label>Observaciones</label><input id="diag-rep-obs" placeholder="Opcional"></div>
+            <button class="btn bpa" style="width:100%;justify-content:center;margin-bottom:10px" onclick="_diagAgregarRepuesto()">
+              <i class="ti ti-plus"></i> AGREGAR
+            </button>
+            <div id="diag-rep-lista"></div>
+          </div>
+
+          <!-- INSUMOS -->
+          <div class="card">
+            <div class="ch"><span class="ct">🧴 Insumos requeridos</span></div>
+            <div class="fg"><label>Nombre insumo</label><input id="diag-ins-nombre" placeholder="Ej: Aceite motor 5W-30"></div>
+            <div class="fg"><label>Referencia</label><input id="diag-ins-ref" placeholder="Código o referencia"></div>
+            <div class="fg"><label>Cantidad</label><input type="number" id="diag-ins-cant" min="1" value="1" step="1"></div>
+            <div class="fg"><label>Observaciones</label><input id="diag-ins-obs" placeholder="Opcional"></div>
+            <button class="btn bpa" style="width:100%;justify-content:center;margin-bottom:10px" onclick="_diagAgregarInsumo()">
+              <i class="ti ti-plus"></i> AGREGAR
+            </button>
+            <div id="diag-ins-lista"></div>
+          </div>
+
+        </div><!-- /dos columnas -->
+
+        <!-- Nueva falla -->
+        <div style="padding:12px 14px;background:var(--surface-1);border:0.5px solid var(--border);border-radius:var(--radius);margin-bottom:14px">
+          <div style="font-size:12px;font-weight:500;margin-bottom:8px">¿Encontraste una nueva falla?</div>
+          <button class="btn" onclick="_diagAgregarNuevaFalla()"><i class="ti ti-plus"></i> AGREGAR NUEVA FALLA</button>
+        </div>
+
+        <!-- Evidencia fotográfica -->
+        <div class="card">
+          <div class="ch"><span class="ct">📷 Evidencia fotográfica</span></div>
+          <p style="font-size:11px;color:var(--text-muted);margin:0 0 8px">Carga fotos del diagnóstico (máx 10):</p>
+          <input type="file" id="diag-fotos-input" accept="image/jpeg,image/png" multiple onchange="_diagManejarFotos(this)" style="font-size:11px;margin-bottom:8px">
+          <div id="diag-fotos-preview" style="display:flex;flex-wrap:wrap;gap:4px"></div>
+        </div>
+
+      </div><!-- /modal-body -->
+      <div class="modal-footer">
+        <button class="btn" onclick="cerrarModalDiagnostico()"><i class="ti ti-x"></i> SALIR</button>
+        <button class="btn bpa" id="diag-btn-guardar" onclick="_diagGuardar()">
+          <i class="ti ti-check"></i> AGREGAR DIAGNÓSTICO →
+        </button>
+        <button class="btn bpa" id="diag-btn-finalizar" style="display:none;background:#16a34a;border-color:#16a34a" onclick="_diagFinalizar()">
+          <i class="ti ti-flag"></i> FINALIZAR → OT a Repuestos
+        </button>
+      </div>
+    </div>
+  </div><!-- /#modal-diagnostico -->
 
   <!-- ===== MODAL: MÉTODO DE APROBACIÓN ===== -->
   <div id="modal-aprobacion-metodo" class="modal-overlay" style="display:none" onclick="if(event.target===this)cerrarModalAprobMetodo()">
