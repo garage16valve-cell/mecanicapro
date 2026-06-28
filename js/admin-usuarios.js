@@ -96,7 +96,7 @@
         <div style="font-size:13px;color:var(--text-muted);margin-top:4px">Selecciona tu perfil para continuar</div>
       </div>
       <div id="login-users-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:14px;max-width:640px;width:100%"></div>
-      <button onclick="usuariosEntrarDirecto()" style="
+      <button id="login-dev-btn" style="
         margin-top:28px;padding:8px 20px;border:1.5px dashed var(--border);border-radius:8px;
         background:transparent;color:var(--text-muted);font-size:11px;cursor:pointer;
         display:flex;align-items:center;gap:6px">
@@ -105,28 +105,36 @@
     `;
     document.body.appendChild(screen);
     _renderLoginUsers();
+    document.getElementById('login-dev-btn')?.addEventListener('click', () => usuariosEntrarDirecto());
   }
 
   function _renderLoginUsers() {
     const grid = document.getElementById('login-users-grid');
     if (!grid) return;
     const usuarios = APP.lsGet('usuarios', []).filter(u => u.activo);
-    grid.innerHTML = usuarios.map(u => {
+    grid.innerHTML = '';
+    usuarios.forEach(u => {
       const inicial = (u.nombre || '?')[0].toUpperCase();
       const apellido = u.apellido ? ` ${u.apellido[0].toUpperCase()}.` : '';
-      return `
-        <div onclick="usuariosLoginClick(${u.id})" style="
-          background:var(--surface-1);border:1px solid var(--border);border-radius:12px;
-          padding:20px 16px;text-align:center;cursor:pointer;transition:all .15s;user-select:none"
-          onmouseover="this.style.borderColor='${u.color}';this.style.transform='translateY(-2px)'"
-          onmouseout="this.style.borderColor='var(--border)';this.style.transform=''">
-          <div style="width:52px;height:52px;border-radius:50%;background:${u.color};
-            display:flex;align-items:center;justify-content:center;margin:0 auto 10px;
-            font-size:22px;font-weight:700;color:#fff">${inicial}</div>
-          <div style="font-size:13px;font-weight:600;color:var(--text-primary)">${_esc(u.nombre)}${apellido}</div>
-          <div style="font-size:11px;color:var(--text-muted);margin-top:2px">${ROLES[u.rol] || u.rol}</div>
-        </div>`;
-    }).join('');
+      const card = document.createElement('div');
+      card.style.cssText = 'background:var(--surface-1);border:1px solid var(--border);border-radius:12px;padding:20px 16px;text-align:center;cursor:pointer;transition:all .15s;user-select:none';
+      card.innerHTML = `
+        <div style="width:52px;height:52px;border-radius:50%;background:${u.color};
+          display:flex;align-items:center;justify-content:center;margin:0 auto 10px;
+          font-size:22px;font-weight:700;color:#fff">${inicial}</div>
+        <div style="font-size:13px;font-weight:600;color:var(--text-primary)">${_esc(u.nombre)}${apellido}</div>
+        <div style="font-size:11px;color:var(--text-muted);margin-top:2px">${ROLES[u.rol] || u.rol}</div>`;
+      card.addEventListener('mouseenter', () => {
+        card.style.borderColor = u.color;
+        card.style.transform = 'translateY(-2px)';
+      });
+      card.addEventListener('mouseleave', () => {
+        card.style.borderColor = '';
+        card.style.transform = '';
+      });
+      card.addEventListener('click', () => _mostrarModalPin(u));
+      grid.appendChild(card);
+    });
   }
 
   // Expuesto globalmente para onclick inline
