@@ -313,6 +313,7 @@
               <div onclick="abrirModalDiagnostico()" style="padding:9px 12px;cursor:pointer;font-size:12px;display:flex;gap:8px;border-top:0.5px solid var(--border)">🔍 <span><strong>Realizar diagnóstico</strong><div style="font-size:10px;color:var(--text-muted)">Diagnóstico técnico por motivo de ingreso</div></span></div>
               <div onclick="abrirModalRepuestos(window._otDetalleId)" style="padding:9px 12px;cursor:pointer;font-size:12px;display:flex;gap:8px;border-top:0.5px solid var(--border)">📦 <span><strong>Lista de repuestos</strong><div style="font-size:10px;color:var(--text-muted)">Agregar repuestos e insumos con precios</div></span></div>
               <div onclick="abrirModalCotizacion(window._otDetalleId)" style="padding:9px 12px;cursor:pointer;font-size:12px;display:flex;gap:8px;border-top:0.5px solid var(--border)">📋 <span><strong>Generar cotización</strong><div style="font-size:10px;color:var(--text-muted)">Enviar presupuesto al cliente por WhatsApp</div></span></div>
+              <div onclick="mostrarModalEvidenciaReparacion()" style="padding:9px 12px;cursor:pointer;font-size:12px;display:flex;gap:8px;border-top:0.5px solid var(--border)">🔍 <span><strong>Control de calidad</strong><div style="font-size:10px;color:var(--text-muted)">Checklist antes de entregar el vehículo</div></span></div>
             </div>
           </div>
           <button class="btn bpa" id="det-btn-editar" onclick="toggleEditarOT()"><i class="ti ti-edit"></i> Editar</button>
@@ -446,6 +447,21 @@
         </p>
         <button id="det-diag-btn" class="btn bpa" style="width:100%;justify-content:center;padding:13px;font-size:13px;font-weight:700" onclick="abrirModalDiagnostico()">
           <i class="ti ti-microscope"></i>&nbsp; REALIZAR DIAGNÓSTICO
+        </button>
+      </div>
+    </div>
+
+    <!-- PANEL CONTROL DE CALIDAD (visible cuando fase = reparacion o control) -->
+    <div id="det-panel-control" style="display:none;margin-top:14px">
+      <div class="card" style="border-color:#f59e0b">
+        <div class="ch">
+          <span class="ct" id="det-control-fase-title" style="color:#f59e0b">🔧 Fase: Reparación</span>
+        </div>
+        <p id="det-control-fase-desc" style="font-size:12px;color:var(--text-secondary);margin:0 0 12px;line-height:1.5">
+          La reparación está en proceso. Cuando esté lista, avanza a Control de Calidad.
+        </p>
+        <button id="det-control-btn" class="btn bpa" style="width:100%;justify-content:center;padding:13px;font-size:13px;font-weight:700;background:#f59e0b;border-color:#f59e0b" onclick="mostrarModalEvidenciaReparacion()">
+          ✅ AVANZAR A CONTROL DE CALIDAD
         </button>
       </div>
     </div>
@@ -852,6 +868,194 @@
       </div>
     </div>
   </div><!-- /#modal-repuestos -->
+
+  <!-- ===== MODAL: EVIDENCIA DE REPARACIÓN ===== -->
+  <div id="modal-evidencia-reparacion" class="modal-overlay" style="display:none" onclick="if(event.target===this)cerrarModalEvidenciaRep()">
+    <div class="modal-pequeno">
+      <div class="modal-header">
+        <h3 style="font-size:14px;font-weight:600;margin:0">📷 Evidencia de Reparación</h3>
+        <button class="modal-close" onclick="cerrarModalEvidenciaRep()">×</button>
+      </div>
+      <div class="modal-body" style="padding:20px">
+        <div style="background:var(--surface-1);border:0.5px solid var(--border);border-radius:var(--radius);padding:14px;margin-bottom:18px;font-size:13px;color:var(--text-secondary);line-height:1.6;text-align:center">
+          <div style="font-size:22px;margin-bottom:6px">📸</div>
+          <strong>Tu cliente estará más satisfecho si incluyes evidencia de la reparación.</strong>
+        </div>
+        <div id="cc-ev-upload-panel" style="display:none;margin-bottom:14px">
+          <div style="font-size:11px;font-weight:500;margin-bottom:6px">Cargar fotos (máx 10):</div>
+          <input type="file" accept="image/jpeg,image/png" multiple onchange="_ccManejarFotosEv(this)" style="font-size:11px;margin-bottom:8px">
+          <div id="cc-ev-fotos-preview" style="display:flex;flex-wrap:wrap;gap:4px;min-height:24px"></div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:10px">
+          <button class="btn bpa" style="justify-content:center;padding:14px;font-size:13px;font-weight:600" onclick="ccMostrarUploadEvidencia();this.style.display='none'">
+            📷 INCLUIR EVIDENCIA
+          </button>
+          <button id="cc-ev-btn-continuar" class="btn bpa" style="justify-content:center;padding:14px;font-size:13px;font-weight:600;display:none;background:#16a34a;border-color:#16a34a" onclick="ccIncluirEvidencia()">
+            ✅ GUARDAR Y CONTINUAR →
+          </button>
+          <button class="btn" style="justify-content:center;padding:12px;font-size:12px;color:var(--text-muted)" onclick="ccAvanzarSinEvidencia()">
+            AVANZAR SIN EVIDENCIA →
+          </button>
+        </div>
+      </div>
+    </div>
+  </div><!-- /#modal-evidencia-reparacion -->
+
+  <!-- ===== MODAL: CONTROL DE CALIDAD ===== -->
+  <div id="modal-control-calidad" class="modal-overlay" style="display:none">
+    <div class="modal-grande" style="max-width:920px">
+      <div class="modal-header">
+        <h3 style="font-size:14px;font-weight:600;margin:0">🔍 Control de Calidad</h3>
+        <button class="modal-close" onclick="cerrarModalControlCalidad()">×</button>
+      </div>
+      <div class="modal-body">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+
+          <!-- COLUMNA IZQUIERDA: Resumen del trabajo -->
+          <div>
+            <div class="card" style="margin-bottom:12px">
+              <div class="ch"><span class="ct" style="color:#2563eb">📋 Resumen del trabajo</span></div>
+
+              <div style="font-size:10px;font-weight:700;color:var(--text-muted);text-transform:uppercase;margin-bottom:4px">Diagnóstico por motivo</div>
+              <div id="cc-resumen-diagnostico" style="margin-bottom:10px"></div>
+
+              <div style="font-size:10px;font-weight:700;color:var(--text-muted);text-transform:uppercase;margin-bottom:4px">Procedimientos realizados</div>
+              <div id="cc-resumen-procedimientos" style="margin-bottom:10px"></div>
+
+              <div style="font-size:10px;font-weight:700;color:var(--text-muted);text-transform:uppercase;margin-bottom:2px">Mano de obra</div>
+              <div id="cc-resumen-mano-obra" style="font-size:12px;font-weight:600;margin-bottom:10px">—</div>
+
+              <div style="font-size:10px;font-weight:700;color:var(--text-muted);text-transform:uppercase;margin-bottom:4px">Repuestos utilizados</div>
+              <div id="cc-resumen-repuestos" style="margin-bottom:10px"></div>
+
+              <div style="font-size:10px;font-weight:700;color:var(--text-muted);text-transform:uppercase;margin-bottom:4px">Insumos utilizados</div>
+              <div id="cc-resumen-insumos" style="margin-bottom:10px"></div>
+
+              <div class="fg" style="margin:0">
+                <label style="font-size:10px;font-weight:700;color:var(--text-muted);text-transform:uppercase">Servicios adicionales</label>
+                <textarea id="cc-servicios-adicionales" placeholder="Notas sobre trabajos adicionales realizados…" style="min-height:60px;font-size:11px"></textarea>
+              </div>
+            </div>
+          </div>
+
+          <!-- COLUMNA DERECHA: Checklist -->
+          <div>
+            <div class="card" style="margin-bottom:12px">
+              <div class="ch"><span class="ct" style="color:#f59e0b">✅ Checklist de entrega</span></div>
+
+              <!-- Kilometraje salida -->
+              <div class="fg" style="margin-bottom:12px">
+                <label style="font-size:10px;font-weight:700;color:var(--text-muted);text-transform:uppercase">Kilometraje de salida</label>
+                <div style="display:flex;align-items:center;gap:8px">
+                  <input type="number" id="cc-km-salida" placeholder="0" min="0" style="flex:1;font-size:14px;font-weight:600;font-family:var(--font-mono)">
+                  <span style="font-size:12px;color:var(--text-muted)">km</span>
+                </div>
+              </div>
+
+              <!-- Resolución de la avería -->
+              <div style="font-size:10px;font-weight:700;color:var(--text-muted);text-transform:uppercase;margin-bottom:6px">Resolución de la avería</div>
+              <div style="display:flex;flex-direction:column;gap:5px;margin-bottom:12px;font-size:11px">
+                <label style="display:flex;align-items:center;gap:7px;cursor:pointer"><input type="checkbox" name="cc-resolucion" value="falla_resuelta"> Falla resuelta</label>
+                <label style="display:flex;align-items:center;gap:7px;cursor:pointer"><input type="checkbox" name="cc-resolucion" value="motor_armado"> Motor armado</label>
+                <label style="display:flex;align-items:center;gap:7px;cursor:pointer"><input type="checkbox" name="cc-resolucion" value="motor_limpio"> Motor limpio sin fugas</label>
+                <label style="display:flex;align-items:center;gap:7px;cursor:pointer"><input type="checkbox" name="cc-resolucion" value="tren_motriz"> Tren motriz armado y limpio</label>
+                <label style="display:flex;align-items:center;gap:7px;cursor:pointer"><input type="checkbox" name="cc-resolucion" value="llantas"> Llantas aseguradas y calibradas</label>
+                <label style="display:flex;align-items:center;gap:7px;cursor:pointer"><input type="checkbox" name="cc-resolucion" value="partes_moviles"> Partes móviles armadas</label>
+              </div>
+
+              <!-- Estado para entrega -->
+              <div style="font-size:10px;font-weight:700;color:var(--text-muted);text-transform:uppercase;margin-bottom:6px">Estado para entrega</div>
+              <div style="display:flex;flex-direction:column;gap:5px;margin-bottom:12px;font-size:11px">
+                <label style="display:flex;align-items:center;gap:7px;cursor:pointer"><input type="checkbox" name="cc-estado-entrega" value="carroceria_limpia"> Carrocería limpia sin grasa</label>
+                <label style="display:flex;align-items:center;gap:7px;cursor:pointer"><input type="checkbox" name="cc-estado-entrega" value="cabina_limpia"> Cabina limpia sin residuos</label>
+                <label style="display:flex;align-items:center;gap:7px;cursor:pointer"><input type="checkbox" name="cc-estado-entrega" value="cabina_sin_herramientas"> Cabina libre de herramientas</label>
+                <label style="display:flex;align-items:center;gap:7px;cursor:pointer"><input type="checkbox" name="cc-estado-entrega" value="cabina_sin_equipo"> Cabina libre de equipo técnico</label>
+                <label style="display:flex;align-items:center;gap:7px;cursor:pointer"><input type="checkbox" name="cc-estado-entrega" value="motor_sin_herramientas"> Motor libre de herramientas</label>
+              </div>
+
+              <!-- Fluidos -->
+              <div style="font-size:10px;font-weight:700;color:var(--text-muted);text-transform:uppercase;margin-bottom:6px">Fluidos al salir</div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-bottom:12px;font-size:11px">
+                <label style="display:flex;align-items:center;gap:7px;cursor:pointer"><input type="checkbox" name="cc-fluidos" value="aceite_motor"> Aceite motor</label>
+                <label style="display:flex;align-items:center;gap:7px;cursor:pointer"><input type="checkbox" name="cc-fluidos" value="liq_frenos"> Líquido frenos</label>
+                <label style="display:flex;align-items:center;gap:7px;cursor:pointer"><input type="checkbox" name="cc-fluidos" value="embrague"> Embrague</label>
+                <label style="display:flex;align-items:center;gap:7px;cursor:pointer"><input type="checkbox" name="cc-fluidos" value="refrigerante"> Refrigerante</label>
+                <label style="display:flex;align-items:center;gap:7px;cursor:pointer"><input type="checkbox" name="cc-fluidos" value="aceite_hidraulico"> Aceite hidráulico</label>
+                <label style="display:flex;align-items:center;gap:7px;cursor:pointer"><input type="checkbox" name="cc-fluidos" value="limpiaparabrisas"> Limpiaparabrisas</label>
+              </div>
+
+              <!-- Inventario -->
+              <div style="font-size:10px;font-weight:700;color:var(--text-muted);text-transform:uppercase;margin-bottom:6px">Inventario al salir</div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-bottom:12px;font-size:11px">
+                <label style="display:flex;align-items:center;gap:7px;cursor:pointer"><input type="checkbox" name="cc-inventario" value="llanta_repuesto"> Llanta repuesto</label>
+                <label style="display:flex;align-items:center;gap:7px;cursor:pointer"><input type="checkbox" name="cc-inventario" value="kit_carretera"> Kit carretera</label>
+                <label style="display:flex;align-items:center;gap:7px;cursor:pointer"><input type="checkbox" name="cc-inventario" value="herramientas"> Herramientas</label>
+                <label style="display:flex;align-items:center;gap:7px;cursor:pointer"><input type="checkbox" name="cc-inventario" value="botiquin"> Botiquín</label>
+                <label style="display:flex;align-items:center;gap:7px;cursor:pointer"><input type="checkbox" name="cc-inventario" value="extintor"> Extintor</label>
+              </div>
+
+              <!-- Observaciones -->
+              <div class="fg" style="margin-bottom:12px">
+                <label style="font-size:10px;font-weight:700;color:var(--text-muted);text-transform:uppercase">Observaciones</label>
+                <textarea id="cc-observaciones" placeholder="Observaciones generales del control…" style="min-height:50px;font-size:11px"></textarea>
+              </div>
+
+              <!-- Aprobación -->
+              <div style="font-size:10px;font-weight:700;color:var(--text-muted);text-transform:uppercase;margin-bottom:8px">¿Aprueba control de calidad?</div>
+              <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:10px;font-size:12px">
+                <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:10px 12px;border:0.5px solid var(--border);border-radius:var(--radius);background:var(--surface-1)">
+                  <input type="radio" name="cc-aprobacion" value="si" onchange="ccToggleAprobacion('si')">
+                  <span>✅ Sí, todo correcto</span>
+                </label>
+                <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:10px 12px;border:0.5px solid var(--border);border-radius:var(--radius);background:var(--surface-1)">
+                  <input type="radio" name="cc-aprobacion" value="no" onchange="ccToggleAprobacion('no')">
+                  <span>❌ No, requiere corrección</span>
+                </label>
+              </div>
+              <div id="cc-correccion-box" style="display:none">
+                <div class="fg" style="margin:0">
+                  <label style="color:#ef4444;font-size:11px;font-weight:600">¿Qué requiere corrección? <span style="color:#ef4444">*</span></label>
+                  <textarea id="cc-correccion" placeholder="Describe qué debe corregirse antes de entregar…" style="min-height:60px;font-size:11px;border-color:#ef4444"></textarea>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div><!-- /grid 2 col -->
+      </div><!-- /modal-body -->
+      <div class="modal-footer">
+        <button class="btn" onclick="cerrarModalControlCalidad()"><i class="ti ti-x"></i> CANCELAR</button>
+        <button class="btn bpa" style="padding:12px 24px;font-size:13px;font-weight:700" onclick="ccGuardarControl()">
+          <i class="ti ti-check"></i> GUARDAR CONTROL DE CALIDAD
+        </button>
+      </div>
+    </div>
+  </div><!-- /#modal-control-calidad -->
+
+  <!-- ===== MODAL: NOTIFICACIÓN POST-CONTROL ===== -->
+  <div id="modal-control-notificacion" class="modal-overlay" style="display:none" onclick="if(event.target===this)cerrarModalControlNotif()">
+    <div class="modal-pequeno">
+      <div class="modal-header">
+        <h3 style="font-size:14px;font-weight:600;margin:0">🚗 ¡Vehículo listo para entregar!</h3>
+        <button class="modal-close" onclick="cerrarModalControlNotif()">×</button>
+      </div>
+      <div class="modal-body" style="padding:20px">
+        <div style="background:var(--bg-success,#dcfce7);border:0.5px solid var(--text-success,#16a34a);border-radius:var(--radius);padding:14px;margin-bottom:18px;font-size:12px;color:var(--text-success,#16a34a);line-height:1.6;text-align:center">
+          <div style="font-size:24px;margin-bottom:6px">🎉</div>
+          <strong>Control de calidad aprobado.</strong><br>
+          <span style="font-size:11px;color:var(--text-secondary)">¿Cómo notificar al cliente que está listo?</span>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:10px">
+          <button class="btn bpw" style="justify-content:center;padding:14px;font-size:13px;font-weight:600" onclick="ccNotificarClienteWA()">
+            <i class="ti ti-brand-whatsapp" style="font-size:16px"></i>&nbsp; 📱 NOTIFICAR POR WHATSAPP
+          </button>
+          <button class="btn" style="justify-content:center;padding:12px;font-size:12px;color:var(--text-muted)" onclick="ccAvanzarSinNotificar()">
+            AVANZAR SIN NOTIFICAR
+          </button>
+        </div>
+      </div>
+    </div>
+  </div><!-- /#modal-control-notificacion -->
 
   <!-- ===== MODAL: ENCUESTA SATISFACCIÓN ===== -->
   <div id="modal-encuesta" class="modal-overlay" style="display:none" onclick="if(event.target===this)cerrarModalEncuesta()">

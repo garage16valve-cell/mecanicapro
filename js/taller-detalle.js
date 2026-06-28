@@ -533,6 +533,354 @@ function _diagGuardar() {
   }
 }
 
+// ===== MÓDULO: CONTROL DE CALIDAD =====
+
+let _ccOtId  = null;
+let _ccFotos = [];
+
+// Extender patch de abrirDetalleOT para panel de control
+(function _setupControlPatch() {
+  const orig = window.abrirDetalleOT;
+  if (!orig) { setTimeout(_setupControlPatch, 80); return; }
+  window.abrirDetalleOT = function(id) {
+    orig(id);
+    setTimeout(() => {
+      const ots = APP.lsGet('mp_ots', []);
+      const ot  = ots.find(o => o.id === id);
+      if (ot) _detControlPanelRender(ot);
+    }, 0);
+  };
+})();
+
+function _detControlPanelRender(ot) {
+  const panel = document.getElementById('det-panel-control');
+  if (!panel) return;
+  const show = ot.fase === 'reparacion' || ot.fase === 'control';
+  if (!show) { panel.style.display = 'none'; return; }
+  panel.style.display = '';
+
+  const titleEl = document.getElementById('det-control-fase-title');
+  const descEl  = document.getElementById('det-control-fase-desc');
+  const btnEl   = document.getElementById('det-control-btn');
+
+  if (ot.fase === 'reparacion') {
+    if (titleEl) titleEl.textContent = '🔧 Fase: Reparación';
+    if (descEl)  descEl.textContent  = 'La reparación está en proceso. Cuando esté lista, avanza a Control de Calidad para verificar el trabajo antes de entregar al cliente.';
+    if (btnEl) {
+      btnEl.textContent = '✅ AVANZAR A CONTROL DE CALIDAD';
+      btnEl.onclick     = mostrarModalEvidenciaReparacion;
+    }
+  } else {
+    if (titleEl) titleEl.textContent = '🔍 Fase: Control de Calidad';
+    if (descEl)  descEl.textContent  = 'El vehículo está pendiente del control de calidad. Realiza el checklist antes de entregar al cliente.';
+    if (btnEl) {
+      btnEl.textContent = '🔍 REALIZAR CONTROL DE CALIDAD';
+      btnEl.onclick     = abrirModalControlCalidad;
+    }
+  }
+}
+
+// ---- Modal evidencia de reparación ----
+function mostrarModalEvidenciaReparacion() {
+  if (!window._otDetalleId) return;
+  _ccOtId  = window._otDetalleId;
+  _ccFotos = [];
+  _ccRenderFotosEvidencia();
+  const panel = document.getElementById('cc-ev-upload-panel');
+  if (panel) panel.style.display = 'none';
+  const m = document.getElementById('modal-evidencia-reparacion');
+  if (m) m.style.display = 'flex';
+}
+
+function cerrarModalEvidenciaRep() {
+  const m = document.getElementById('modal-evidencia-reparacion');
+  if (m) m.style.display = 'none';
+}
+
+function _ccRenderFotosEvidencia() {
+  const el = document.getElementById('cc-ev-fotos-preview');
+  if (!el) return;
+  if (!_ccFotos.length) {
+    el.innerHTML = '<div style="font-size:11px;color:var(--text-muted);text-align:center;padding:10px">Sin fotos agregadas aún</div>';
+    return;
+  }
+  el.innerHTML = _ccFotos.map((src, i) => `
+    <div style="position:relative;display:inline-block;margin:4px">
+      <img src="${src}" style="width:72px;height:72px;object-fit:cover;border-radius:6px;border:0.5px solid var(--border)">
+      <button onclick="_ccEliminarFotoEv(${i})" style="position:absolute;top:-6px;right:-6px;background:#ef4444;color:#fff;border:none;border-radius:50%;width:18px;height:18px;font-size:12px;cursor:pointer;line-height:1">×</button>
+    </div>`).join('');
+}
+
+function _ccEliminarFotoEv(i) { _ccFotos.splice(i, 1); _ccRenderFotosEvidencia(); }
+
+function _ccManejarFotosEv(input) {
+  const restantes = 10 - _ccFotos.length;
+  if (restantes <= 0) { APP.toast.show('Máximo 10 fotos', 'warning'); input.value = ''; return; }
+  Array.from(input.files).slice(0, restantes).forEach(file => {
+    const reader = new FileReader();
+    reader.onload = e => { _ccFotos.push(e.target.result); _ccRenderFotosEvidencia(); };
+    reader.readAsDataURL(file);
+  });
+  input.value = '';
+}
+
+function ccMostrarUploadEvidencia() {
+  const panel = document.getElementById('cc-ev-upload-panel');
+  if (panel) panel.style.display = '';
+  const btn = document.getElementById('cc-ev-btn-continuar');
+  if (btn) btn.style.display = '';
+}
+
+function ccIncluirEvidencia() {
+  if (_ccFotos.length) {
+    const ots = APP.lsGet('mp_ots', []);
+    const idx = ots.findIndex(o => o.id === _ccOtId);
+    if (idx >= 0) {
+      ots[idx].evidencia_reparacion = [..._ccFotos];
+      APP.lsSet('mp_ots', ots);
+    }
+  }
+  cerrarModalEvidenciaRep();
+  abrirModalControlCalidad();
+}
+
+function ccAvanzarSinEvidencia() {
+  cerrarModalEvidenciaRep();
+  abrirModalControlCalidad();
+}
+
+// ---- Modal principal de control de calidad ----
+function abrirModalControlCalidad() {
+  if (!_ccOtId) _ccOtId = window._otDetalleId;
+  if (!_ccOtId) return;
+
+  const ots = APP.lsGet('mp_ots', []);
+  const idx = ots.findIndex(o => o.id === _ccOtId);
+  if (idx < 0) return;
+
+  if (ots[idx].fase === 'reparacion') {
+    const ahora = new Date();
+    ots[idx].fase = 'control';
+    ots[idx].historial = [...(ots[idx].historial || []), {
+      estado:  'control_iniciado',
+      label:   'Control de calidad iniciado',
+      emoji:   '🔍',
+      ts:      ahora.toISOString(),
+      hora:    ahora.toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' }),
+      fecha:   ahora.toLocaleDateString('es-CL'),
+    }];
+    APP.lsSet('mp_ots', ots);
+  }
+
+  const ot = ots[idx];
+  _ccPopularResumen(ot);
+
+  // Limpiar checklist
+  document.querySelectorAll('#modal-control-calidad input[type="checkbox"]').forEach(cb => cb.checked = false);
+  document.querySelectorAll('#modal-control-calidad input[type="radio"]').forEach(r => r.checked = false);
+  const obs = document.getElementById('cc-observaciones');
+  if (obs) obs.value = '';
+  const corr = document.getElementById('cc-servicios-adicionales');
+  if (corr) corr.value = '';
+  const corrBox = document.getElementById('cc-correccion-box');
+  if (corrBox) corrBox.style.display = 'none';
+
+  const kmEl = document.getElementById('cc-km-salida');
+  if (kmEl) kmEl.value = ot.kilometraje?.entrada || '';
+
+  const m = document.getElementById('modal-control-calidad');
+  if (m) m.style.display = 'flex';
+}
+
+function cerrarModalControlCalidad() {
+  const m = document.getElementById('modal-control-calidad');
+  if (m) m.style.display = 'none';
+  const id = _ccOtId;
+  _ccOtId = null;
+  if (id) abrirDetalleOT(id);
+}
+
+function _ccPopularResumen(ot) {
+  const motivos = ot.motivos || [];
+
+  const diagEl = document.getElementById('cc-resumen-diagnostico');
+  if (diagEl) {
+    diagEl.innerHTML = motivos.length
+      ? motivos.map((m, i) => `
+          <div style="margin-bottom:6px;padding:6px 8px;background:var(--surface-1);border-radius:var(--radius);border-left:3px solid #2563eb">
+            <div style="font-size:10px;font-weight:700;color:var(--text-muted);text-transform:uppercase">${m.descripcion || 'Motivo ' + (i + 1)}</div>
+            <div style="font-size:11px;margin-top:3px">${m.diagnostico || '—'}</div>
+          </div>`).join('')
+      : '<div style="font-size:11px;color:var(--text-muted)">Sin diagnóstico registrado</div>';
+  }
+
+  const procEl = document.getElementById('cc-resumen-procedimientos');
+  if (procEl) {
+    const procs = motivos.filter(m => m.diagnostico).map(m => m.descripcion || '—');
+    procEl.innerHTML = procs.length
+      ? procs.map(p => `<div style="font-size:11px;padding:2px 0">• ${p}</div>`).join('')
+      : '<div style="font-size:11px;color:var(--text-muted)">—</div>';
+  }
+
+  const moEl = document.getElementById('cc-resumen-mano-obra');
+  if (moEl) {
+    const totalHrs = motivos.reduce((s, m) => s + (parseFloat(m.horas_reparacion) || 0), 0);
+    moEl.textContent = totalHrs ? `${totalHrs} hrs` : '—';
+  }
+
+  const repsEl = document.getElementById('cc-resumen-repuestos');
+  if (repsEl) {
+    const reps = motivos.flatMap(m => m.repuestos || []);
+    repsEl.innerHTML = reps.length
+      ? reps.map(r => `<div style="font-size:11px;padding:2px 0">• ${r.nombre} <span style="color:var(--text-muted)">(x${r.cantidad || 1})</span></div>`).join('')
+      : '<div style="font-size:11px;color:var(--text-muted)">Sin repuestos</div>';
+  }
+
+  const insEl = document.getElementById('cc-resumen-insumos');
+  if (insEl) {
+    const ins = motivos.flatMap(m => m.insumos || []);
+    insEl.innerHTML = ins.length
+      ? ins.map(r => `<div style="font-size:11px;padding:2px 0">• ${r.nombre} <span style="color:var(--text-muted)">(x${r.cantidad || 1})</span></div>`).join('')
+      : '<div style="font-size:11px;color:var(--text-muted)">Sin insumos</div>';
+  }
+}
+
+function ccToggleAprobacion(val) {
+  const corrBox = document.getElementById('cc-correccion-box');
+  if (corrBox) corrBox.style.display = val === 'no' ? '' : 'none';
+}
+
+function _ccGetChecked(name) {
+  return Array.from(document.querySelectorAll(`#modal-control-calidad input[name="${name}"]:checked`))
+    .map(cb => cb.value);
+}
+
+function ccGuardarControl() {
+  if (!_ccOtId) return;
+
+  const aprobadoEl = document.querySelector('#modal-control-calidad input[name="cc-aprobacion"]:checked');
+  if (!aprobadoEl) {
+    APP.toast.show('Debes indicar si aprueba o no el control de calidad', 'warning');
+    return;
+  }
+  const aprobado = aprobadoEl.value === 'si';
+
+  if (!aprobado) {
+    const corr = document.getElementById('cc-correccion')?.value.trim();
+    if (!corr) { APP.toast.show('Indica qué requiere corrección', 'warning'); return; }
+  }
+
+  const ots = APP.lsGet('mp_ots', []);
+  const idx = ots.findIndex(o => o.id === _ccOtId);
+  if (idx < 0) return;
+
+  const sesion  = APP.lsGet('mp_sesion') || {};
+  const usuario = sesion.nombre || 'Técnico';
+  const ahora   = new Date();
+  const kmSalida = parseInt(document.getElementById('cc-km-salida')?.value) || 0;
+
+  ots[idx].control_calidad = {
+    kilometraje_salida: kmSalida,
+    resolucion_averia:  _ccGetChecked('cc-resolucion'),
+    estado_entrega:     _ccGetChecked('cc-estado-entrega'),
+    fluidos_salida:     _ccGetChecked('cc-fluidos'),
+    inventario_salida:  _ccGetChecked('cc-inventario'),
+    observaciones:      document.getElementById('cc-observaciones')?.value.trim() || '',
+    aprobado,
+    aprobado_por:       usuario,
+    fecha:              ahora.getTime(),
+  };
+
+  if (kmSalida) {
+    if (!ots[idx].kilometraje) ots[idx].kilometraje = {};
+    ots[idx].kilometraje.salida = kmSalida;
+  }
+
+  const id = _ccOtId;
+
+  if (aprobado) {
+    ots[idx].fase = 'entrega';
+    ots[idx].historial = [...(ots[idx].historial || []), {
+      estado:  'control_aprobado',
+      label:   `Control de calidad aprobado por ${usuario}`,
+      emoji:   '✅',
+      ts:      ahora.toISOString(),
+      hora:    ahora.toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' }),
+      fecha:   ahora.toLocaleDateString('es-CL'),
+      detalle: 'Control de calidad completado. OT avanza a Entrega.',
+    }];
+    APP.lsSet('mp_ots', ots);
+    _ccOtId = null;
+    const m = document.getElementById('modal-control-calidad');
+    if (m) m.style.display = 'none';
+    setTimeout(() => _ccMostrarModalNotificacion(id), 150);
+    APP.toast.show('✅ Control aprobado — OT avanza a Entrega', 'success');
+  } else {
+    const correccion = document.getElementById('cc-correccion')?.value.trim() || '';
+    ots[idx].fase = 'reparacion';
+    ots[idx].historial = [...(ots[idx].historial || []), {
+      estado:  'control_rechazado',
+      label:   `Control rechazado por ${usuario} — requiere corrección`,
+      emoji:   '❌',
+      ts:      ahora.toISOString(),
+      hora:    ahora.toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' }),
+      fecha:   ahora.toLocaleDateString('es-CL'),
+      detalle: correccion,
+    }];
+    APP.lsSet('mp_ots', ots);
+    _ccOtId = null;
+    const m = document.getElementById('modal-control-calidad');
+    if (m) m.style.display = 'none';
+    abrirDetalleOT(id);
+    APP.toast.show('⚠️ Control no aprobado — OT vuelve a Reparación', 'warning');
+  }
+}
+
+// ---- Modal notificación post-control ----
+let _ccNotifOtId = null;
+
+function _ccMostrarModalNotificacion(otId) {
+  _ccNotifOtId = otId;
+  const m = document.getElementById('modal-control-notificacion');
+  if (m) m.style.display = 'flex';
+}
+
+function cerrarModalControlNotif() {
+  const m = document.getElementById('modal-control-notificacion');
+  if (m) m.style.display = 'none';
+  const id = _ccNotifOtId;
+  _ccNotifOtId = null;
+  if (id) abrirDetalleOT(id);
+}
+
+function ccNotificarClienteWA() {
+  if (!_ccNotifOtId) return;
+  const ots    = APP.lsGet('mp_ots', []);
+  const ot     = ots.find(o => o.id === _ccNotifOtId);
+  if (!ot) return;
+
+  const config  = APP.lsGet('mp_config') || {};
+  const taller  = config.nombre || 'el taller';
+  const cliente = ot.clienteNombre || 'Cliente';
+  const veh     = [ot.marca, ot.modelo].filter(Boolean).join(' ') || 'vehículo';
+  const pat     = ot.patente ? ` placa ${ot.patente}` : '';
+  const msg     = `Hola ${cliente} 🎉, tu ${veh}${pat} está listo para retirar en ${taller}. ¡Te esperamos! 🚗✅`;
+
+  const wzNum = (ot.wz || '').replace(/\D/g, '');
+  window.open(
+    wzNum
+      ? `https://wa.me/${wzNum}?text=${encodeURIComponent(msg)}`
+      : `https://wa.me/?text=${encodeURIComponent(msg)}`,
+    '_blank'
+  );
+  APP.toast.show('📱 Notificación enviada por WhatsApp', 'success');
+  cerrarModalControlNotif();
+}
+
+function ccAvanzarSinNotificar() {
+  cerrarModalControlNotif();
+}
+
 // ---- Finalizar: avanzar OT a fase repuestos ----
 function _diagFinalizar() {
   if (!_diagOtId) return;
