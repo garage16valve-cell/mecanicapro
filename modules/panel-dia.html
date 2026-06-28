@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Panel del Día — MecánicaPro</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: #0d1117;
+    color: #e6edf3;
+    font-family: system-ui, -apple-system, sans-serif;
+    padding: 16px;
+    min-height: 100vh;
+  }
+
+  /* HEADER */
+  .header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+    background: #161b22;
+    border: 1px solid #30363d;
+    border-radius: 12px;
+    padding: 16px 24px;
+    margin-bottom: 20px;
+  }
+
+  .header-left { display: flex; flex-direction: column; gap: 2px; }
+  .taller-nombre { font-size: 20px; font-weight: 700; color: #58a6ff; }
+  .panel-label { font-size: 13px; color: #8b949e; letter-spacing: 0.05em; text-transform: uppercase; }
+
+  .header-center { text-align: center; }
+  .fecha-texto { font-size: 18px; font-weight: 600; }
+  .reloj { font-size: 36px; font-weight: 700; font-variant-numeric: tabular-nums; color: #e6edf3; line-height: 1; }
+
+  .header-right { display: flex; flex-direction: column; align-items: flex-end; gap: 8px; }
+  .contador {
+    font-size: 14px;
+    color: #8b949e;
+    font-variant-numeric: tabular-nums;
+  }
+  .btn-refresh {
+    background: #21262d;
+    border: 1px solid #30363d;
+    color: #e6edf3;
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-size: 14px;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .btn-refresh:hover { background: #30363d; }
+
+  /* KPIs */
+  .kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    margin-bottom: 20px;
+  }
+
+  .kpi-card {
+    background: #161b22;
+    border: 1px solid #30363d;
+    border-radius: 12px;
+    padding: 24px 16px;
+    text-align: center;
+  }
+
+  .kpi-emoji { font-size: 28px; line-height: 1; }
+  .kpi-label { font-size: 12px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: #8b949e; margin-top: 8px; }
+  .kpi-numero { font-size: 48px; font-weight: 700; line-height: 1; margin: 10px 0 6px; }
+  .kpi-sub { font-size: 12px; color: #8b949e; min-height: 16px; }
+
+  .kpi-amarillo .kpi-numero { color: #f0c64c; }
+  .kpi-verde   .kpi-numero { color: #3fb950; }
+  .kpi-rojo    .kpi-numero { color: #f85149; }
+  .kpi-azul    .kpi-numero { color: #58a6ff; }
+
+  /* LISTA OTs */
+  .seccion-titulo {
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: #8b949e;
+    margin-bottom: 10px;
+  }
+
+  .ot-lista { display: flex; flex-direction: column; gap: 6px; }
+
+  .ot-fila {
+    display: grid;
+    grid-template-columns: 8px 70px 110px 1fr 140px 160px;
+    align-items: center;
+    gap: 14px;
+    padding: 14px 18px;
+    border-radius: 8px;
+    border: 1px solid #30363d;
+    font-size: 15px;
+  }
+
+  .ot-barra { width: 8px; height: 40px; border-radius: 4px; flex-shrink: 0; }
+
+  .ot-hora { font-size: 16px; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .ot-patente {
+    background: #21262d;
+    border: 1px solid #30363d;
+    border-radius: 6px;
+    padding: 4px 10px;
+    font-weight: 700;
+    font-size: 15px;
+    text-align: center;
+    letter-spacing: 0.05em;
+  }
+
+  .ot-info { display: flex; flex-direction: column; gap: 2px; }
+  .ot-vehiculo { font-size: 15px; font-weight: 600; }
+  .ot-servicio { font-size: 13px; color: #8b949e; }
+
+  .ot-tecnico { font-size: 14px; color: #8b949e; }
+  .ot-estado-badge {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    text-align: center;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+
+  /* Colores fondo OT */
+  .ot-agendado  { background: rgba(234,179,8,0.08); border-color: rgba(234,179,8,0.2); }
+  .ot-en-proceso { background: rgba(34,197,94,0.08); border-color: rgba(34,197,94,0.2); }
+  .ot-sin-repuesto { background: rgba(239,68,68,0.08); border-color: rgba(239,68,68,0.2); }
+  .ot-listo     { background: rgba(59,130,246,0.08); border-color: rgba(59,130,246,0.2); }
+  .ot-pago      { background: rgba(249,115,22,0.08); border-color: rgba(249,115,22,0.2); }
+
+  .barra-agendado   { background: #eab308; }
+  .barra-en-proceso { background: #22c55e; }
+  .barra-sin-repuesto { background: #ef4444; }
+  .barra-listo      { background: #3b82f6; }
+  .barra-pago       { background: #f97316; }
+
+  .badge-agendado   { background: rgba(234,179,8,0.2);  color: #eab308; }
+  .badge-en-proceso { background: rgba(34,197,94,0.2);  color: #22c55e; }
+  .badge-sin-repuesto { background: rgba(239,68,68,0.2); color: #ef4444; }
+  .badge-listo      { background: rgba(59,130,246,0.2); color: #3b82f6; }
+  .badge-pago       { background: rgba(249,115,22,0.2); color: #f97316; }
+
+  /* SIN OTs */
+  .sin-ots {
+    text-align: center;
+    padding: 40px;
+    color: #8b949e;
+    font-size: 16px;
+    background: #161b22;
+    border: 1px solid #30363d;
+    border-radius: 12px;
+  }
+
+  /* ALERTAS */
+  .alerta-box {
+    margin-top: 20px;
+    padding: 16px 20px;
+    border-radius: 10px;
+    background: rgba(239,68,68,0.10);
+    border: 1px solid rgba(239,68,68,0.3);
+  }
+
+  .alerta-titulo {
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: #f85149;
+    margin-bottom: 10px;
+  }
+
+  .alerta-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 8px 0;
+    border-bottom: 1px solid rgba(239,68,68,0.15);
+    font-size: 14px;
+    color: #ffa198;
+  }
+
+  .alerta-item:last-child { border-bottom: none; }
+
+  /* Responsive */
+  @media (max-width: 1024px) {
+    .ot-fila { grid-template-columns: 8px 70px 100px 1fr 1fr; }
+    .ot-tecnico { display: none; }
+  }
+
+  @media (max-width: 768px) {
+    .kpi-grid { grid-template-columns: repeat(2, 1fr); }
+    .ot-fila { grid-template-columns: 8px 60px 1fr; font-size: 14px; }
+    .ot-patente, .ot-estado-badge, .ot-tecnico { display: none; }
+    .reloj { font-size: 28px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-left">
+    <div class="taller-nombre" id="taller-nombre">Cargando…</div>
+    <div class="panel-label">📺 Panel del día</div>
+  </div>
+  <div class="header-center">
+    <div class="fecha-texto" id="fecha-texto"></div>
+    <div class="reloj" id="reloj">--:--:--</div>
+  </div>
+  <div class="header-right">
+    <div class="contador" id="contador">↺ Actualiza en 5:00</div>
+    <button class="btn-refresh" onclick="actualizarTodo()">↺ Actualizar ahora</button>
+  </div>
+</div>
+
+<div class="kpi-grid">
+  <div class="kpi-card kpi-amarillo">
+    <div class="kpi-emoji">🟡</div>
+    <div class="kpi-label">Citas hoy</div>
+    <div class="kpi-numero" id="kpi-citas">—</div>
+    <div class="kpi-sub" id="kpi-citas-sub"></div>
+  </div>
+  <div class="kpi-card kpi-verde">
+    <div class="kpi-emoji">🟢</div>
+    <div class="kpi-label">En taller</div>
+    <div class="kpi-numero" id="kpi-taller">—</div>
+    <div class="kpi-sub"></div>
+  </div>
+  <div class="kpi-card kpi-rojo">
+    <div class="kpi-emoji">🔴</div>
+    <div class="kpi-label">Sin repuesto</div>
+    <div class="kpi-numero" id="kpi-repuesto">—</div>
+    <div class="kpi-sub"></div>
+  </div>
+  <div class="kpi-card kpi-azul">
+    <div class="kpi-emoji">🔵</div>
+    <div class="kpi-label">Listos para retirar</div>
+    <div class="kpi-numero" id="kpi-listos">—</div>
+    <div class="kpi-sub"></div>
+  </div>
+</div>
+
+<div class="seccion-titulo">OTs del día</div>
+<div class="ot-lista" id="ot-lista">
+  <div class="sin-ots">Cargando…</div>
+</div>
+
+<div id="alertas-box"></div>
+
+<script>
+  const FASES_EN_TALLER = ['diagnostico','repuestos','aprobacion','reparacion','control'];
+
+  const DIAS = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
+  const MESES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+
+  let segundosRestantes = 300;
+
+  function leer(clave, defecto) {
+    try { return JSON.parse(localStorage.getItem(clave)) ?? defecto; } catch { return defecto; }
+  }
+
+  function esFechaHoy(fechaStr) {
+    if (!fechaStr) return false;
+    const hoy = new Date();
+    const hoyStr = `${hoy.getFullYear()}-${String(hoy.getMonth()+1).padStart(2,'0')}-${String(hoy.getDate()).padStart(2,'0')}`;
+    return fechaStr.startsWith(hoyStr);
+  }
+
+  function clasificarOT(ot) {
+    if (ot.estado === 'sin_repuesto') return 'sin-repuesto';
+    if (ot.fase === 'entrega') return 'listo';
+    if (ot.fase === 'pago_pendiente' || ot.estado === 'pago_pendiente') return 'pago';
+    if (FASES_EN_TALLER.includes(ot.fase)) return 'en-proceso';
+    return 'agendado';
+  }
+
+  function labelEstado(clase) {
+    const map = {
+      'agendado': 'Agendado',
+      'en-proceso': 'En proceso',
+      'sin-repuesto': 'Sin repuesto',
+      'listo': 'Listo ✓',
+      'pago': 'Pago pendiente'
+    };
+    return map[clase] || clase;
+  }
+
+  function horaOT(ot) {
+    if (ot.hora_cita) return ot.hora_cita.slice(0,5);
+    if (ot.fecha_cita && ot.fecha_cita.length > 10) {
+      return ot.fecha_cita.slice(11,16);
+    }
+    return '—';
+  }
+
+  function vehiculoLabel(ot) {
+    const partes = [ot.marca, ot.modelo, ot.anio].filter(Boolean);
+    return partes.length ? partes.join(' ') : (ot.vehiculo || 'Vehículo');
+  }
+
+  function actualizarFechaHora() {
+    const ahora = new Date();
+    const dia = DIAS[ahora.getDay()];
+    const fecha = `${dia} ${ahora.getDate()} ${MESES[ahora.getMonth()]} ${ahora.getFullYear()}`;
+    document.getElementById('fecha-texto').textContent = fecha;
+
+    const hh = String(ahora.getHours()).padStart(2,'0');
+    const mm = String(ahora.getMinutes()).padStart(2,'0');
+    const ss = String(ahora.getSeconds()).padStart(2,'0');
+    document.getElementById('reloj').textContent = `${hh}:${mm}:${ss}`;
+  }
+
+  function actualizarContador() {
+    segundosRestantes--;
+    if (segundosRestantes <= 0) {
+      segundosRestantes = 300;
+      actualizarDatos();
+    }
+    const m = Math.floor(segundosRestantes / 60);
+    const s = segundosRestantes % 60;
+    document.getElementById('contador').textContent =
+      `↺ Actualiza en ${m}:${String(s).padStart(2,'0')}`;
+  }
+
+  function actualizarDatos() {
+    segundosRestantes = 300;
+
+    const ots = leer('ots', []);
+    const config = leer('config', {});
+
+    // Nombre taller
+    document.getElementById('taller-nombre').textContent =
+      config.nombre || config.taller || 'MecánicaPro';
+
+    // KPIs
+    const citasHoy = ots.filter(o => esFechaHoy(o.fecha_cita) && o.fase === 'recepcion');
+    const enTaller = ots.filter(o => FASES_EN_TALLER.includes(o.fase));
+    const sinRepuesto = ots.filter(o => o.estado === 'sin_repuesto');
+    const listos = ots.filter(o => o.fase === 'entrega');
+
+    document.getElementById('kpi-citas').textContent = citasHoy.length;
+    document.getElementById('kpi-taller').textContent = enTaller.length;
+    document.getElementById('kpi-repuesto').textContent = sinRepuesto.length;
+    document.getElementById('kpi-listos').textContent = listos.length;
+
+    // Próxima cita hoy
+    const citasConHora = citasHoy
+      .filter(o => horaOT(o) !== '—')
+      .sort((a, b) => horaOT(a).localeCompare(horaOT(b)));
+    const ahora = new Date();
+    const horaActual = `${String(ahora.getHours()).padStart(2,'0')}:${String(ahora.getMinutes()).padStart(2,'0')}`;
+    const proxima = citasConHora.find(o => horaOT(o) >= horaActual);
+    document.getElementById('kpi-citas-sub').textContent =
+      proxima ? `Próx: ${horaOT(proxima)}` : '';
+
+    // Lista OTs del día (máx 10)
+    const otsHoy = ots
+      .filter(o => esFechaHoy(o.fecha_cita))
+      .sort((a, b) => horaOT(a).localeCompare(horaOT(b)))
+      .slice(0, 10);
+
+    const lista = document.getElementById('ot-lista');
+    if (otsHoy.length === 0) {
+      lista.innerHTML = '<div class="sin-ots">No hay OTs para hoy 🗓️</div>';
+    } else {
+      lista.innerHTML = otsHoy.map(ot => {
+        const clase = clasificarOT(ot);
+        const hora = horaOT(ot);
+        const patente = (ot.patente || '').toUpperCase();
+        const vehiculo = vehiculoLabel(ot);
+        const tecnico = ot.tecnico || ot.operario || '—';
+        const servicios = Array.isArray(ot.servicios)
+          ? ot.servicios.map(s => s.nombre || s).join(', ')
+          : (ot.servicio || ot.motivo || '');
+
+        return `
+          <div class="ot-fila ot-${clase}">
+            <div class="ot-barra barra-${clase}"></div>
+            <div class="ot-hora">${hora}</div>
+            <div class="ot-patente">${patente || '—'}</div>
+            <div class="ot-info">
+              <div class="ot-vehiculo">${vehiculo}</div>
+              ${servicios ? `<div class="ot-servicio">${servicios}</div>` : ''}
+            </div>
+            <div class="ot-tecnico">${tecnico}</div>
+            <div>
+              <span class="ot-estado-badge badge-${clase}">${labelEstado(clase)}</span>
+            </div>
+          </div>`;
+      }).join('');
+    }
+
+    // Alertas
+    const alertas = [];
+    const ahora2 = new Date();
+
+    ots.forEach(ot => {
+      const patente = (ot.patente || '').toUpperCase() || 'OT';
+
+      // Sin repuesto
+      if (ot.estado === 'sin_repuesto') {
+        let horasStr = '';
+        if (ot.fecha_sin_repuesto) {
+          const desde = new Date(ot.fecha_sin_repuesto);
+          const horas = Math.floor((ahora2 - desde) / 3600000);
+          horasStr = ` hace ${horas}h`;
+        }
+        alertas.push(`🔴 <strong>${patente}</strong> — Sin repuesto${horasStr}`);
+      }
+
+      // Cliente no llegó (cita hoy, fase recepcion, hora pasada + 30 min)
+      if (esFechaHoy(ot.fecha_cita) && ot.fase === 'recepcion') {
+        const hora = horaOT(ot);
+        if (hora !== '—') {
+          const [hh, mm] = hora.split(':').map(Number);
+          const citaDate = new Date(ahora2);
+          citaDate.setHours(hh, mm, 0, 0);
+          const diffMin = Math.floor((ahora2 - citaDate) / 60000);
+          if (diffMin >= 30) {
+            alertas.push(`⏰ <strong>${patente}</strong> — Cliente no llegó (cita ${hora}, han pasado ${diffMin} min)`);
+          }
+        }
+      }
+
+      // Pago pendiente
+      if (ot.fase === 'pago_pendiente' || ot.estado === 'pago_pendiente') {
+        const fechaStr = ot.fecha_pago_pendiente
+          ? new Date(ot.fecha_pago_pendiente).toLocaleDateString('es-CL')
+          : '';
+        alertas.push(`💰 <strong>${patente}</strong> — Pago pendiente${fechaStr ? ' desde ' + fechaStr : ''}`);
+      }
+    });
+
+    const alertasBox = document.getElementById('alertas-box');
+    if (alertas.length > 0) {
+      alertasBox.innerHTML = `
+        <div class="alerta-box">
+          <div class="alerta-titulo">⚠️ Requieren atención (${alertas.length})</div>
+          ${alertas.map(a => `<div class="alerta-item">${a}</div>`).join('')}
+        </div>`;
+    } else {
+      alertasBox.innerHTML = '';
+    }
+  }
+
+  function actualizarTodo() {
+    actualizarDatos();
+  }
+
+  // Inicializar
+  actualizarFechaHora();
+  actualizarDatos();
+
+  setInterval(actualizarFechaHora, 1000);
+  setInterval(actualizarContador, 1000);
+  setInterval(actualizarDatos, 300000);
+</script>
+</body>
+</html>
