@@ -301,6 +301,14 @@ function nfToggleExpress() {
   if (citaGroup) citaGroup.style.display = isExpress ? 'none' : 'flex';
   const recepcion = document.getElementById('nf-recepcion');
   if (recepcion) recepcion.style.display = isExpress ? 'block' : 'none';
+  // Auto-fijar fecha/hora actual al marcar Express
+  if (isExpress) {
+    const ahora = new Date();
+    const fechaEl = document.getElementById('nf-fecha-cita');
+    if (fechaEl) fechaEl.value = ahora.toISOString().slice(0, 10);
+    const horaEl = document.getElementById('nf-hora-cita');
+    if (horaEl) horaEl.value = ahora.toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit', hour12: false });
+  }
 }
 
 // Servicio search
