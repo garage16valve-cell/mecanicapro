@@ -1456,7 +1456,7 @@ function completarOT() {
 }
 
 // ===== PANEL DE PAGO =====
-let _pagoMetodo = null;
+// _pagoMetodo declarado en taller-pago.js (evitar re-declaración let)
 
 function abrirPanelPago() {
   if (!_otDetalleId) return;

@@ -328,6 +328,11 @@ function _elimSvcOT(i) { _otServicios.splice(i, 1); renderServiciosOT(); }
 
 // ─── CREAR OT ──────────────────────────────────────────────────────────────────
 
+// Exponer en window para acceso desde HTML inline
+window.abrirFormNuevaOT  = abrirFormNuevaOT;
+window.cerrarFormNuevaOT = cerrarFormNuevaOT;
+window.crearOT           = crearOT;
+
 function crearOT() {
   // ── Datos mínimos (quick mode)
   const patente = (document.getElementById('nq-patente')?.value || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
