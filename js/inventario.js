@@ -217,7 +217,7 @@ function renderProveedores(filtro = '') {
       ${p.notas ? `<div style="margin-top:7px;font-size:11px;color:var(--text-muted);background:var(--surface-0);border-radius:var(--radius);padding:6px 8px">${p.notas}</div>` : ''}`;
     c.appendChild(d);
   });
-  renderProveedoresStats(proveedores);
+  renderProvStats(proveedores);
 }
 
 function compartirProveedor(id) {
@@ -235,41 +235,29 @@ function compartirProveedor(id) {
   }
 }
 
-function renderProveedoresStats(proveedores) {
-  const el = document.getElementById('prov-estadisticas');
+function renderProvStats(proveedores) {
+  const el = document.getElementById('prov-stats');
   if (!el) return;
 
   const total = proveedores.length;
-  const conWz = proveedores.filter(p => p.wzp).length;
-  const porCat = {};
-  const porMarca = {};
-  proveedores.forEach(p => {
-    if (p.cat) porCat[p.cat] = (porCat[p.cat] || 0) + 1;
-    (p.marcas || []).forEach(m => { porMarca[m] = (porMarca[m] || 0) + 1; });
-  });
-  const topCat = Object.entries(porCat).sort((a, b) => b[1] - a[1]).slice(0, 4);
-  const topMarca = Object.entries(porMarca).sort((a, b) => b[1] - a[1]).slice(0, 6);
+  const marcasUnicas = [...new Set(proveedores.flatMap(p => p.marcas || []))];
+  const sinWz = proveedores.filter(p => !p.wzp).length;
 
   el.innerHTML = `
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">
       <div style="background:var(--surface-0);border-radius:var(--radius);padding:10px;text-align:center">
         <div style="font-size:20px;font-weight:700;color:var(--text-accent)">${total}</div>
-        <div style="font-size:10px;color:var(--text-muted)">Total</div>
+        <div style="font-size:10px;color:var(--text-muted)">Total proveedores</div>
       </div>
       <div style="background:var(--surface-0);border-radius:var(--radius);padding:10px;text-align:center">
-        <div style="font-size:20px;font-weight:700;color:var(--text-success)">${conWz}</div>
-        <div style="font-size:10px;color:var(--text-muted)">Con WhatsApp</div>
+        <div style="font-size:20px;font-weight:700;color:var(--text-success)">${marcasUnicas.length}</div>
+        <div style="font-size:10px;color:var(--text-muted)">Marcas cubiertas</div>
       </div>
     </div>
-    ${topCat.length ? `
-      <div style="font-size:10px;font-weight:600;color:var(--text-muted);text-transform:uppercase;margin-bottom:5px">Por categoría</div>
-      <div style="display:flex;flex-direction:column;gap:3px;margin-bottom:12px">
-        ${topCat.map(([cat, n]) => `<div style="display:flex;justify-content:space-between;font-size:11px;padding:3px 6px;background:var(--surface-0);border-radius:var(--radius)"><span>${cat}</span><span style="font-weight:500">${n}</span></div>`).join('')}
-      </div>` : ''}
-    ${topMarca.length ? `
-      <div style="font-size:10px;font-weight:600;color:var(--text-muted);text-transform:uppercase;margin-bottom:5px">Marcas más abastecidas</div>
-      <div style="display:flex;flex-direction:column;gap:3px">
-        ${topMarca.map(([m, n]) => `<div style="display:flex;justify-content:space-between;font-size:11px;padding:3px 6px;background:var(--surface-0);border-radius:var(--radius)"><span>${m}</span><span style="font-weight:500">${n}</span></div>`).join('')}
+    ${sinWz ? `
+      <div style="background:var(--surface-0);border-radius:var(--radius);padding:10px;text-align:center">
+        <div style="font-size:20px;font-weight:700;color:var(--text-danger)">${sinWz}</div>
+        <div style="font-size:10px;color:var(--text-muted)">Sin WhatsApp</div>
       </div>` : ''}`;
 }
 

@@ -10,7 +10,7 @@
 
 <!-- PROVEEDORES -->
 <div class="page" id="pg-proveedores">
-  <div class="g2">
+  <div style="display:grid;grid-template-columns:1fr 300px;gap:14px">
     <!-- Lista proveedores (70%) -->
     <div>
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
@@ -20,15 +20,15 @@
         </div>
         <button class="btn bpa" onclick="abrirModalProveedor()"><i class="ti ti-plus"></i>Agregar proveedor</button>
       </div>
-      <div class="sb"><i class="ti ti-search" style="color:var(--text-muted);font-size:14px"></i><input placeholder="Buscar por nombre, marca o teléfono…" oninput="filtrarProveedores(this.value)"></div>
+      <div class="sb"><i class="ti ti-search" style="color:var(--text-muted);font-size:14px"></i><input id="prov-buscar" placeholder="Buscar por nombre, marca o teléfono…" oninput="filtrarProveedores(this.value)"></div>
       <div id="prov-list"></div>
     </div>
 
     <!-- Panel estadísticas (30%) -->
     <div>
       <div class="card">
-        <div class="ch"><span class="ct"><i class="ti ti-chart-bar" style="font-size:13px"></i> Estadísticas</span></div>
-        <div id="prov-estadisticas"></div>
+        <div class="ch"><span class="ct">Estadísticas</span></div>
+        <div id="prov-stats"></div>
       </div>
     </div>
   </div>
