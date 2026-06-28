@@ -23,21 +23,36 @@ function invSetTab(tab) {
 // ===== CONFIG REPUESTOS =====
 function _invCargarConfigRepuestos() {
   const cfg = APP.lsGet('rep_config', {});
-  const s = (id, v) => { const el = document.getElementById(id); if (el) el.value = v ?? ''; };
-  s('rep-cfg-ganancia',   cfg.ganancia || 30);
-  s('rep-cfg-precio-min', cfg.precio_min_hora || '');
-  const iva = document.getElementById('rep-cfg-iva');
-  if (iva) iva.checked = !!cfg.iva_defecto;
+  const el = document.getElementById('rep-cfg-ganancia');
+  if (el) el.value = cfg.ganancia || 30;
+  repCalcEjemplo();
 }
 
 function invGuardarConfigRepuestos() {
   const g = id => (document.getElementById(id)?.value || '').trim();
   const cfg = {};
-  cfg.ganancia        = parseFloat(g('rep-cfg-ganancia'))   || 0;
-  cfg.precio_min_hora = parseFloat(g('rep-cfg-precio-min')) || 0;
-  cfg.iva_defecto     = !!document.getElementById('rep-cfg-iva')?.checked;
+  cfg.ganancia    = parseFloat(g('rep-cfg-ganancia')) || 0;
+  cfg.iva_defecto = !!document.getElementById('rep-cfg-iva')?.checked;
   APP.lsSet('rep_config', cfg);
   APP.toast.show('Configuración guardada', 'success');
+}
+
+function repCalcEjemplo() {
+  const ganancia = parseFloat(document.getElementById('rep-cfg-ganancia')?.value) || 0;
+  const precio   = 10000;
+  const sinIva   = Math.round(precio * (1 + ganancia / 100));
+  const el       = document.getElementById('rep-calc-ejemplo');
+  if (el) el.textContent = '$' + sinIva.toLocaleString('es-CL') + ' CLP (sin IVA)';
+  const chk = document.getElementById('rep-cfg-iva');
+  const ivaEl = document.getElementById('rep-calc-iva');
+  if (chk && ivaEl) {
+    if (chk.checked) {
+      ivaEl.style.display = '';
+      ivaEl.textContent = '$' + Math.round(sinIva * 1.19).toLocaleString('es-CL') + ' CLP (c/IVA 19%)';
+    } else {
+      ivaEl.style.display = 'none';
+    }
+  }
 }
 
 // ===== INVENTARIO DE REPUESTOS =====
