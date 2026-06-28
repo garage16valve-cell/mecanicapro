@@ -648,7 +648,10 @@ function abrirFormNuevaOT() {
   const listado = document.getElementById('ot-listado');
   if (listado) listado.style.display = 'none';
   const el = document.getElementById('ot-nueva');
-  if (el) { el.style.display = 'flex'; }
+  if (el) {
+    el.style.display = 'flex';
+    el.onclick = function(e) { if (e.target === this) { e.preventDefault(); e.stopPropagation(); } };
+  }
 }
 
 function cerrarFormNuevaOT() {
