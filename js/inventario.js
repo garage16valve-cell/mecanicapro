@@ -204,6 +204,7 @@ function renderProveedores(filtro = '') {
           <div style="font-size:11px;color:var(--text-muted)">${p.vendedor || '—'} · ${p.cat || '—'}</div>
         </div>
         <div style="display:flex;gap:4px">
+          <button class="btn" style="font-size:10px;padding:3px 7px" onclick="compartirProveedor(${p.id})" title="Compartir proveedor"><i class="ti ti-share"></i></button>
           <button class="btn" style="font-size:10px;padding:3px 7px" onclick="editarProv(${p.id})"><i class="ti ti-edit"></i></button>
           <button class="btn" style="font-size:10px;padding:3px 7px;color:var(--text-danger)" onclick="eliminarProv(${p.id})"><i class="ti ti-trash"></i></button>
         </div>
@@ -218,5 +219,21 @@ function renderProveedores(filtro = '') {
   });
 }
 
+function compartirProveedor(id) {
+  const proveedores = APP.lsGet('mp_proveedores', PROV_DEFAULT);
+  const p = proveedores.find(x => x.id === id);
+  if (!p) return;
+  const texto = `🔧 ${p.nombre}
+📦 Rubro: ${p.cat || '—'}
+📱 WhatsApp: ${p.pais || '+56'} ${p.wzp || '—'}
+🚗 Marcas: ${(p.marcas || []).join(', ') || '—'}${p.notas ? `\n📝 ${p.notas}` : ''}`;
+  if (navigator.share) {
+    navigator.share({ title: 'Proveedor: ' + p.nombre, text: texto }).catch(() => {});
+  } else {
+    navigator.clipboard.writeText(texto).then(() => APP.toast.show('¡Copiado al portapapeles!', 'success'));
+  }
+}
+
 window.abrirModalProveedor = abrirModalProveedor;
 window.cerrarModalProveedor = cerrarModalProveedor;
+window.compartirProveedor = compartirProveedor;
