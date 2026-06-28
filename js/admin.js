@@ -18,155 +18,6 @@ let _admAlertaIntervalId  = null;
 let _admAlertaResumenDate = '';
 let _admAlertaSentSet     = new Set();
 
-// ===== CATÁLOGO DE SERVICIOS (embebido en Admin) =====
-let _admCatEditId = null;
-let _admCatReps   = [];
-
-function _admCatRender(filtro) {
-  const lista = document.getElementById('adm-cat-lista');
-  const cnt   = document.getElementById('adm-cat-count');
-  if (!lista) return;
-  const todos = APP.lsGet('mp_servicios', []);
-  const q     = (filtro || '').toLowerCase().trim();
-  const items = q ? todos.filter(s =>
-    (s.nombre||'').toLowerCase().includes(q) || (s.categoria||'').toLowerCase().includes(q)
-  ) : todos;
-  if (cnt) cnt.textContent = items.length + ' servicio' + (items.length !== 1 ? 's' : '');
-  if (!items.length) {
-    lista.innerHTML = `<div style="text-align:center;padding:28px;color:var(--text-muted)">
-      <i class="ti ti-tools" style="font-size:26px;display:block;margin-bottom:8px;opacity:.3"></i>
-      ${q ? 'Sin resultados para "' + _admEsc(filtro) + '".' : 'Sin servicios. Usa <strong>+ Nuevo</strong> para crear el primero.'}
-    </div>`;
-    return;
-  }
-  const CAT_CSS = { 'Mantención':'s-wait','Frenos':'s-crit','Motor':'s-prog','Eléctrico':'s-new','Suspensión':'s-pend','Otro':'s-done' };
-  lista.innerHTML = items.map(s => {
-    const precio = s.precioFijo || 0;
-    const precioMuestra = s.precioConIva && precio ? Math.round(precio * 1.19) : precio;
-    const minVenta = s.precioMinVenta || 0;
-    return `<div class="card" style="cursor:pointer;margin-bottom:8px" onclick="admCatEditar('${s.id}')"
-      onmouseover="this.style.borderColor='var(--border-accent)'" onmouseout="this.style.borderColor=''">
-      <div class="ch">
-        <div>
-          <div style="font-weight:500;font-size:12px;margin-bottom:4px">${_admEsc(s.nombre)}</div>
-          <span class="st ${CAT_CSS[s.categoria]||'s-wait'}"><span class="dot"></span>${_admEsc(s.categoria||'Otro')}</span>
-          ${s.precioConIva ? '<span class="tag" style="font-size:9px;margin-left:4px">c/IVA</span>' : ''}
-        </div>
-        <div style="text-align:right">
-          ${precioMuestra ? `<div style="font-size:15px;font-weight:600;color:var(--text-accent)">$${precioMuestra.toLocaleString('es-CL')}</div>` : ''}
-          ${s.horasEst ? `<div style="font-size:10px;color:var(--text-muted)">${s.horasEst}h est.</div>` : ''}
-        </div>
-      </div>
-      <div style="font-size:10px;color:var(--text-muted);margin-top:6px;display:flex;gap:12px;flex-wrap:wrap">
-        ${minVenta ? `<span><i class="ti ti-alert-circle" style="font-size:10px;vertical-align:-1px"></i> Mín. $${minVenta.toLocaleString('es-CL')}</span>` : ''}
-        ${s.repuestosSugeridos?.length ? `<span><i class="ti ti-package" style="font-size:10px;vertical-align:-1px"></i> ${s.repuestosSugeridos.length} rep. sug.</span>` : ''}
-        ${s.proveedoresIds?.length ? `<span><i class="ti ti-building-store" style="font-size:10px;vertical-align:-1px"></i> ${s.proveedoresIds.length} prov.</span>` : ''}
-      </div>
-    </div>`;
-  }).join('');
-}
-
-function admCatNuevo() {
-  _admCatEditId = null; _admCatReps = [];
-  ['adm-cat-f-nombre','adm-cat-f-hest','adm-cat-f-precio','adm-cat-f-precio-min'].forEach(id => {
-    const el = document.getElementById(id); if (el) el.value = '';
-  });
-  const cat = document.getElementById('adm-cat-f-cat'); if (cat) cat.value = 'Mantención';
-  const iva = document.getElementById('adm-cat-f-iva');
-  if (iva) iva.checked = !!APP.lsGet('mp_config',{}).iva_por_defecto;
-  const del = document.getElementById('adm-cat-btn-del'); if (del) del.style.display = 'none';
-  document.getElementById('adm-cat-titulo').textContent = 'Nuevo servicio';
-  _admCatRenderReps();
-  document.getElementById('adm-cat-panel').style.display = 'block';
-  document.getElementById('adm-cat-panel').scrollIntoView({ behavior:'smooth', block:'nearest' });
-}
-
-function admCatEditar(id) {
-  const svc = APP.lsGet('mp_servicios', []).find(s => s.id === id);
-  if (!svc) return;
-  _admCatEditId = id;
-  _admCatReps   = JSON.parse(JSON.stringify(svc.repuestosSugeridos || []));
-  const s = (elId, v) => { const e = document.getElementById(elId); if (e) e.value = v ?? ''; };
-  s('adm-cat-f-nombre',    svc.nombre);
-  s('adm-cat-f-hest',      svc.horasEst   || '');
-  s('adm-cat-f-precio',    svc.precioFijo || '');
-  s('adm-cat-f-precio-min',svc.precioMinVenta || '');
-  const cat = document.getElementById('adm-cat-f-cat'); if (cat) cat.value = svc.categoria || 'Otro';
-  const iva = document.getElementById('adm-cat-f-iva'); if (iva) iva.checked = !!svc.precioConIva;
-  const del = document.getElementById('adm-cat-btn-del'); if (del) del.style.display = '';
-  document.getElementById('adm-cat-titulo').textContent = 'Editar: ' + svc.nombre;
-  _admCatRenderReps();
-  document.getElementById('adm-cat-panel').style.display = 'block';
-  document.getElementById('adm-cat-panel').scrollIntoView({ behavior:'smooth', block:'nearest' });
-}
-
-function admCatCerrarPanel() {
-  document.getElementById('adm-cat-panel').style.display = 'none';
-  _admCatEditId = null; _admCatReps = [];
-}
-
-function admCatGuardar() {
-  const g = id => (document.getElementById(id)?.value || '').trim();
-  const nombre = g('adm-cat-f-nombre');
-  if (!nombre) { APP.toast.show('⚠️ Ingresa el nombre del servicio.', 'warning'); return; }
-  const dato = {
-    nombre,
-    categoria:     document.getElementById('adm-cat-f-cat')?.value || 'Otro',
-    horasEst:      parseFloat(g('adm-cat-f-hest'))    || 0,
-    precioFijo:    parseFloat(g('adm-cat-f-precio'))   || 0,
-    precioMinVenta:parseFloat(g('adm-cat-f-precio-min'))|| 0,
-    precioConIva:  !!document.getElementById('adm-cat-f-iva')?.checked,
-    repuestosSugeridos: _admCatReps,
-  };
-  const todos = APP.lsGet('mp_servicios', []);
-  if (_admCatEditId) {
-    const idx = todos.findIndex(s => s.id === _admCatEditId);
-    if (idx >= 0) todos[idx] = { ...todos[idx], ...dato };
-  } else {
-    todos.push({ id:'svc-'+Date.now(), horasMin:0, horasMax:0, ...dato, creado:new Date().toISOString() });
-  }
-  APP.lsSet('mp_servicios', todos);
-  _admCatRender(); admCatCerrarPanel(); _admPanelServicios();
-}
-
-function admCatEliminar() {
-  if (!_admCatEditId) return;
-  APP.modal.confirmar('¿Eliminar este servicio del catálogo? Esta acción no se puede deshacer.', () => {
-    APP.lsSet('mp_servicios', APP.lsGet('mp_servicios',[]).filter(s => s.id !== _admCatEditId));
-    _admCatRender(); admCatCerrarPanel(); _admPanelServicios();
-  }, 'Eliminar', 'Cancelar');
-}
-
-function admCatAgregarRep() {
-  _admCatReps.push({ nombre:'', cantidad:1, unidad:'unidad' });
-  _admCatRenderReps();
-}
-function admCatEliminarRep(i) { _admCatReps.splice(i, 1); _admCatRenderReps(); }
-function admCatSyncRep(i, campo, val) {
-  if (_admCatReps[i]) _admCatReps[i][campo] = campo === 'cantidad' ? (parseFloat(val)||1) : val;
-}
-function _admCatRenderReps() {
-  const el = document.getElementById('adm-cat-rep-lista');
-  if (!el) return;
-  if (!_admCatReps.length) {
-    el.innerHTML = '<div style="font-size:11px;color:var(--text-muted);padding:8px 0;text-align:center">Sin repuestos sugeridos</div>';
-    return;
-  }
-  const UNIDADES = ['unidad','litro','kg','par','metro','juego'];
-  const ST = 'border:0.5px solid var(--border);border-radius:var(--radius);padding:4px 7px;font-size:11px;background:var(--surface-1);color:var(--text-primary)';
-  el.innerHTML = _admCatReps.map((r, i) => `
-    <div style="display:grid;grid-template-columns:1fr 60px 90px 28px;gap:5px;align-items:center;margin-bottom:5px">
-      <input value="${_admEsc(r.nombre)}" placeholder="Nombre repuesto" style="${ST}"
-        oninput="admCatSyncRep(${i},'nombre',this.value)">
-      <input type="number" min="0.5" step="0.5" value="${r.cantidad}" style="${ST}"
-        oninput="admCatSyncRep(${i},'cantidad',this.value)">
-      <select style="${ST}" onchange="admCatSyncRep(${i},'unidad',this.value)">
-        ${UNIDADES.map(u => `<option${u===r.unidad?' selected':''}>${u}</option>`).join('')}
-      </select>
-      <button class="btn" style="padding:4px;color:var(--text-danger)" onclick="admCatEliminarRep(${i})"><i class="ti ti-x"></i></button>
-    </div>`).join('');
-}
-
 // ===== CONFIG REPUESTOS =====
 function _admCargarConfigRepuestos() {
   const cfg = APP.lsGet('mp_config', {});
@@ -200,12 +51,12 @@ function init_admin() {
   _admTablaMecanicos();
   _admGraficoMensual();
   _admFrecuencia();
+  repRenderEficiencia();
   _admCargarConfig();
   _admCargarConfigOperativa();
   _admCargarConfigRepuestos();
   _admRenderIntegraciones();
   _admPanelServicios();
-  _admCatRender();
   _admRenderOperarios();
   _admRenderUpselling();
   _admCargarAlertasConfig();
@@ -378,6 +229,59 @@ function _admTablaMecanicos() {
       <td style="font-size:11px;color:var(--text-muted)">${r.sumReal ? _admFmtH(r.sumReal) : '—'}</td>
       <td style="color:${cE};font-weight:500;text-align:center">${r.efic != null ? r.efic + '%' : '—'}</td>
       <td style="font-size:11px">${_fmtM(r.ingresos)}</td>
+    </tr>`;
+  }).join('');
+}
+
+// ===== EFICIENCIA POR SERVICIO =====
+function repRenderEficiencia() {
+  const tbody = document.getElementById('rep-efic-tbody');
+  if (!tbody) return;
+
+  const ots = APP.lsGet('mp_ots', []).filter(o => o.estado === 'completado');
+  if (!ots.length) {
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--text-muted);padding:20px;font-size:11px">Sin OTs completadas.</td></tr>';
+    return;
+  }
+
+  // Agrupar por servicio, guardando array de eficiencias para sparkline
+  const map = {};
+  ots.forEach(o => {
+    const k = (o.servicio || 'Sin clasificar').trim();
+    if (!map[k]) map[k] = { ejecuciones: [], sumEst: 0, cntEst: 0, sumReal: 0, cntReal: 0 };
+    const real = o.tiempoReal || 0;
+    const est  = (o.tiempoEstimado || 0) * 60;
+    const efic = est > 0 && real > 0 ? Math.round(est / real * 100) : null;
+    map[k].ejecuciones.push(efic);
+    if (real > 0) { map[k].sumReal += real; map[k].cntReal++; }
+    if (est  > 0) { map[k].sumEst  += est;  map[k].cntEst++;  }
+  });
+
+  const rows = Object.entries(map).sort((a, b) => b[1].ejecuciones.length - a[1].ejecuciones.length);
+
+  tbody.innerHTML = rows.map(([svc, d]) => {
+    const avgReal = d.cntReal > 0 ? d.sumReal / d.cntReal : null;
+    const avgEst  = d.cntEst  > 0 ? d.sumEst  / d.cntEst  : null;
+    const efic    = avgEst && avgReal ? Math.round(avgEst / avgReal * 100) : null;
+    const cE = efic == null ? 'var(--text-muted)'
+      : efic >= 95 ? 'var(--text-success)'
+      : efic >= 75 ? 'var(--text-warning)'
+      : 'var(--text-danger)';
+
+    // Sparkline: últimas 5 ejecuciones
+    const ultimas = d.ejecuciones.filter(e => e != null).slice(-5);
+    const sparkle = ultimas.map(e => {
+      const c = e >= 95 ? '#10b981' : e >= 75 ? '#f59e0b' : '#ef4444';
+      return `<span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${c};margin-right:2px" title="${e}%"></span>`;
+    }).join('');
+
+    return `<tr>
+      <td style="font-size:11px">${_admEsc(svc)}</td>
+      <td style="text-align:center">${d.ejecuciones.length}</td>
+      <td style="font-size:11px;color:var(--text-muted)">${avgEst  ? _admFmtH(avgEst)  : '—'}</td>
+      <td style="font-size:11px;color:var(--text-muted)">${avgReal ? _admFmtH(avgReal) : '—'}</td>
+      <td style="color:${cE};font-weight:600;text-align:center">${efic != null ? efic + '%' : '—'}</td>
+      <td>${sparkle || '<span style="color:var(--text-muted);font-size:10px">sin datos</span>'}</td>
     </tr>`;
   }).join('');
 }
