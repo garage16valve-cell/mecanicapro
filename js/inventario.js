@@ -119,6 +119,7 @@ function guardarProveedor() {
   }
   APP.lsSet('mp_proveedores', proveedores);
   limpiarForm();
+  cerrarModalProveedor();
   renderProveedores();
 }
 
@@ -128,7 +129,6 @@ function limpiarForm() {
   const pais = document.getElementById('pf-pais'); if (pais) pais.value = '+56';
   marcasSeleccionadas = [];
   editandoProvId = null;
-  const t = document.getElementById('prov-form-title'); if (t) t.textContent = 'Agregar proveedor';
   renderMarcasSelector();
 }
 
@@ -143,8 +143,9 @@ function editarProv(id) {
   set('pf-email', p.email); set('pf-web', p.web);
   set('pf-cat', p.cat); set('pf-notas', p.notas);
   marcasSeleccionadas = [...(p.marcas || [])];
-  const t = document.getElementById('prov-form-title'); if (t) t.textContent = 'Editar: ' + p.nombre;
+  const t = document.getElementById('prov-modal-title'); if (t) t.textContent = 'Editar: ' + p.nombre;
   renderMarcasSelector();
+  abrirModalProveedor();
 }
 
 function eliminarProv(id) {
@@ -163,6 +164,19 @@ function abrirWzProv() {
 
 function abrirWzCard(pais, wzp) {
   window.open('https://wa.me/' + (pais || '+56').replace('+', '') + (wzp || '').replace(/\D/g, ''), '_blank');
+}
+
+function abrirModalProveedor() {
+  limpiarForm();
+  const t = document.getElementById('prov-modal-title');
+  if (t) t.textContent = 'Agregar proveedor';
+  const m = document.getElementById('prov-modal');
+  if (m) m.style.display = '';
+}
+
+function cerrarModalProveedor() {
+  const m = document.getElementById('prov-modal');
+  if (m) m.style.display = 'none';
 }
 
 function filtrarProveedores(v) { renderProveedores(v); }
@@ -203,3 +217,6 @@ function renderProveedores(filtro = '') {
     c.appendChild(d);
   });
 }
+
+window.abrirModalProveedor = abrirModalProveedor;
+window.cerrarModalProveedor = cerrarModalProveedor;
