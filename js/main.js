@@ -13,7 +13,7 @@ const MODULE_MAP = {
   facturacion:'finanzas',
   fidelizacion:'marketing',
   redes:     'marketing',
-  reportes:  'reportes',
+  reportes:  'admin',
   config:    'admin',
   usuarios:  'admin',
 };
@@ -37,25 +37,12 @@ const TITLES = {
   usuarios:    'Usuarios y roles',
 };
 
-// Módulos ya cargados (HTML + JS inicializados)
+// Módulos ya inicializados
 const loadedModules = new Set();
 let currentPage = 'dashboard';
 
-// ===== CARGA DINÁMICA DE SCRIPTS =====
-function loadScript(src) {
-  return new Promise((resolve, reject) => {
-    // Evitar cargar el mismo script dos veces
-    if (document.querySelector(`script[src="${src}"]`)) { resolve(); return; }
-    const s = document.createElement('script');
-    s.src = src;
-    s.onload = resolve;
-    s.onerror = () => { console.warn(`No se pudo cargar: ${src}`); resolve(); };
-    document.head.appendChild(s);
-  });
-}
-
-// ===== NAVEGACIÓN PRINCIPAL =====
-async function nav(page, el) {
+// ===== NAVEGACIÓN PRINCIPAL (sin fetch — módulos embebidos en index.html) =====
+function nav(page, el) {
   if (!page) return;
 
   // Actualizar sidebar
@@ -74,55 +61,19 @@ async function nav(page, el) {
   const moduleName = MODULE_MAP[page];
   if (!moduleName) return;
 
-  const contentArea = document.getElementById('content-area');
-
-  // ── Cargar módulo por primera vez ──
+  // Llamar al init del módulo la primera vez
   if (!loadedModules.has(moduleName)) {
-    // Mostrar indicador de carga
-    let loadingEl = document.getElementById(`loading-${moduleName}`);
-    if (!loadingEl) {
-      loadingEl = document.createElement('div');
-      loadingEl.id = `loading-${moduleName}`;
-      loadingEl.className = 'module-loading module-wrap active';
-      loadingEl.innerHTML = '<span class="spin"></span> Cargando módulo…';
-      contentArea.appendChild(loadingEl);
-    }
-
-    try {
-      // Cargar HTML del módulo
-      const res = await fetch(`modules/${moduleName}.html`);
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const html = await res.text();
-
-      // Reemplazar loader con contenido real
-      const wrapper = document.createElement('div');
-      wrapper.id = `module-${moduleName}`;
-      wrapper.className = 'module-wrap';
-      wrapper.innerHTML = html;
-      contentArea.replaceChild(wrapper, loadingEl);
-
-      // Cargar JS del módulo
-      await loadScript(`js/${moduleName}.js`);
-
-      // Llamar al inicializador del módulo si existe
-      const initFn = window[`init_${moduleName}`];
-      if (typeof initFn === 'function') initFn();
-
-      loadedModules.add(moduleName);
-    } catch (err) {
-      console.error(`Error cargando módulo "${moduleName}":`, err);
-      const errEl = document.getElementById(`loading-${moduleName}`);
-      if (errEl) errEl.innerHTML = `<span style="color:var(--text-danger)"><i class="ti ti-alert-circle"></i> Error al cargar el módulo.</span>`;
-      return;
-    }
+    const initFn = window[`init_${moduleName}`];
+    if (typeof initFn === 'function') initFn();
+    loadedModules.add(moduleName);
   }
 
-  // ── Mostrar/ocultar módulos ──
-  document.querySelectorAll('.module-wrap').forEach(m => m.classList.remove('active'));
+  // Mostrar/ocultar módulos
+  document.querySelectorAll('#content-area > .module-wrap').forEach(m => m.classList.remove('active'));
   const activeModule = document.getElementById(`module-${moduleName}`);
   if (activeModule) activeModule.classList.add('active');
 
-  // ── Mostrar la página correcta dentro del módulo ──
+  // Mostrar la página correcta dentro del módulo
   if (activeModule) {
     activeModule.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
     const targetPage = activeModule.querySelector(`#pg-${page}`);
