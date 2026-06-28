@@ -161,14 +161,28 @@
             </div>
             <div class="fg" style="margin:0">
               <label>Marca</label>
-              <select id="nf-marca" style="width:100%" onchange="nfActualizarProveedores(this.value)">
-                <option value="">— Selecciona marca —</option>
-              </select>
+              <div class="ss-trig" id="ss-nf-marca-trig" onclick="_ssTrig('nf-marca')">
+                <span id="ss-nf-marca-val" class="ss-placeholder">— Selecciona marca —</span>
+                <i class="ti ti-chevron-down ss-arr"></i>
+              </div>
+              <div class="ss-drop" id="ss-nf-marca-drop" style="display:none">
+                <input id="ss-nf-marca-q" placeholder="Buscar..." class="ss-q" oninput="_ssQ('nf-marca')">
+                <div class="ss-list" id="ss-nf-marca-list"></div>
+              </div>
+              <input type="hidden" id="nf-marca" value="">
             </div>
             <div class="fg" style="margin:0"><label>Modelo</label><input id="nf-modelo" placeholder="Corolla"></div>
             <div class="fg" style="margin:0">
               <label>Año</label>
-              <select id="nf-anio" style="width:100%"><option value="">— Año —</option></select>
+              <div class="ss-trig" id="ss-nf-anio-trig" onclick="_ssTrig('nf-anio')">
+                <span id="ss-nf-anio-val" class="ss-placeholder">— Año —</span>
+                <i class="ti ti-chevron-down ss-arr"></i>
+              </div>
+              <div class="ss-drop" id="ss-nf-anio-drop" style="display:none">
+                <input id="ss-nf-anio-q" placeholder="Buscar..." class="ss-q" oninput="_ssQ('nf-anio')">
+                <div class="ss-list" id="ss-nf-anio-list"></div>
+              </div>
+              <input type="hidden" id="nf-anio" value="">
             </div>
             <div class="fg" style="margin:0"><label>Color</label><input id="nf-color" placeholder="Blanco"></div>
             <div class="fg" style="margin:0"><label>Kilometraje entrada</label><input id="nf-km" type="number" placeholder="45200" oninput="nfVerificarHistorial(document.getElementById('nf-patente').value)"></div>

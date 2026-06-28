@@ -56,11 +56,14 @@ function nfResetForm() {
     if (el.type === 'checkbox') el.checked = false;
     else if (el.type !== 'file') el.value = '';
   });
-  // Selects especiales
-  const marca = document.getElementById('nf-marca');
-  if (marca) marca.value = '';
-  const anio = document.getElementById('nf-anio');
-  if (anio) anio.value = '';
+  // Smart selectors (Marca, Año)
+  if (typeof _ssReset === 'function') {
+    _ssReset('nf-marca');
+    _ssReset('nf-anio');
+  } else {
+    const m = document.getElementById('nf-marca'); if (m) m.value = '';
+    const a = document.getElementById('nf-anio'); if (a) a.value = '';
+  }
   const comb = document.getElementById('nf-combustible');
   if (comb) comb.value = '';
   const tec = document.getElementById('nf-tecnico');
@@ -96,19 +99,14 @@ function nfResetForm() {
 
 // ─── Poblar Selectores ──────────────────────────────────────────────────────
 function nfPoblarSelectores() {
-  // Marca
-  const marcaEl = document.getElementById('nf-marca');
-  if (marcaEl) {
-    marcaEl.innerHTML = '<option value="">— Selecciona marca —</option>' +
-      NF_MARCAS.map(m => `<option value="${m}">${m}</option>`).join('');
-  }
-  // Año (2027→1970)
-  const anioEl = document.getElementById('nf-anio');
-  if (anioEl) {
+  // Marca — Smart Selector con buscador (reutiliza sistema _ss de taller.js)
+  if (typeof _ssInit === 'function') {
+    _ssInit('nf-marca', NF_MARCAS, (val) => nfActualizarProveedores(val), { permitirNuevo: true, noSelText: '— Selecciona marca —' });
+    // Año — Smart Selector
     const current = new Date().getFullYear();
-    let opts = '<option value="">— Año —</option>';
-    for (let y = current + 1; y >= 1970; y--) opts += `<option value="${y}">${y}</option>`;
-    anioEl.innerHTML = opts;
+    const anios = [];
+    for (let y = current + 1; y >= 1970; y--) anios.push(String(y));
+    _ssInit('nf-anio', anios, null, { noSelText: '— Año —' });
   }
   // Técnico
   const tecEl = document.getElementById('nf-tecnico');
@@ -126,6 +124,9 @@ function nfPoblarSelectores() {
   if (combEl) {
     combEl.innerHTML = NF_COMBUSTIBLE.map((v, i) => `<option value="${i === 0 ? '' : v}">${i === 0 ? '— Selecciona —' : v}</option>`).join('');
   }
+  // Repuesto unidad
+  const uEl = document.getElementById('nf-repuesto-unidad');
+  if (uEl) uEl.innerHTML = NF_UNIDADES.map(u => `<option value="${u}">${u}</option>`).join('');
   nfPoblarFluidosInventario();
   nfPoblarProveedores();
 }
@@ -268,9 +269,17 @@ function nfSelVehiculo(idx) {
 function nfAutocompletarVehiculo(v) {
   const set = (id, val) => { const el = document.getElementById(id); if (el) el.value = val || ''; };
   set('nf-patente', v.patente || '');
-  set('nf-marca', v.marca || '');
+  if (typeof _ssSetVal === 'function') {
+    _ssSetVal('nf-marca', v.marca || '', v.marca || '');
+  } else {
+    set('nf-marca', v.marca || '');
+  }
   set('nf-modelo', v.modelo || '');
-  set('nf-anio', v.anio || '');
+  if (typeof _ssSetVal === 'function') {
+    _ssSetVal('nf-anio', v.anio || '', v.anio || '');
+  } else {
+    set('nf-anio', v.anio || '');
+  }
   set('nf-color', v.color || '');
   set('nf-km', v.km_entrada || v.kilometraje || '');
   set('nf-chasis', v.chasis || v.vin || '');
@@ -851,13 +860,6 @@ function nfGuardarOT() {
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 function _nfEsc(s) { return (s || '').replace(/'/g, "\\'").replace(/"/g, '&quot;'); }
-
-// ─── Init ────────────────────────────────────────────────────────────────────
-// Inicializar repuesto unidades
-(function() {
-  const uEl = document.getElementById('nf-repuesto-unidad');
-  if (uEl) uEl.innerHTML = NF_UNIDADES.map(u => `<option value="${u}">${u}</option>`).join('');
-})();
 
 // Exponer funciones
 window.nfAbrirFormulario = nfAbrirFormulario;
