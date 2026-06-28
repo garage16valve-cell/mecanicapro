@@ -1,3 +1,57 @@
+<!-- USUARIOS -->
+<div class="page" id="pg-usuarios">
+
+  <div class="card">
+    <div class="ch">
+      <span class="ct"><i class="ti ti-users" style="font-size:13px"></i> Usuarios del sistema</span>
+      <button class="btn bpa" onclick="admUsuarioNuevo()" style="font-size:11px">
+        <i class="ti ti-plus"></i> Agregar usuario
+      </button>
+    </div>
+    <div style="overflow-x:auto">
+      <table class="tbl">
+        <thead><tr>
+          <th>Nombre</th>
+          <th>Rol</th>
+          <th>WhatsApp</th>
+          <th>Estado</th>
+          <th style="width:80px">Opciones</th>
+        </tr></thead>
+        <tbody id="adm-usu-tbody">
+          <tr><td colspan="5" style="text-align:center;padding:20px;color:var(--text-muted);font-size:11px">Cargando…</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top:14px">
+    <div class="ch"><span class="ct" style="font-size:12px"><i class="ti ti-shield-lock" style="font-size:13px"></i> Permisos por rol</span></div>
+    <div style="overflow-x:auto">
+      <table class="tbl" style="font-size:11px">
+        <thead><tr>
+          <th>Módulo</th>
+          <th style="text-align:center">Administrador</th>
+          <th style="text-align:center">Recepcionista</th>
+          <th style="text-align:center">Mecánico</th>
+          <th style="text-align:center">Contable</th>
+        </tr></thead>
+        <tbody>
+          <tr><td>Dashboard</td><td style="text-align:center;color:#10b981">✓</td><td style="text-align:center;color:#10b981">✓</td><td style="text-align:center;color:var(--text-muted)">—</td><td style="text-align:center;color:#10b981">✓</td></tr>
+          <tr><td>Agenda</td><td style="text-align:center;color:#10b981">✓</td><td style="text-align:center;color:#10b981">✓</td><td style="text-align:center;color:var(--text-muted)">—</td><td style="text-align:center;color:var(--text-muted)">—</td></tr>
+          <tr><td>Órdenes de trabajo</td><td style="text-align:center;color:#10b981">✓</td><td style="text-align:center;color:#10b981">✓</td><td style="text-align:center;color:#f59e0b">Solo propias</td><td style="text-align:center;color:var(--text-muted)">—</td></tr>
+          <tr><td>Clientes</td><td style="text-align:center;color:#10b981">✓</td><td style="text-align:center;color:#10b981">✓</td><td style="text-align:center;color:var(--text-muted)">—</td><td style="text-align:center;color:var(--text-muted)">—</td></tr>
+          <tr><td>Servicios</td><td style="text-align:center;color:#10b981">✓</td><td style="text-align:center;color:#10b981">✓</td><td style="text-align:center;color:var(--text-muted)">—</td><td style="text-align:center;color:var(--text-muted)">—</td></tr>
+          <tr><td>Finanzas / Contable</td><td style="text-align:center;color:#10b981">✓</td><td style="text-align:center;color:var(--text-muted)">—</td><td style="text-align:center;color:var(--text-muted)">—</td><td style="text-align:center;color:#10b981">✓</td></tr>
+          <tr><td>Reportes Admin</td><td style="text-align:center;color:#10b981">✓</td><td style="text-align:center;color:var(--text-muted)">—</td><td style="text-align:center;color:var(--text-muted)">—</td><td style="text-align:center;color:#10b981">✓</td></tr>
+          <tr><td>Configuración / Usuarios</td><td style="text-align:center;color:#10b981">✓</td><td style="text-align:center;color:var(--text-muted)">—</td><td style="text-align:center;color:var(--text-muted)">—</td><td style="text-align:center;color:var(--text-muted)">—</td></tr>
+          <tr><td style="color:var(--text-danger)">Precio costo / % ganancia</td><td style="text-align:center;color:#10b981">✓</td><td style="text-align:center;color:var(--text-muted)">—</td><td style="text-align:center;color:var(--text-danger)">Oculto</td><td style="text-align:center;color:var(--text-muted)">—</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
 <!-- REPORTES -->
 <div class="page active" id="pg-reportes">
 

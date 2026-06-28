@@ -212,6 +212,7 @@ function init_admin() {
   _admRenderLog();
   _admScanPostServicio();
   _admIniciarMotorAlertas();
+  if (typeof admUsuariosRender === 'function') admUsuariosRender();
 }
 
 // ===== PERÍODO =====

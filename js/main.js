@@ -15,6 +15,7 @@ const MODULE_MAP = {
   redes:     'marketing',
   reportes:  'admin',
   config:    'admin',
+  usuarios:  'admin',
 };
 
 const TITLES = {
@@ -33,6 +34,7 @@ const TITLES = {
   redes:       'Redes sociales',
   reportes:    'Reportes',
   config:      'Configuración',
+  usuarios:    'Usuarios y roles',
 };
 
 // Módulos ya cargados (HTML + JS inicializados)
