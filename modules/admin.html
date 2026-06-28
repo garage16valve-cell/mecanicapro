@@ -323,44 +323,6 @@
     </table>
   </div>
 
-  <!-- Configuración de Repuestos -->
-  <div class="card" style="margin-top:14px">
-    <div class="ch">
-      <span class="ct"><i class="ti ti-package" style="font-size:13px"></i> Configuración de repuestos</span>
-    </div>
-    <div class="g2" style="gap:12px">
-      <div class="fg">
-        <label>% Ganancia sobre repuestos</label>
-        <div style="display:flex;align-items:center;gap:8px">
-          <input id="cfg-ganancia" type="number" min="0" max="200" step="1" placeholder="30"
-            style="flex:1;font-family:var(--font-mono)">
-          <span style="font-size:12px;color:var(--text-muted)">%</span>
-        </div>
-        <div style="font-size:10px;color:var(--text-muted);margin-top:3px">Margen aplicado sobre el costo de compra del repuesto.</div>
-      </div>
-      <div class="fg">
-        <label>Precio mínimo por hora M.O.</label>
-        <div style="display:flex;align-items:center;gap:8px">
-          <input id="cfg-precio-min-mo" type="number" min="0" step="500" placeholder="25000"
-            style="flex:1;font-family:var(--font-mono)">
-          <span style="font-size:12px;color:var(--text-muted)">$/h</span>
-        </div>
-        <div style="font-size:10px;color:var(--text-muted);margin-top:3px">Alerta en Reportes si la rentabilidad/hora cae bajo este valor.</div>
-      </div>
-    </div>
-    <div class="fg" style="margin-top:10px">
-      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:12px">
-        <input id="cfg-iva-defecto" type="checkbox">
-        Mostrar precios con IVA por defecto (19%)
-      </label>
-      <div style="font-size:10px;color:var(--text-muted);margin-top:3px">
-        Activa este toggle para que los servicios nuevos incluyan IVA al mostrar su precio de venta.
-      </div>
-    </div>
-    <button id="cfg-rep-btn" class="btn bpa" style="margin-top:12px" onclick="admGuardarConfigRepuestos()">
-      <i class="ti ti-device-floppy"></i> Guardar configuración
-    </button>
-  </div>
 
   <!-- Catálogo de servicios -->
   <div class="card" style="margin-top:14px">

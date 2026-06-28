@@ -1,11 +1,64 @@
 <!-- INVENTARIO -->
 <div class="page active" id="pg-inventario">
-  <div style="display:flex;gap:6px;margin-bottom:14px">
-    <button class="btn bpa"><i class="ti ti-plus"></i>Agregar repuesto</button>
-    <button class="btn"><i class="ti ti-truck"></i>Registrar entrada</button>
+  <div style="display:flex;gap:0;margin-bottom:14px;border-bottom:0.5px solid var(--border)">
+    <button id="inv-tab-btn-inv" class="btn" onclick="invSetTab('inv')"
+      style="border:none;border-radius:0;border-bottom:2px solid var(--fill-accent);color:var(--text-accent);font-size:12px;padding:8px 16px">
+      <i class="ti ti-package" style="font-size:13px;vertical-align:-2px;margin-right:4px"></i>Inventario
+    </button>
+    <button id="inv-tab-btn-config" class="btn" onclick="invSetTab('config')"
+      style="border:none;border-radius:0;border-bottom:2px solid transparent;color:var(--text-secondary);font-size:12px;padding:8px 16px">
+      <i class="ti ti-settings" style="font-size:13px;vertical-align:-2px;margin-right:4px"></i>Configuración
+    </button>
   </div>
-  <div class="sb"><i class="ti ti-search" style="color:var(--text-muted);font-size:14px"></i><input placeholder="Buscar por código, nombre o ubicación en bodega…"></div>
-  <div id="inv-wrapper"></div>
+
+  <div id="inv-tab-inv">
+    <div style="display:flex;gap:6px;margin-bottom:14px">
+      <button class="btn bpa"><i class="ti ti-plus"></i>Agregar repuesto</button>
+      <button class="btn"><i class="ti ti-truck"></i>Registrar entrada</button>
+    </div>
+    <div class="sb"><i class="ti ti-search" style="color:var(--text-muted);font-size:14px"></i><input placeholder="Buscar por código, nombre o ubicación en bodega…"></div>
+    <div id="inv-wrapper"></div>
+  </div>
+
+  <div id="inv-tab-config" style="display:none">
+    <div class="card">
+      <div class="ch">
+        <span class="ct"><i class="ti ti-package" style="font-size:13px"></i> Configuración de repuestos</span>
+      </div>
+      <div class="g2" style="gap:12px">
+        <div class="fg">
+          <label>% Ganancia sobre repuestos</label>
+          <div style="display:flex;align-items:center;gap:8px">
+            <input id="rep-cfg-ganancia" type="number" min="0" max="200" step="1" placeholder="30"
+              style="flex:1;font-family:var(--font-mono)">
+            <span style="font-size:12px;color:var(--text-muted)">%</span>
+          </div>
+          <div style="font-size:10px;color:var(--text-muted);margin-top:3px">Margen aplicado sobre el costo de compra del repuesto.</div>
+        </div>
+        <div class="fg">
+          <label>Precio mínimo por hora M.O.</label>
+          <div style="display:flex;align-items:center;gap:8px">
+            <input id="rep-cfg-precio-min" type="number" min="0" step="500" placeholder="25000"
+              style="flex:1;font-family:var(--font-mono)">
+            <span style="font-size:12px;color:var(--text-muted)">$/h</span>
+          </div>
+          <div style="font-size:10px;color:var(--text-muted);margin-top:3px">Alerta si la rentabilidad/hora cae bajo este valor.</div>
+        </div>
+      </div>
+      <div class="fg" style="margin-top:10px">
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:12px">
+          <input id="rep-cfg-iva" type="checkbox">
+          Mostrar precios con IVA por defecto (19%)
+        </label>
+        <div style="font-size:10px;color:var(--text-muted);margin-top:3px">
+          Activa este toggle para que los servicios nuevos incluyan IVA al mostrar su precio de venta.
+        </div>
+      </div>
+      <button class="btn bpa" style="margin-top:12px" onclick="invGuardarConfigRepuestos()">
+        <i class="ti ti-device-floppy"></i> Guardar configuración
+      </button>
+    </div>
+  </div>
 </div>
 
 <!-- PROVEEDORES -->

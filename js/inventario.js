@@ -1,8 +1,43 @@
 // ===== MÓDULO: INVENTARIO (Repuestos, Proveedores, Residuos) =====
 function init_inventario() {
+  invSetTab('inv');
   renderInventario();
   renderMarcasSelector();
   renderProveedores();
+  _invCargarConfigRepuestos();
+}
+
+// ===== TABS (inv | config) =====
+function invSetTab(tab) {
+  ['inv','config'].forEach(t => {
+    const cnt = document.getElementById('inv-tab-' + t);
+    const btn = document.getElementById('inv-tab-btn-' + t);
+    if (cnt) cnt.style.display = t === tab ? '' : 'none';
+    if (btn) {
+      btn.style.borderBottomColor = t === tab ? 'var(--fill-accent)' : 'transparent';
+      btn.style.color = t === tab ? 'var(--text-accent)' : 'var(--text-secondary)';
+    }
+  });
+}
+
+// ===== CONFIG REPUESTOS =====
+function _invCargarConfigRepuestos() {
+  const cfg = APP.lsGet('rep_config', {});
+  const s = (id, v) => { const el = document.getElementById(id); if (el) el.value = v ?? ''; };
+  s('rep-cfg-ganancia',   cfg.ganancia || 30);
+  s('rep-cfg-precio-min', cfg.precio_min_hora || '');
+  const iva = document.getElementById('rep-cfg-iva');
+  if (iva) iva.checked = !!cfg.iva_defecto;
+}
+
+function invGuardarConfigRepuestos() {
+  const g = id => (document.getElementById(id)?.value || '').trim();
+  const cfg = {};
+  cfg.ganancia        = parseFloat(g('rep-cfg-ganancia'))   || 0;
+  cfg.precio_min_hora = parseFloat(g('rep-cfg-precio-min')) || 0;
+  cfg.iva_defecto     = !!document.getElementById('rep-cfg-iva')?.checked;
+  APP.lsSet('rep_config', cfg);
+  APP.toast.show('Configuración guardada', 'success');
 }
 
 // ===== INVENTARIO DE REPUESTOS =====
