@@ -13,7 +13,7 @@ const MODULE_MAP = {
   facturacion:'finanzas',
   fidelizacion:'marketing',
   redes:     'marketing',
-  reportes:  'admin',
+  reportes:  'reportes',
   config:    'admin',
   usuarios:  'admin',
 };

@@ -1,0 +1,36 @@
+<!-- REPORTES -->
+<div class="page active" id="pg-reportes">
+
+  <div class="card">
+    <div class="ch">
+      <span class="ct"><i class="ti ti-chart-bar" style="font-size:13px"></i> Reporte de eficiencia por servicio</span>
+      <button class="btn" onclick="repRenderEficiencia()" style="font-size:11px;padding:4px 9px"><i class="ti ti-refresh"></i> Actualizar</button>
+    </div>
+    <div style="font-size:11px;color:var(--text-muted);margin-bottom:12px">
+      Compara el tiempo estimado del catálogo vs. el tiempo real registrado en OTs completadas.
+      La tendencia compara la primera y segunda mitad de las ejecuciones históricas.
+    </div>
+    <div style="overflow-x:auto">
+      <table class="tbl" style="min-width:540px">
+        <thead>
+          <tr>
+            <th>Servicio</th>
+            <th style="text-align:center">Ejecuciones</th>
+            <th>T.est catálogo</th>
+            <th>T.real promedio</th>
+            <th style="text-align:center">Eficiencia %</th>
+            <th>Tendencia</th>
+          </tr>
+        </thead>
+        <tbody id="rep-efic-tbody">
+          <tr><td colspan="6" style="text-align:center;color:var(--text-muted);padding:20px;font-size:11px">Cargando…</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div style="margin-top:12px;padding:10px;background:var(--surface-1);border-radius:var(--radius);font-size:10px;color:var(--text-muted)">
+      <strong>Eficiencia</strong> = tiempo estimado ÷ tiempo real × 100. &gt;95% = excelente · 75–95% = normal · &lt;75% = revisar.
+      <strong>Sparkline</strong>: últimas 5 ejecuciones (verde ≥95%, amarillo 75–95%, rojo &lt;75%).
+    </div>
+  </div>
+
+</div>
