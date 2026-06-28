@@ -494,11 +494,11 @@
       </div>
     </div>
 
-    <!-- PANEL DE PAGO -->
+    <!-- PANEL DE PAGO (ahora abre modal completo) -->
     <div id="det-panel-pago" style="display:none;margin-top:14px">
-      <div class="card">
+      <div class="card" style="border-color:#16a34a">
         <div class="ch">
-          <span class="ct">💵 Cobro — <span id="det-pago-ot-num"></span></span>
+          <span class="ct" style="color:#16a34a">💵 Cobro — <span id="det-pago-ot-num"></span></span>
           <button class="btn" onclick="cerrarPanelPago()" style="padding:4px 9px"><i class="ti ti-x"></i></button>
         </div>
         <div id="det-pago-resumen" style="background:var(--surface-1);border-radius:var(--radius);padding:12px;margin-bottom:14px;font-size:12px"></div>
@@ -511,32 +511,45 @@
             <button id="det-pago-btn-pendiente"     class="btn" onclick="seleccionarMetodoPago('pendiente')"     style="flex-direction:column;padding:10px 6px;font-size:11px;gap:3px;justify-content:center"><span style="font-size:20px">⏳</span>Pendiente</button>
           </div>
         </div>
+        <!-- EFECTIVO -->
         <div id="det-pago-campos-efectivo" style="display:none">
-          <div class="fg"><label>N° de boleta / recibo</label><input id="det-pago-boleta" type="number" placeholder="Ingresa el número de boleta"></div>
-          <button class="btn bpa" style="width:100%;justify-content:center;margin-top:10px" onclick="confirmarPago()"><i class="ti ti-check"></i> Confirmar pago en efectivo</button>
+          <div class="fgrid2">
+            <div class="fg"><label>N° de boleta / recibo <span style="color:#ef4444">*</span></label><input id="det-pago-boleta" type="number" placeholder="Ej: 1234"></div>
+            <div class="fg"><label>Monto recibido ($)</label><input id="det-pago-monto-recibido" type="number" placeholder="0" oninput="pagoCalcVuelto()"></div>
+          </div>
+          <div id="det-pago-vuelto-box" style="display:none;padding:10px 12px;border-radius:var(--radius);margin-bottom:10px;font-size:13px;font-weight:600;text-align:center"></div>
+          <button class="btn bpa" style="width:100%;justify-content:center;margin-top:10px;padding:13px;font-size:13px;font-weight:700" onclick="confirmarPago()"><i class="ti ti-check"></i> ✅ CONFIRMAR PAGO EN EFECTIVO</button>
         </div>
+        <!-- TARJETA -->
         <div id="det-pago-campos-tarjeta" style="display:none">
           <div class="fgrid2">
-            <div class="fg"><label>N° de voucher</label><input id="det-pago-voucher" type="number" placeholder="Ingresa el número de voucher"></div>
-            <div class="fg"><label>Tipo</label>
+            <div class="fg"><label>N° de voucher <span style="color:#ef4444">*</span></label><input id="det-pago-voucher" placeholder="Ej: 987654"></div>
+            <div class="fg"><label>Tipo de tarjeta</label>
               <select id="det-pago-tipo-tarjeta" style="width:100%">
                 <option value="">Seleccionar…</option>
                 <option value="debito">Débito</option>
                 <option value="credito">Crédito</option>
+                <option value="prepago">Prepago</option>
               </select>
             </div>
           </div>
-          <button class="btn bpa" style="width:100%;justify-content:center;margin-top:10px" onclick="confirmarPago()"><i class="ti ti-check"></i> Confirmar pago con tarjeta</button>
+          <div class="fg"><label>Banco emisor</label><input id="det-pago-banco-tarjeta" placeholder="Ej: Banco Estado, Santander…"></div>
+          <button class="btn bpa" style="width:100%;justify-content:center;margin-top:10px;padding:13px;font-size:13px;font-weight:700" onclick="confirmarPago()"><i class="ti ti-check"></i> ✅ CONFIRMAR PAGO CON TARJETA</button>
         </div>
+        <!-- TRANSFERENCIA -->
         <div id="det-pago-campos-transferencia" style="display:none">
-          <div class="fg"><label>N° de voucher / comprobante</label><input id="det-pago-comprobante" type="number" placeholder="Ingresa el número de comprobante"></div>
-          <button class="btn bpa" style="width:100%;justify-content:center;margin-top:10px" onclick="confirmarPago()"><i class="ti ti-check"></i> Confirmar transferencia</button>
-        </div>
-        <div id="det-pago-campos-pendiente" style="display:none">
-          <div class="fg"><label>Motivo / nota <span style="font-weight:400;color:var(--text-muted)">(opcional)</span></label>
-            <textarea id="det-pago-motivo" placeholder="Ej: Cliente pagará el viernes" style="min-height:60px"></textarea>
+          <div class="fgrid2">
+            <div class="fg"><label>N° de comprobante <span style="color:#ef4444">*</span></label><input id="det-pago-comprobante" placeholder="Ej: 202506280001"></div>
+            <div class="fg"><label>Banco origen</label><input id="det-pago-banco-transf" placeholder="Ej: BCI, Scotiabank…"></div>
           </div>
-          <button class="btn" style="width:100%;justify-content:center;margin-top:10px;border-color:#d97706;color:#d97706" onclick="confirmarPago()"><i class="ti ti-clock"></i> Marcar como pendiente de pago</button>
+          <div id="det-pago-datos-cuenta" style="background:var(--surface-1);border:0.5px solid var(--border);border-radius:var(--radius);padding:10px 12px;margin-bottom:10px;font-size:11px;line-height:1.7;color:var(--text-secondary)"></div>
+          <button class="btn bpa" style="width:100%;justify-content:center;margin-top:10px;padding:13px;font-size:13px;font-weight:700" onclick="confirmarPago()"><i class="ti ti-check"></i> ✅ CONFIRMAR TRANSFERENCIA</button>
+        </div>
+        <!-- PENDIENTE -->
+        <div id="det-pago-campos-pendiente" style="display:none">
+          <div class="fg"><label>Motivo</label><textarea id="det-pago-motivo" placeholder="Ej: Cliente pagará el viernes, acordó pago en cuotas…" style="min-height:60px"></textarea></div>
+          <div class="fg"><label>Fecha comprometida de pago</label><input id="det-pago-fecha-comprometida" type="date"></div>
+          <button class="btn" style="width:100%;justify-content:center;margin-top:10px;padding:13px;font-size:13px;font-weight:700;border-color:#d97706;color:#d97706" onclick="confirmarPago()"><i class="ti ti-clock"></i> ⏳ MARCAR COMO PAGO PENDIENTE</button>
         </div>
       </div>
     </div><!-- /#det-panel-pago -->
@@ -839,6 +852,29 @@
       </div>
     </div>
   </div><!-- /#modal-repuestos -->
+
+  <!-- ===== MODAL: ENCUESTA SATISFACCIÓN ===== -->
+  <div id="modal-encuesta" class="modal-overlay" style="display:none" onclick="if(event.target===this)cerrarModalEncuesta()">
+    <div class="modal-pequeno">
+      <div class="modal-header">
+        <h3 style="font-size:14px;font-weight:600;margin:0">⭐ Encuesta de satisfacción</h3>
+        <button class="modal-close" onclick="cerrarModalEncuesta()">×</button>
+      </div>
+      <div class="modal-body" style="padding:20px">
+        <div style="background:var(--surface-1);border:0.5px solid var(--border);border-radius:var(--radius);padding:12px 14px;margin-bottom:16px;font-size:12px;color:var(--text-secondary);line-height:1.6">
+          OT archivada correctamente. ¿Deseas enviar una encuesta de satisfacción al cliente?
+        </div>
+        <div style="display:flex;flex-direction:column;gap:10px">
+          <button class="btn bpw" style="justify-content:center;padding:14px;font-size:13px;font-weight:600" onclick="enviarEncuestaWA()">
+            <i class="ti ti-brand-whatsapp" style="font-size:16px"></i>&nbsp; 📱 VÍA WHATSAPP
+          </button>
+          <button class="btn" style="justify-content:center;padding:14px;font-size:13px;color:var(--text-muted)" onclick="cerrarModalEncuesta()">
+            FINALIZAR SIN ENVIAR
+          </button>
+        </div>
+      </div>
+    </div>
+  </div><!-- /#modal-encuesta -->
 
   <!-- ===== MODAL: GENERAR COTIZACIÓN ===== -->
   <div id="modal-cotizacion" class="modal-overlay" style="display:none" onclick="if(event.target===this)cerrarModalCotizacion()">
