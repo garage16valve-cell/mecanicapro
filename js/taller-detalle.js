@@ -881,6 +881,187 @@ function ccAvanzarSinNotificar() {
   cerrarModalControlNotif();
 }
 
+// ===== MÓDULO: PLANTILLAS WHATSAPP EN OT =====
+
+const _WA_PLANTILLAS_DEFAULT = {
+  confirmar_cita: `Hola [Cliente] 👋\nTe confirmamos tu cita en [Taller]:\n📅 [Fecha] a las [Hora]\n🚗 [Marca] [Modelo]\n¡Te esperamos! 🔧`,
+  vehiculo_recibido: `Hola [Cliente] 👋\nRecibimos tu [Marca] [Modelo]\nplaca [Patente] en [Taller].\nYa estamos trabajando en él ✅\nTe avisaremos cuando tengamos novedades.`,
+  cotizacion_lista: `Hola [Cliente] 🔧\nLa cotización de tu [Marca] [Modelo]\nestá lista. Total: $[Monto]\nRevisa y aprueba aquí: [Link]\n¡Cualquier duda estamos disponibles!`,
+  vehiculo_listo: `Hola [Cliente] 🎉\nTu [Marca] [Modelo] placa [Patente]\nestá listo para retirar en [Taller].\n¡Te esperamos cuando puedas! 🚗✨`,
+  recordatorio_pago: `Hola [Cliente] 👋\nTe recordamos que tienes un pago\npendiente de $[Monto] por [Servicio]\nen [Taller].\nPor favor contáctanos para coordinarlo.`,
+  encuesta: `Hola [Cliente] 😊\nGracias por confiar en [Taller].\n¿Cómo calificarías nuestro servicio?\n1⭐ 2⭐ 3⭐ 4⭐ 5⭐\nTu opinión nos ayuda a mejorar 🙏`,
+};
+
+const _WA_PLANTILLAS_LABELS = {
+  confirmar_cita:    '📅 Confirmar cita',
+  vehiculo_recibido: '🔧 Vehículo recibido',
+  cotizacion_lista:  '💰 Cotización lista',
+  vehiculo_listo:    '✅ Vehículo listo',
+  recordatorio_pago: '⏳ Recordatorio pago',
+  encuesta:          '😊 Encuesta',
+};
+
+let _waOtId         = null;
+let _waPlantillaKey = null;
+
+function _waGetPlantillas() {
+  const config = APP.lsGet('mp_config') || {};
+  const guardadas = config.plantillas_whatsapp || {};
+  const resultado = {};
+  Object.keys(_WA_PLANTILLAS_DEFAULT).forEach(k => {
+    resultado[k] = guardadas[k] || _WA_PLANTILLAS_DEFAULT[k];
+  });
+  return resultado;
+}
+
+function _waReemplazarVariables(texto, ot) {
+  const config = APP.lsGet('mp_config') || {};
+  const taller  = config.nombre || 'el taller';
+  const link    = config.link_agendamiento || window.location.origin;
+  const fecha   = ot.fechaCita
+    ? new Date(ot.fechaCita).toLocaleDateString('es-CL')
+    : '—';
+  const hora    = ot.horaCita || '—';
+  const monto   = (() => {
+    const pagos = ot.pagos || [];
+    if (pagos.length) {
+      const total = pagos.reduce((s, p) => s + (parseFloat(p.monto) || 0), 0);
+      return total.toLocaleString('es-CL');
+    }
+    return (parseFloat(ot.valorTotal || ot.valor || 0) || 0).toLocaleString('es-CL');
+  })();
+  const servicio = (ot.servicios || []).map(s => s.nombre || s).filter(Boolean).join(', ') || '—';
+
+  return texto
+    .replace(/\[Cliente\]/g,  ot.clienteNombre || 'Cliente')
+    .replace(/\[Patente\]/g,  ot.patente || '—')
+    .replace(/\[Marca\]/g,    ot.marca   || '—')
+    .replace(/\[Modelo\]/g,   ot.modelo  || '—')
+    .replace(/\[Fecha\]/g,    fecha)
+    .replace(/\[Hora\]/g,     hora)
+    .replace(/\[Monto\]/g,    monto)
+    .replace(/\[Servicio\]/g, servicio)
+    .replace(/\[Taller\]/g,   taller)
+    .replace(/\[Link\]/g,     link);
+}
+
+function abrirModalWA() {
+  if (!window._otDetalleId) return;
+  _waOtId         = window._otDetalleId;
+  _waPlantillaKey = null;
+
+  const ots = APP.lsGet('mp_ots', []);
+  const ot  = ots.find(o => o.id === _waOtId);
+  if (!ot) return;
+
+  const sub = document.getElementById('modal-wa-subtitulo');
+  if (sub) {
+    const nombre = ot.clienteNombre || 'Cliente';
+    const wz     = ot.wz ? ` (${ot.wz})` : '';
+    sub.textContent = `${nombre}${wz}`;
+  }
+
+  waVolverPlantillas();
+  _waRenderHistorial(ot);
+
+  const m = document.getElementById('modal-wa-plantillas');
+  if (m) m.style.display = 'flex';
+}
+
+function cerrarModalWA() {
+  const m = document.getElementById('modal-wa-plantillas');
+  if (m) m.style.display = 'none';
+  _waOtId         = null;
+  _waPlantillaKey = null;
+}
+
+function waVolverPlantillas() {
+  const grid   = document.getElementById('wa-plantillas-grid');
+  const editor = document.getElementById('wa-editor-area');
+  if (grid)   grid.style.display   = 'grid';
+  if (editor) editor.style.display = 'none';
+}
+
+function waSeleccionarPlantilla(key) {
+  if (!_waOtId) return;
+  _waPlantillaKey = key;
+
+  const ots = APP.lsGet('mp_ots', []);
+  const ot  = ots.find(o => o.id === _waOtId);
+  if (!ot) return;
+
+  const plantillas = _waGetPlantillas();
+  const texto      = _waReemplazarVariables(plantillas[key] || '', ot);
+
+  const label = document.getElementById('wa-plantilla-label');
+  if (label) label.textContent = _WA_PLANTILLAS_LABELS[key] || key;
+
+  const textarea = document.getElementById('wa-texto');
+  if (textarea) textarea.value = texto;
+
+  const grid   = document.getElementById('wa-plantillas-grid');
+  const editor = document.getElementById('wa-editor-area');
+  if (grid)   grid.style.display   = 'none';
+  if (editor) editor.style.display = 'block';
+}
+
+function waEnviar() {
+  if (!_waOtId || !_waPlantillaKey) return;
+  const ots = APP.lsGet('mp_ots', []);
+  const idx = ots.findIndex(o => o.id === _waOtId);
+  if (idx < 0) return;
+  const ot  = ots[idx];
+
+  const texto = document.getElementById('wa-texto')?.value.trim();
+  if (!texto) { APP.toast.show('El mensaje no puede estar vacío', 'warning'); return; }
+
+  const wzNum = (ot.wz || '').replace(/\D/g, '');
+  window.open(
+    wzNum
+      ? `https://wa.me/${wzNum}?text=${encodeURIComponent(texto)}`
+      : `https://wa.me/?text=${encodeURIComponent(texto)}`,
+    '_blank'
+  );
+
+  const ahora = new Date();
+  ots[idx].whatsapp_enviados = [...(ots[idx].whatsapp_enviados || []), {
+    tipo:     _waPlantillaKey,
+    label:    _WA_PLANTILLAS_LABELS[_waPlantillaKey] || _waPlantillaKey,
+    texto,
+    ts:       ahora.toISOString(),
+    hora:     ahora.toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' }),
+    fecha:    ahora.toLocaleDateString('es-CL'),
+  }];
+  APP.lsSet('mp_ots', ots);
+
+  _waRenderHistorial(ots[idx]);
+  waVolverPlantillas();
+  APP.toast.show('✓ Abriendo WhatsApp…', 'success');
+}
+
+function _waRenderHistorial(ot) {
+  const el = document.getElementById('wa-historial-lista');
+  if (!el) return;
+  const enviados = (ot.whatsapp_enviados || []).slice().reverse();
+  if (!enviados.length) {
+    el.innerHTML = '<div style="font-size:11px;color:var(--text-muted);text-align:center;padding:4px 0">Sin mensajes enviados</div>';
+    return;
+  }
+  el.innerHTML = enviados.map(e => `
+    <div style="display:flex;align-items:flex-start;gap:8px;padding:6px 0;border-bottom:0.5px solid var(--border)">
+      <span style="font-size:16px;line-height:1.2">📱</span>
+      <div style="flex:1;min-width:0">
+        <div style="font-weight:500;font-size:11px">${_admEscWA(e.label)}</div>
+        <div style="font-size:10px;color:var(--text-muted)">${e.fecha} ${e.hora}</div>
+        <div style="font-size:10px;color:var(--text-muted);margin-top:2px;white-space:pre-wrap;word-break:break-word;max-height:48px;overflow:hidden">${_admEscWA(e.texto)}</div>
+      </div>
+    </div>`).join('');
+}
+
+function _admEscWA(s) {
+  return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
 // ---- Finalizar: avanzar OT a fase repuestos ----
 function _diagFinalizar() {
   if (!_diagOtId) return;
