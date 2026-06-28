@@ -10,28 +10,15 @@
 
 <!-- PROVEEDORES -->
 <div class="page" id="pg-proveedores">
-  <div style="display:grid;grid-template-columns:1fr 300px;gap:14px">
-    <!-- Lista proveedores (70%) -->
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
     <div>
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
-        <div>
-          <span class="ct">Proveedores registrados</span>
-          <span style="font-size:11px;color:var(--text-muted);margin-left:8px" id="prov-count">3 proveedores</span>
-        </div>
-        <button class="btn bpa" onclick="abrirModalProveedor()"><i class="ti ti-plus"></i>Agregar proveedor</button>
-      </div>
-      <div class="sb"><i class="ti ti-search" style="color:var(--text-muted);font-size:14px"></i><input id="prov-buscar" placeholder="Buscar por nombre, marca o teléfono…" oninput="filtrarProveedores(this.value)"></div>
-      <div id="prov-list"></div>
+      <span class="ct">Proveedores registrados</span>
+      <span style="font-size:11px;color:var(--text-muted);margin-left:8px" id="prov-count">3 proveedores</span>
     </div>
-
-    <!-- Panel estadísticas (30%) -->
-    <div>
-      <div class="card">
-        <div class="ch"><span class="ct">Estadísticas</span></div>
-        <div id="prov-stats"></div>
-      </div>
-    </div>
+    <button class="btn bpa" onclick="abrirModalProveedor()"><i class="ti ti-plus"></i>Agregar proveedor</button>
   </div>
+  <div class="sb"><i class="ti ti-search" style="color:var(--text-muted);font-size:14px"></i><input id="prov-buscar" placeholder="Buscar por nombre, marca o teléfono…" oninput="filtrarProveedores(this.value)"></div>
+  <div id="prov-list"></div>
 
   <!-- MODAL AGREGAR/EDITAR PROVEEDOR -->
   <div id="prov-modal" class="modal-overlay" style="display:none">

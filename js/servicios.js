@@ -1,35 +1,9 @@
 // ===== MÓDULO: SERVICIOS =====
-// Catálogo → Admin > Configuración
-// Este módulo gestiona: Eficiencia por servicio + Proveedores
-
-let _svcProvEdit  = null;
-let _svcProvMarcas = [];
+// Catálogo de servicios — reutiliza funciones de admin.js
 
 // ===== INIT =====
 function init_servicios() {
-  svcSetTab('prov');
-  svcRenderProveedores();
-  _svcPatchTallerSelect();
-
-  const area = document.getElementById('content-area');
-  if (area && !area.dataset.svcObserving) {
-    area.dataset.svcObserving = '1';
-    new MutationObserver(() => _svcPatchTallerSelect()).observe(area, { childList:true, subtree:true });
-  }
-}
-
-// ===== TABS (prov | conf) =====
-function svcSetTab(tab) {
-  ['prov','conf'].forEach(t => {
-    const cnt = document.getElementById('svc-tab-' + t);
-    const btn = document.getElementById('svc-tab-btn-' + t);
-    if (cnt) cnt.style.display = t === tab ? '' : 'none';
-    if (btn) {
-      btn.style.borderBottomColor = t === tab ? 'var(--fill-accent)' : 'transparent';
-      btn.style.color = t === tab ? 'var(--text-accent)' : 'var(--text-secondary)';
-    }
-  });
-  if (tab === 'prov') svcRenderProveedores();
+  if (typeof _admCatRender === 'function') _admCatRender();
 }
 
 // ===== GESTIÓN DE PROVEEDORES =====

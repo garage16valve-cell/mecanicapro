@@ -1396,40 +1396,82 @@
 <!-- SERVICIOS -->
 <div class="page active" id="pg-servicios">
 
-  <!-- Tabs -->
-  <div style="display:flex;gap:0;margin-bottom:16px;border-bottom:0.5px solid var(--border)">
-    <button id="svc-tab-btn-prov" onclick="svcSetTab('prov')"
-      style="padding:9px 18px;font-size:12px;font-weight:500;background:transparent;border:none;border-bottom:2px solid var(--fill-accent);color:var(--text-accent);cursor:pointer;font-family:var(--font-sans)">
-      <i class="ti ti-building-store" style="font-size:13px;vertical-align:-2px;margin-right:4px"></i>Proveedores
-    </button>
-    <button id="svc-tab-btn-conf" onclick="svcSetTab('conf')"
-      style="padding:9px 18px;font-size:12px;font-weight:500;background:transparent;border:none;border-bottom:2px solid transparent;color:var(--text-secondary);cursor:pointer;font-family:var(--font-sans)">
-      <i class="ti ti-settings" style="font-size:13px;vertical-align:-2px;margin-right:4px"></i>Configuración
-    </button>
-  </div>
-
-  <!-- ===== TAB PROVEEDORES ===== -->
-  <div id="svc-tab-prov" style="display:none">
-    <div style="display:flex;align-items:center;margin-bottom:12px">
-      <span style="font-size:12px;font-weight:500">Proveedores del taller</span>
-      <span style="font-size:11px;color:var(--text-muted);margin-left:8px" id="svc-prov-count"></span>
+  <!-- Catálogo de servicios -->
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+    <div>
+      <span class="ct">Catálogo de servicios</span>
+      <span id="adm-cat-count" style="font-size:11px;color:var(--text-muted);margin-left:8px"></span>
     </div>
-    <div id="svc-prov-lista"></div>
+    <div style="display:flex;gap:6px">
+      <input id="adm-cat-buscar" type="text" placeholder="Buscar servicio…" style="font-size:11px;padding:4px 9px;width:160px;border:0.5px solid var(--border-strong);border-radius:var(--radius);background:var(--surface-1);color:var(--text-primary)"
+        oninput="_admCatRender(this.value)">
+      <button class="btn bpa" onclick="admCatNuevo()" style="font-size:11px"><i class="ti ti-plus"></i> Nuevo</button>
+    </div>
   </div>
 
-  <!-- ===== TAB CONFIGURACIÓN ===== -->
-  <div id="svc-tab-conf" style="display:none">
-    <div class="card" style="text-align:center;padding:32px 24px">
-      <i class="ti ti-settings" style="font-size:36px;color:var(--text-muted);opacity:.4;display:block;margin-bottom:14px"></i>
-      <div style="font-size:14px;font-weight:500;margin-bottom:8px">Configuración del catálogo de servicios</div>
-      <div style="font-size:12px;color:var(--text-muted);margin-bottom:20px">
-        El catálogo de servicios (precios, horas estimadas, repuestos sugeridos) se gestiona en<br>
-        <strong>Admin &rsaquo; Configuración &rsaquo; Catálogo de servicios</strong>
-      </div>
-      <button class="btn bpa" onclick="nav('config',null)" style="margin:0 auto">
-        <i class="ti ti-arrow-right"></i> Ir a Configuración
+  <!-- Lista de servicios -->
+  <div id="adm-cat-lista" style="margin-top:6px"></div>
+
+  <!-- Panel Nuevo / Editar servicio -->
+  <div id="adm-cat-panel" style="display:none;margin-top:14px;border-top:0.5px solid var(--border);padding-top:14px">
+    <div class="ch" style="margin-bottom:12px">
+      <span class="ct" id="adm-cat-titulo">Nuevo servicio</span>
+      <button id="adm-cat-btn-del" class="btn" style="color:var(--text-danger);display:none" onclick="admCatEliminar()">
+        <i class="ti ti-trash"></i> Eliminar
       </button>
+      <button class="btn" onclick="admCatCerrarPanel()" style="padding:4px 9px"><i class="ti ti-x"></i></button>
     </div>
+    <div class="g2">
+      <div class="fg"><label>Nombre del servicio</label><input id="adm-cat-f-nombre" placeholder="Ej: Cambio de aceite"></div>
+      <div class="fg">
+        <label>Categoría</label>
+        <select id="adm-cat-f-cat" style="width:100%">
+          <option>Mantención</option>
+          <option>Frenos</option>
+          <option>Motor</option>
+          <option>Eléctrico</option>
+          <option>Suspensión</option>
+          <option>Otro</option>
+        </select>
+      </div>
+    </div>
+    <div class="g2">
+      <div class="fg">
+        <label>Horas estimadas</label>
+        <input id="adm-cat-f-hest" type="number" min="0" step="0.5" placeholder="1.5">
+      </div>
+      <div class="fg">
+        <label>Precio fijo de venta</label>
+        <input id="adm-cat-f-precio" type="number" min="0" step="500" placeholder="45000" style="font-family:var(--font-mono)">
+      </div>
+    </div>
+    <div class="g2">
+      <div class="fg">
+        <label>Precio mínimo de venta</label>
+        <input id="adm-cat-f-precio-min" type="number" min="0" step="500" placeholder="38000" style="font-family:var(--font-mono)">
+        <div style="font-size:10px;color:var(--text-muted);margin-top:3px">Solo visible para Admin. Alerta si se cobra menos.</div>
+      </div>
+      <div class="fg" style="align-self:flex-end">
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:12px;margin-bottom:6px">
+          <input id="adm-cat-f-iva" type="checkbox">
+          Precio incluye IVA (19%)
+        </label>
+        <div style="font-size:10px;color:var(--text-muted)">El precio mostrado al cliente incluirá IVA.</div>
+      </div>
+    </div>
+
+    <!-- Repuestos sugeridos -->
+    <div style="margin-top:12px">
+      <div class="ch" style="margin-bottom:8px">
+        <span style="font-size:11px;font-weight:500">Repuestos sugeridos</span>
+        <button class="btn" onclick="admCatAgregarRep()" style="font-size:11px"><i class="ti ti-plus"></i> Agregar</button>
+      </div>
+      <div id="adm-cat-rep-lista"></div>
+    </div>
+
+    <button class="btn bpa" style="width:100%;justify-content:center;margin-top:14px" onclick="admCatGuardar()">
+      <i class="ti ti-device-floppy"></i> Guardar servicio
+    </button>
   </div>
 
 </div>
@@ -1450,28 +1492,15 @@
 
 <!-- PROVEEDORES -->
 <div class="page" id="pg-proveedores">
-  <div style="display:grid;grid-template-columns:1fr 300px;gap:14px">
-    <!-- Lista proveedores (70%) -->
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
     <div>
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
-        <div>
-          <span class="ct">Proveedores registrados</span>
-          <span style="font-size:11px;color:var(--text-muted);margin-left:8px" id="prov-count">3 proveedores</span>
-        </div>
-        <button class="btn bpa" onclick="abrirModalProveedor()"><i class="ti ti-plus"></i>Agregar proveedor</button>
-      </div>
-      <div class="sb"><i class="ti ti-search" style="color:var(--text-muted);font-size:14px"></i><input id="prov-buscar" placeholder="Buscar por nombre, marca o teléfono…" oninput="filtrarProveedores(this.value)"></div>
-      <div id="prov-list"></div>
+      <span class="ct">Proveedores registrados</span>
+      <span style="font-size:11px;color:var(--text-muted);margin-left:8px" id="prov-count">3 proveedores</span>
     </div>
-
-    <!-- Panel estadísticas (30%) -->
-    <div>
-      <div class="card">
-        <div class="ch"><span class="ct">Estadísticas</span></div>
-        <div id="prov-stats"></div>
-      </div>
-    </div>
+    <button class="btn bpa" onclick="abrirModalProveedor()"><i class="ti ti-plus"></i>Agregar proveedor</button>
   </div>
+  <div class="sb"><i class="ti ti-search" style="color:var(--text-muted);font-size:14px"></i><input id="prov-buscar" placeholder="Buscar por nombre, marca o teléfono…" oninput="filtrarProveedores(this.value)"></div>
+  <div id="prov-list"></div>
 
   <!-- MODAL AGREGAR/EDITAR PROVEEDOR -->
   <div id="prov-modal" class="modal-overlay" style="display:none">
