@@ -1,473 +1,881 @@
-// ─── FORMULARIO NUEVA OT ──────────────────────────────────────────────────────
+// ─── FORMULARIO NUEVA OT — REDISEÑO COMPLETO ─────────────────────────────────
 
-let _otModoCompleto = false;
-let _otMotivos      = [];
-let _otServicios    = [];
+// Toast global (alias)
+function showToast(msg, tipo, dur) { APP.toast.show(msg, tipo || 'success', dur || 3000); }
 
-// ─── Abrir / Cerrar ────────────────────────────────────────────────────────────
+// ─── Estado del formulario ──────────────────────────────────────────────────
+let nfServicios = [];        // servicios agregados a la OT (para guardar)
+let nfRepuestos = [];        // repuestos temporales del servicio actual
+let nfClienteSel = null;     // { id, nombre, apellido, whatsapp, email, vehiculos[] }
+let nfFotos = [];            // fotos base64
 
-function abrirFormNuevaOT() {
-  _otModoCompleto = false;
-  _otMotivos      = [];
-  _otServicios    = [];
-  _resetFormNuevaOT();
-  _poblarSelectores();
-  document.getElementById('ot-nueva').style.display        = 'flex';
-  document.getElementById('ot-completo-mode').style.display = 'none';
-  document.getElementById('ot-nueva-modal').style.maxWidth  = '560px';
-  const btn = document.getElementById('btn-mas-detalles');
-  if (btn) btn.textContent = '+ Agregar más detalles ▼';
-  renderMotivosOT();
-  renderServiciosOT();
+const NF_MARCAS = [
+  'Acura','Alfa Romeo','Audi','BAIC','BMW','Buick','BYD','Cadillac','Changan',
+  'Chery','Chevrolet','Chrysler','Citroën','Daewoo','Daihatsu','DFSK','Dodge',
+  'Dongfeng','FAW','Ferrari','Fiat','Foton','Ford','GAC','Genesis','Geely','GMC',
+  'Great Wall','Haval','Honda','Hyundai','Infiniti','Isuzu','JAC','Jaguar','Jeep',
+  'Kia','Lamborghini','Land Rover','Lexus','Lifan','Lincoln','Maserati','Mazda',
+  'Mercedes-Benz','MG','Mini','Mitsubishi','Nissan','Opel','Peugeot','Porsche',
+  'RAM','Renault','Rolls-Royce','SAIC','Seat','Skoda','SsangYong','Subaru',
+  'Suzuki','Tesla','Toyota','Volkswagen','Volvo','ZNA','Zotye','Otra marca'
+];
+
+const NF_UNIDADES = ['unidad','litro','kg','metro','juego'];
+const NF_COMBUSTIBLE= ['','Vacío','1/4','1/2','3/4','Lleno'];
+const NF_FLUIDOS  = ['Aceite motor','Líquido frenos','Líquido embrague','Refrigerante','Aceite hidráulico','Limpiaparabrisas'];
+const NF_INVENTARIO=['Llanta repuesto','Kit carretera','Herramientas','Botiquín','Extintor'];
+const NF_DANOS    = ['Rayado','Fogueado','Sumido','Picado','Golpeado','Sin daños'];
+
+// ─── Abrir / Cerrar ──────────────────────────────────────────────────────────
+function nfAbrirFormulario() {
+  nfResetForm();
+  // Ocultar listado, mostrar form
+  const listado = document.getElementById('ot-listado');
+  if (listado) listado.style.display = 'none';
+  document.getElementById('ot-nueva').style.display = 'flex';
+  // Poblar selects
+  nfPoblarSelectores();
+  // Enfocar buscador de cliente
+  setTimeout(() => {
+    const el = document.getElementById('nf-cliente-buscar');
+    if (el) el.focus();
+  }, 200);
 }
 
-function cerrarFormNuevaOT() {
+function nfCerrarFormulario() {
   document.getElementById('ot-nueva').style.display = 'none';
-  _cerrarDropCliente();
+  const listado = document.getElementById('ot-listado');
+  if (listado) listado.style.display = '';
+  nfCerrarDropCliente();
+  nfCerrarDropServicio();
 }
 
-function _resetFormNuevaOT() {
-  const ids = [
-    'nq-patente','nq-wz','nq-cliente-buscar',
-    'nq-cliente-nuevo-nombre','nq-cliente-nuevo-wz',
-    'nc-patente','nc-marca','nc-modelo','nc-anio',
-    'nc-color','nc-motor','nc-km',
-    'nc-motivo-desc','nc-svc-nombre','nc-svc-horas','nc-svc-valor',
-    'nc-objetos-valor','nc-documentos','nc-desc-danos',
-  ];
-  ids.forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
-
-  // Hidden fields
-  document.getElementById('nq-cliente').value = '';
-
-  // Chip y nuevo cliente
-  _ocultarChipCliente();
-  const nuevoBox = document.getElementById('nq-cliente-nuevo-box');
-  if (nuevoBox) nuevoBox.style.display = 'none';
-
-  // Checkboxes
-  document.querySelectorAll('.nc-fluido, .nc-inventario, .nc-dano').forEach(cb => { cb.checked = false; });
-
-  // Status patente
-  const st = document.getElementById('nq-pat-status');
-  if (st) st.innerHTML = '';
-
-  // Motivos/servicios
-  _otMotivos   = [];
-  _otServicios = [];
-}
-
-// ─── Poblar selects ────────────────────────────────────────────────────────────
-
-function _poblarSelectores() {
-  const usuarios  = APP.lsGet('usuarios') || APP.lsGet('operarios') || [];
-  const servicios = APP.lsGet('servicios') || [];
-
-  // Quick mode
-  _poblarSelect('nq-tecnico', usuarios,  u => ({ v: u.id || u.nombre, t: u.nombre }), '— Sin asignar —');
-  _poblarSelect('nq-servicio', servicios, s => ({ v: s.id || s.nombre, t: s.nombre }), '— Selecciona servicio —');
-
-  // Full mode
-  _poblarSelect('nc-tecnico', usuarios,  u => ({ v: u.id || u.nombre, t: u.nombre }), 'Sin asignar');
-  _poblarSelect('nc-asesor',  usuarios,  u => ({ v: u.id || u.nombre, t: u.nombre }), 'Sin asignar');
-  _poblarSelect('nc-motivo-svc', servicios, s => ({ v: s.id || s.nombre, t: s.nombre }), '— Opcional —');
-}
-
-function _poblarSelect(id, arr, fn, placeholder) {
-  const el = document.getElementById(id);
-  if (!el) return;
-  el.innerHTML = `<option value="">${placeholder}</option>` +
-    arr.map(item => { const o = fn(item); return `<option value="${o.v}">${o.t}</option>`; }).join('');
-}
-
-// ─── Consultar patente ─────────────────────────────────────────────────────────
-
-function consultarPatenteModal() {
-  const pat    = (document.getElementById('nq-patente')?.value || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
-  const status = document.getElementById('nq-pat-status');
-  if (!pat) { if (status) status.innerHTML = '<span style="color:#dc2626">Ingresa una patente</span>'; return; }
-
-  const vehiculos = APP.lsGet('vehiculos') || [];
-  const veh = vehiculos.find(v => (v.patente || '').toUpperCase() === pat);
-  const ots = APP.lsGet('ots') || [];
-  const histN = ots.filter(o => (o.patente || '').toUpperCase() === pat).length;
-
-  let html = '';
-  if (veh) {
-    html += `<span style="color:var(--text-success,#16a34a)">✓ ${[veh.marca, veh.modelo, veh.anio].filter(Boolean).join(' ')}</span>`;
-    // Auto-fill modo completo
-    if (document.getElementById('nc-patente')) document.getElementById('nc-patente').value = pat;
-    if (document.getElementById('nc-marca')  && veh.marca)  document.getElementById('nc-marca').value  = veh.marca;
-    if (document.getElementById('nc-modelo') && veh.modelo) document.getElementById('nc-modelo').value = veh.modelo;
-    if (document.getElementById('nc-anio')   && veh.anio)   document.getElementById('nc-anio').value   = veh.anio;
-  } else {
-    html += `<span style="color:var(--text-muted)">Sin historial para ${pat}</span>`;
-    if (document.getElementById('nc-patente')) document.getElementById('nc-patente').value = pat;
-  }
-  if (histN) html += ` &nbsp;<span style="color:var(--text-secondary);font-size:9px">${histN} OT(s) previa(s)</span>`;
-  if (status) status.innerHTML = html;
-}
-
-// ─── Búsqueda de cliente (quick mode) ─────────────────────────────────────────
-
-function _nqBuscarCliente(q) {
-  const drop = document.getElementById('nq-cliente-drop');
-  if (!drop) return;
-  if (!q || q.length < 1) { _cerrarDropCliente(); return; }
-
-  const clientes = APP.lsGet('clientes') || [];
-  const qLow = q.toLowerCase();
-  const matches = clientes.filter(c =>
-    (c.nombre || '').toLowerCase().includes(qLow) ||
-    (c.wz || '').includes(q) ||
-    (c.rut || '').includes(q)
-  ).slice(0, 8);
-
-  drop.style.display = 'block';
-
-  if (!matches.length) {
-    drop.innerHTML = `<div onclick="_nqCrearClienteNuevo()" style="padding:9px 12px;cursor:pointer;font-size:12px;color:var(--text-accent,#2563eb);display:flex;align-items:center;gap:6px">
-      <i class="ti ti-plus" style="font-size:11px"></i> Crear cliente "<strong>${q}</strong>"
-    </div>`;
-    return;
-  }
-
-  drop.innerHTML = matches.map(c => `
-    <div onclick="_nqSelCliente('${c.id}','${_esc(c.nombre)}','${_esc(c.wz || '')}')"
-      style="padding:8px 12px;cursor:pointer;border-bottom:0.5px solid var(--border);font-size:12px">
-      <div style="font-weight:500">${c.nombre}</div>
-      ${c.wz ? `<div style="font-size:10px;color:var(--text-muted)">${c.wz}</div>` : ''}
-    </div>`).join('') +
-    `<div onclick="_nqCrearClienteNuevo()" style="padding:8px 12px;cursor:pointer;font-size:11px;color:var(--text-accent,#2563eb)">
-      <i class="ti ti-plus" style="font-size:10px"></i> Nuevo cliente…
-    </div>`;
-}
-
-function _esc(s) { return (s || '').replace(/'/g, "\\'").replace(/"/g, '&quot;'); }
-
-function _nqSelCliente(id, nombre, wz) {
-  document.getElementById('nq-cliente').value = id;
-  document.getElementById('nq-cliente-chip-nom').textContent = nombre;
-  document.getElementById('nq-cliente-buscar').value = '';
-  _cerrarDropCliente();
-  _mostrarChipCliente();
-  if (wz && document.getElementById('nq-wz') && !document.getElementById('nq-wz').value) {
-    document.getElementById('nq-wz').value = wz;
-  }
-  const nuevoBox = document.getElementById('nq-cliente-nuevo-box');
-  if (nuevoBox) nuevoBox.style.display = 'none';
-}
-
-function _nqCrearClienteNuevo() {
-  _cerrarDropCliente();
-  const nuevoBox = document.getElementById('nq-cliente-nuevo-box');
-  if (nuevoBox) nuevoBox.style.display = 'block';
-  document.getElementById('nq-cliente-nuevo-nombre')?.focus();
-}
-
-function _nqNuevoCliente() {
-  const nuevoBox = document.getElementById('nq-cliente-nuevo-box');
-  if (!nuevoBox) return;
-  nuevoBox.style.display = nuevoBox.style.display === 'none' ? 'block' : 'none';
-}
-
-function _nqLimpiarCliente() {
-  document.getElementById('nq-cliente').value = '';
-  _ocultarChipCliente();
-  document.getElementById('nq-cliente-nuevo-box').style.display = 'none';
-  document.getElementById('nq-wz').value = '';
-}
-
-function _mostrarChipCliente() {
-  const chip = document.getElementById('nq-cliente-chip');
-  if (chip) { chip.style.display = 'flex'; }
-}
-function _ocultarChipCliente() {
-  const chip = document.getElementById('nq-cliente-chip');
-  if (chip) { chip.style.display = 'none'; }
-  if (document.getElementById('nq-cliente-chip-nom')) document.getElementById('nq-cliente-chip-nom').textContent = '';
-}
-function _cerrarDropCliente() {
-  const drop = document.getElementById('nq-cliente-drop');
-  if (drop) drop.style.display = 'none';
-}
-
-// Cerrar dropdown al hacer click fuera
-document.addEventListener('click', e => {
-  if (!e.target.closest('#nq-cliente-buscar') && !e.target.closest('#nq-cliente-drop')) {
-    _cerrarDropCliente();
-  }
-});
-
-// ─── Toggle modo completo ──────────────────────────────────────────────────────
-
-function toggleModoCompleto() {
-  _otModoCompleto = !_otModoCompleto;
-  const completo = document.getElementById('ot-completo-mode');
-  const modal    = document.getElementById('ot-nueva-modal');
-  const btn      = document.getElementById('btn-mas-detalles');
-  if (_otModoCompleto) {
-    completo.style.display = 'block';
-    if (modal) modal.style.maxWidth = '900px';
-    if (btn) btn.textContent = '− Ocultar detalles ▲';
-    _poblarSelectores();
-    renderMotivosOT();
-    renderServiciosOT();
-  } else {
-    completo.style.display = 'none';
-    if (modal) modal.style.maxWidth = '560px';
-    if (btn) btn.textContent = '+ Agregar más detalles ▼';
-  }
-}
-
-// ─── Acordeón recepción ────────────────────────────────────────────────────────
-
-function _toggleRecepcionAcordeon() {
-  const body    = document.getElementById('nc-recepcion-body');
-  const chevron = document.getElementById('nc-recep-chevron');
-  if (!body) return;
-  const open = body.style.display !== 'none';
-  body.style.display    = open ? 'none' : 'block';
-  if (chevron) chevron.style.transform = open ? 'rotate(0deg)' : 'rotate(180deg)';
-}
-
-// ─── Motivos ───────────────────────────────────────────────────────────────────
-
-function agregarMotivoOT() {
-  const desc  = (document.getElementById('nc-motivo-desc')?.value || '').trim();
-  const tipo  = document.querySelector('input[name="nc-motivo-tipo"]:checked')?.value || 'reparacion';
-  const svcEl = document.getElementById('nc-motivo-svc');
-  const svcId = svcEl?.value || '';
-  const svcNom = svcEl?.options[svcEl.selectedIndex]?.text || '';
-
-  if (!desc && !svcId) { showToast('Describe el motivo o selecciona un servicio'); return; }
-
-  _otMotivos.push({
-    descripcion: desc,
-    servicio_id: svcId,
-    servicio_nombre: svcNom !== '— Opcional —' ? svcNom : '',
-    procedimiento: tipo,
-    estado_aprobacion: 'pendiente',
+function nfResetForm() {
+  // Limpiar todos los inputs
+  document.querySelectorAll('#ot-nueva input, #ot-nueva textarea, #ot-nueva select').forEach(el => {
+    if (el.type === 'checkbox') el.checked = false;
+    else if (el.type !== 'file') el.value = '';
   });
-
-  if (document.getElementById('nc-motivo-desc')) document.getElementById('nc-motivo-desc').value = '';
-  renderMotivosOT();
+  // Selects especiales
+  const marca = document.getElementById('nf-marca');
+  if (marca) marca.value = '';
+  const anio = document.getElementById('nf-anio');
+  if (anio) anio.value = '';
+  const comb = document.getElementById('nf-combustible');
+  if (comb) comb.value = '';
+  const tec = document.getElementById('nf-tecnico');
+  if (tec) tec.value = '';
+  // Resetear estado
+  nfServicios = [];
+  nfRepuestos = [];
+  nfClienteSel = null;
+  nfFotos = [];
+  // Ocultar secciones condicionales
+  const recepcion = document.getElementById('nf-recepcion');
+  if (recepcion) recepcion.style.display = 'none';
+  const citaGroup = document.getElementById('nf-cita-group');
+  if (citaGroup) citaGroup.style.display = 'flex';
+  const provBox = document.getElementById('nf-proveedores-box');
+  if (provBox) provBox.style.display = 'none';
+  const histBtn = document.getElementById('nf-historial-btn');
+  if (histBtn) histBtn.style.display = 'none';
+  const sugBox = document.getElementById('nf-svc-sugerencias');
+  if (sugBox) sugBox.innerHTML = '';
+  // Reset checkbox receptions
+  document.querySelectorAll('.nf-fluido-cb, .nf-inventario-cb, .nf-dano-cb').forEach(cb => cb.checked = false);
+  // Foto preview
+  const prev = document.getElementById('nf-fotos-preview');
+  if (prev) prev.innerHTML = '';
+  nfRenderServicios();
+  nfRenderRepuestos();
+  nfToggleExpress();
+  // Ocultar desc daños
+  const dd = document.getElementById('nf-desc-danos-group');
+  if (dd) dd.style.display = 'none';
 }
 
-function renderMotivosOT() {
-  const list = document.getElementById('nc-motivos-lista');
-  if (!list) return;
-  if (!_otMotivos.length) {
-    list.innerHTML = '<div style="color:var(--text-muted);font-size:11px;padding:4px 0">Sin motivos agregados</div>';
+// ─── Poblar Selectores ──────────────────────────────────────────────────────
+function nfPoblarSelectores() {
+  // Marca
+  const marcaEl = document.getElementById('nf-marca');
+  if (marcaEl) {
+    marcaEl.innerHTML = '<option value="">— Selecciona marca —</option>' +
+      NF_MARCAS.map(m => `<option value="${m}">${m}</option>`).join('');
+  }
+  // Año (2027→1970)
+  const anioEl = document.getElementById('nf-anio');
+  if (anioEl) {
+    const current = new Date().getFullYear();
+    let opts = '<option value="">— Año —</option>';
+    for (let y = current + 1; y >= 1970; y--) opts += `<option value="${y}">${y}</option>`;
+    anioEl.innerHTML = opts;
+  }
+  // Técnico
+  const tecEl = document.getElementById('nf-tecnico');
+  if (tecEl) {
+    const usuarios = APP.lsGet('usuarios') || [];
+    const mecanicos = usuarios.filter(u => u.rol === 'mecanico' || u.rol === 'administrador');
+    tecEl.innerHTML = '<option value="">— Sin asignar —</option>' +
+      mecanicos.map(u => `<option value="${u.id || u.nombre}">${u.nombre || ''} ${u.apellido || ''}</option>`).join('');
+    if (!mecanicos.length) {
+      tecEl.innerHTML += '<option value="Sin asignar">Sin asignar</option>';
+    }
+  }
+  // Combustible
+  const combEl = document.getElementById('nf-combustible');
+  if (combEl) {
+    combEl.innerHTML = NF_COMBUSTIBLE.map((v, i) => `<option value="${i === 0 ? '' : v}">${i === 0 ? '— Selecciona —' : v}</option>`).join('');
+  }
+  nfPoblarFluidosInventario();
+  nfPoblarProveedores();
+}
+
+function nfPoblarFluidosInventario() {
+  // Fluidos
+  const fEl = document.getElementById('nf-fluidos');
+  if (fEl) fEl.innerHTML = NF_FLUIDOS.map(f => `
+    <label style="display:flex;align-items:center;gap:5px;cursor:pointer;font-size:11px">
+      <input type="checkbox" class="nf-fluido-cb" value="${f}"> ${f}
+    </label>`).join('');
+  // Inventario
+  const iEl = document.getElementById('nf-inventario');
+  if (iEl) iEl.innerHTML = NF_INVENTARIO.map(i => `
+    <label style="display:flex;align-items:center;gap:5px;cursor:pointer;font-size:11px">
+      <input type="checkbox" class="nf-inventario-cb" value="${i}"> ${i}
+    </label>`).join('');
+  // Daños
+  const dEl = document.getElementById('nf-danos');
+  if (dEl) dEl.innerHTML = NF_DANOS.map(d => `
+    <label style="display:flex;align-items:center;gap:5px;cursor:pointer;font-size:11px">
+      <input type="checkbox" class="nf-dano-cb" value="${d}" ${d === 'Sin daños' ? 'onchange="nfToggleSinDanos(this)"' : ''}> ${d}
+    </label>`).join('');
+}
+
+function nfPoblarProveedores() {
+  const prov = APP.lsGet('proveedores') || [];
+  window._nfProveedores = prov;
+}
+
+// ─── BLOQUE 1: BÚSQUEDA DE CLIENTE ──────────────────────────────────────────
+function nfBuscarCliente(q) {
+  const drop = document.getElementById('nf-cliente-drop');
+  if (!drop) return;
+  if (!q || q.length < 1) { nfCerrarDropCliente(); return; }
+  const qLow = q.toLowerCase();
+  // Buscar en clientes
+  const clientes = APP.lsGet('clientes') || [];
+  let matches = clientes.filter(c =>
+    (c.nombre || '').toLowerCase().includes(qLow) ||
+    (c.apellido || '').toLowerCase().includes(qLow) ||
+    (c.whatsapp || c.wz || '').includes(q)
+  ).slice(0, 6);
+  // Buscar también en OTs por patente
+  const ots = APP.lsGet('ots') || [];
+  const otsPorPatente = ots.filter(o =>
+    (o.vehiculo_patente || o.patente || '').toLowerCase() === qLow
+  );
+  otsPorPatente.forEach(ot => {
+    const nom = ot.cliente_nombre || ot.clienteNombre || '';
+    const wz = ot.cliente_wz || ot.cliente_whatsapp || ot.wz || '';
+    if (nom && !matches.find(m => m.nombre === nom)) {
+      matches.push({ id: ot.cliente_id || 'cli-' + Date.now(), nombre: nom, apellido: ot.cliente_apellido || '', whatsapp: wz, email: ot.cliente_email || '' });
+    }
+  });
+  drop.style.display = 'block';
+  if (!matches.length) {
+    drop.innerHTML = `<div style="padding:9px 12px;font-size:11px;color:var(--text-muted);display:flex;align-items:center;gap:6px">
+      <i class="ti ti-info-circle"></i> Cliente nuevo, completa los datos</div>`;
     return;
   }
-  const colores = { diagnostico: '#7c3aed', mantenimiento: '#2563eb', reparacion: '#059669' };
-  list.innerHTML = _otMotivos.map((m, i) => {
-    const c = colores[m.procedimiento] || '#6b7280';
-    const txt = m.descripcion || m.servicio_nombre || '(sin descripción)';
-    return `<div style="display:flex;align-items:center;gap:6px;padding:5px 8px;
-      background:var(--surface-1);border-radius:var(--radius);margin-bottom:4px;font-size:11px">
-      <span style="padding:1px 7px;border-radius:8px;background:${c}22;color:${c};font-size:10px;font-weight:700;white-space:nowrap">
-        ${m.procedimiento}
-      </span>
-      <span style="flex:1;line-height:1.3">${txt}</span>
-      <button onclick="_elimMotivoOT(${i})"
-        style="background:none;border:none;cursor:pointer;color:var(--text-muted);font-size:16px;padding:0 2px;line-height:1">×</button>
+  drop.innerHTML = matches.map(c => {
+    const vehiculos = nfVehiculosDeCliente(c.id);
+    const tieneVarios = vehiculos.length > 1;
+    const txt = [c.nombre, c.apellido].filter(Boolean).join(' ') + (c.whatsapp || c.wz ? ' · ' + (c.whatsapp || c.wz) : '');
+    return `<div onclick="nfSelCliente('${_nfEsc(c.id)}','${_nfEsc(c.nombre || '')}','${_nfEsc(c.apellido || '')}','${_nfEsc(c.whatsapp || c.wz || '')}','${_nfEsc(c.email || '')}',${tieneVarios ? 'true' : 'false'})"
+      style="padding:8px 12px;cursor:pointer;border-bottom:0.5px solid var(--border);font-size:12px">
+      <div style="font-weight:500">${txt}</div>
+      ${vehiculos.length ? '<div style="font-size:10px;color:var(--text-muted)">' + vehiculos.map(v => (v.marca || '') + ' ' + (v.modelo || '') + ' - ' + (v.patente || '')).join(' · ') + '</div>' : ''}
     </div>`;
   }).join('');
 }
 
-function _elimMotivoOT(i) { _otMotivos.splice(i, 1); renderMotivosOT(); }
-
-// ─── Servicios (modo completo) ─────────────────────────────────────────────────
-
-function agregarServicioOTCompleto() {
-  const nombre = (document.getElementById('nc-svc-nombre')?.value || '').trim();
-  const horas  = parseFloat(document.getElementById('nc-svc-horas')?.value) || 0;
-  const valor  = parseInt(document.getElementById('nc-svc-valor')?.value)   || 0;
-  if (!nombre) { showToast('Ingresa el nombre del servicio'); return; }
-  _otServicios.push({ nombre, horas, valor });
-  if (document.getElementById('nc-svc-nombre')) document.getElementById('nc-svc-nombre').value = '';
-  if (document.getElementById('nc-svc-horas'))  document.getElementById('nc-svc-horas').value  = '';
-  if (document.getElementById('nc-svc-valor'))  document.getElementById('nc-svc-valor').value  = '';
-  renderServiciosOT();
+function nfVehiculosDeCliente(clienteId) {
+  const vehiculos = APP.lsGet('vehiculos') || [];
+  const ots = APP.lsGet('ots') || [];
+  // Buscar por cliente_id directo en vehiculos
+  let vh = vehiculos.filter(v => v.cliente_id === clienteId);
+  // También buscar en OTs por cliente_id
+  const otsCli = ots.filter(o => (o.cliente_id || o.clienteId) === clienteId);
+  otsCli.forEach(ot => {
+    const pat = ot.vehiculo_patente || ot.patente || '';
+    if (pat && !vh.find(v => v.patente === pat)) {
+      vh.push({
+        patente: pat,
+        marca: ot.vehiculo_marca || ot.marca || '',
+        modelo: ot.vehiculo_modelo || ot.modelo || '',
+        anio: ot.vehiculo_anio || ot.anio || ''
+      });
+    }
+  });
+  return vh;
 }
 
-function renderServiciosOT() {
-  const list = document.getElementById('nc-svc-lista');
-  if (!list) return;
-  if (!_otServicios.length) {
-    list.innerHTML = '<div style="color:var(--text-muted);font-size:11px;padding:4px 0">Sin servicios agregados</div>';
-    const tot = document.getElementById('nc-svc-totales');
+function nfSelCliente(id, nombre, apellido, whatsapp, email, tieneVarios) {
+  nfClienteSel = { id, nombre, apellido, whatsapp, email };
+  document.getElementById('nf-cliente-nombre').value = nombre;
+  document.getElementById('nf-cliente-apellido').value = apellido;
+  document.getElementById('nf-cliente-whatsapp').value = whatsapp;
+  document.getElementById('nf-cliente-email').value = email;
+  document.getElementById('nf-cliente-buscar').value = '';
+  nfCerrarDropCliente();
+  // Vehículos del cliente
+  const vehiculos = nfVehiculosDeCliente(id);
+  if (tieneVarios && vehiculos.length > 1) {
+    nfMostrarSelectorVehiculo(vehiculos);
+  } else if (vehiculos.length === 1) {
+    nfAutocompletarVehiculo(vehiculos[0]);
+  }
+  showToast('✓ Cliente seleccionado: ' + nombre + ' ' + apellido);
+}
+
+function nfMostrarSelectorVehiculo(vehiculos) {
+  const sel = document.getElementById('nf-vehiculo-selector');
+  if (!sel) return;
+  const nom = [nfClienteSel.nombre, nfClienteSel.apellido].filter(Boolean).join(' ');
+  sel.style.display = 'block';
+  sel.innerHTML = `
+    <div style="font-size:11px;color:var(--text-secondary);margin-bottom:6px">Cliente: <strong>${_nfEsc(nom)}</strong>. Selecciona el vehículo:</div>
+    ${vehiculos.map((v, i) => `<div onclick="nfSelVehiculo(${i})"
+      style="padding:7px 10px;cursor:pointer;border:0.5px solid var(--border);border-radius:var(--radius);margin-bottom:4px;font-size:12px;background:var(--surface-1)"
+      onmouseover="this.style.background='var(--surface-2)'" onmouseout="this.style.background='var(--surface-1)'">
+      ${v.marca || ''} ${v.modelo || ''} ${v.anio || ''} - <strong>${v.patente || ''}</strong>
+    </div>`).join('')}
+    <div onclick="nfSelVehiculo(-1)"
+      style="padding:7px 10px;cursor:pointer;font-size:11px;color:var(--text-accent,#2563eb);display:flex;align-items:center;gap:4px">
+      <i class="ti ti-plus"></i> Ingresar vehículo nuevo
+    </div>`;
+  window._nfVehiculosCliente = vehiculos;
+}
+
+function nfSelVehiculo(idx) {
+  const sel = document.getElementById('nf-vehiculo-selector');
+  if (sel) sel.style.display = 'none';
+  if (idx >= 0 && window._nfVehiculosCliente && window._nfVehiculosCliente[idx]) {
+    nfAutocompletarVehiculo(window._nfVehiculosCliente[idx]);
+  }
+}
+
+function nfAutocompletarVehiculo(v) {
+  const set = (id, val) => { const el = document.getElementById(id); if (el) el.value = val || ''; };
+  set('nf-patente', v.patente || '');
+  set('nf-marca', v.marca || '');
+  set('nf-modelo', v.modelo || '');
+  set('nf-anio', v.anio || '');
+  set('nf-color', v.color || '');
+  set('nf-km', v.km_entrada || v.kilometraje || '');
+  set('nf-chasis', v.chasis || v.vin || '');
+  set('nf-motor', v.motor || '');
+  nfVerificarHistorial(v.patente || '');
+  nfActualizarProveedores(v.marca || '');
+  nfActualizarSugerencias(v.patente || '');
+}
+
+function nfCerrarDropCliente() {
+  const drop = document.getElementById('nf-cliente-drop');
+  if (drop) drop.style.display = 'none';
+}
+
+// ─── BLOQUE 2: DATOS DEL SERVICIO ───────────────────────────────────────────
+function nfToggleExpress() {
+  const isExpress = document.getElementById('nf-express')?.checked || false;
+  const citaGroup = document.getElementById('nf-cita-group');
+  if (citaGroup) citaGroup.style.display = isExpress ? 'none' : 'flex';
+  const recepcion = document.getElementById('nf-recepcion');
+  if (recepcion) recepcion.style.display = isExpress ? 'block' : 'none';
+}
+
+// Servicio search
+function nfBuscarServicio(q) {
+  const drop = document.getElementById('nf-svc-drop');
+  if (!drop) return;
+  if (!q || q.length < 1) { nfCerrarDropServicio(); return; }
+  const servicios = APP.lsGet('servicios') || [];
+  const qLow = q.toLowerCase();
+  const matches = servicios.filter(s => (s.nombre || '').toLowerCase().includes(qLow)).slice(0, 10);
+  drop.style.display = 'block';
+  if (!matches.length) {
+    drop.innerHTML = '<div style="padding:9px 12px;font-size:11px;color:var(--text-muted)">Sin resultados — completa manualmente</div>';
+    return;
+  }
+  drop.innerHTML = matches.map(s => {
+    const precio = s.valor || s.precioFijo || 0;
+    const horas = s.horas || s.horasEst || 0;
+    return `<div onclick="nfSelServicio('${_nfEsc(s.nombre)}',${horas},${precio})"
+      style="padding:8px 12px;cursor:pointer;border-bottom:0.5px solid var(--border);font-size:12px">
+      <div style="font-weight:500">${_nfEsc(s.nombre)}</div>
+      <div style="font-size:10px;color:var(--text-muted)">${horas ? '⏱ ' + horas + 'h' : ''}${precio ? ' | $' + Number(precio).toLocaleString('es-CL') : ''}</div>
+    </div>`;
+  }).join('');
+}
+
+function nfSelServicio(nombre, horas, valor) {
+  document.getElementById('nf-svc-nombre').value = nombre;
+  document.getElementById('nf-svc-horas').value = horas || '';
+  document.getElementById('nf-svc-valor').value = valor || '';
+  nfCerrarDropServicio();
+  nfMostrarBotonAgregar();
+  // Cargar repuestos sugeridos del catálogo
+  const servicios = APP.lsGet('servicios') || [];
+  const svc = servicios.find(s => (s.nombre || '').toLowerCase() === nombre.toLowerCase());
+  if (svc && (svc.repuestos || svc.repuestosSugeridos)) {
+    const reps = svc.repuestos || svc.repuestosSugeridos || [];
+    nfRepuestos = reps.map(r => ({
+      nombre: r.nombre || r.desc || '',
+      cantidad: r.cantidad || 1,
+      unidad: r.unidad || 'unidad'
+    }));
+    nfRenderRepuestos();
+  }
+}
+
+function nfCerrarDropServicio() {
+  const drop = document.getElementById('nf-svc-drop');
+  if (drop) drop.style.display = 'none';
+}
+
+function nfMostrarBotonAgregar() {
+  const nombre = (document.getElementById('nf-svc-nombre')?.value || '').trim();
+  const btn = document.getElementById('nf-svc-agregar-btn');
+  if (btn) btn.style.display = nombre ? 'flex' : 'none';
+}
+
+function nfAgregarServicio() {
+  const nombre = (document.getElementById('nf-svc-nombre')?.value || '').trim();
+  const horas = parseFloat(document.getElementById('nf-svc-horas')?.value) || 0;
+  const valor = parseInt(document.getElementById('nf-svc-valor')?.value) || 0;
+  if (!nombre) { showToast('Ingresa el nombre del servicio', 'warning'); return; }
+  nfServicios.push({
+    nombre,
+    horas,
+    valor,
+    repuestos: nfRepuestos.map(r => ({ ...r }))
+  });
+  // Limpiar campos
+  document.getElementById('nf-svc-nombre').value = '';
+  document.getElementById('nf-svc-horas').value = '';
+  document.getElementById('nf-svc-valor').value = '';
+  document.getElementById('nf-svc-buscar').value = '';
+  nfRepuestos = [];
+  nfRenderRepuestos();
+  nfRenderServicios();
+  nfCerrarDropServicio();
+  const btn = document.getElementById('nf-svc-agregar-btn');
+  if (btn) btn.style.display = 'none';
+}
+
+function nfRenderServicios() {
+  const lista = document.getElementById('nf-svc-lista');
+  if (!lista) return;
+  if (!nfServicios.length) {
+    lista.innerHTML = '<div style="color:var(--text-muted);font-size:11px;padding:4px 0">Sin servicios agregados aún</div>';
+    const tot = document.getElementById('nf-svc-totales');
     if (tot) tot.style.display = 'none';
     return;
   }
-  list.innerHTML = _otServicios.map((s, i) => `
-    <div style="display:flex;align-items:center;gap:8px;padding:5px 8px;
-      background:var(--surface-1);border-radius:var(--radius);margin-bottom:3px;font-size:11px">
-      <span style="flex:1;font-weight:500">${s.nombre}</span>
-      <span style="color:var(--text-muted);white-space:nowrap">${s.horas}h</span>
-      <span style="color:var(--text-accent,#2563eb);font-weight:700;white-space:nowrap">
-        $${s.valor.toLocaleString('es-CL')}
-      </span>
-      <button onclick="_elimSvcOT(${i})"
-        style="background:none;border:none;cursor:pointer;color:var(--text-muted);font-size:16px;padding:0 2px;line-height:1">×</button>
-    </div>`).join('');
+  lista.innerHTML = nfServicios.map((s, i) => {
+    const repsHtml = s.repuestos && s.repuestos.length
+      ? s.repuestos.map((r, ri) => `<div style="display:flex;align-items:center;gap:4px;padding:2px 0;font-size:10px;color:var(--text-muted)">
+          <span style="flex:1">• ${_nfEsc(r.nombre)} (${r.cantidad} ${r.unidad})</span>
+          <button onclick="nfElimRepuestoServicio(${i},${ri})" style="background:none;border:none;cursor:pointer;color:var(--text-muted);font-size:12px;padding:0;line-height:1">×</button>
+        </div>`).join('')
+      : '<div style="font-size:10px;color:var(--text-muted);padding:2px 0">Sin repuestos</div>';
+    return `<div style="border:0.5px solid var(--border);border-radius:var(--radius);padding:8px 10px;background:var(--surface-1);margin-bottom:6px">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+        <span style="font-weight:600;font-size:12px;flex:1">SERVICIO ${i + 1}: ${_nfEsc(s.nombre)}</span>
+        <button onclick="nfElimServicio(${i})" style="background:none;border:none;cursor:pointer;color:var(--text-muted);font-size:16px;padding:0">×</button>
+      </div>
+      <div style="font-size:11px;color:var(--text-secondary);margin-bottom:4px">
+        ⏱ ${s.horas}h | $${(s.valor || 0).toLocaleString('es-CL')}
+      </div>
+      <div style="font-size:10px;font-weight:500;color:var(--text-muted);margin-bottom:2px">Repuestos:</div>
+      ${repsHtml}
+    </div>`;
+  }).join('');
+  nfActualizarTotales();
+}
 
-  const totalH = _otServicios.reduce((a, s) => a + s.horas, 0);
-  const totalV = _otServicios.reduce((a, s) => a + s.valor, 0);
-  const tot = document.getElementById('nc-svc-totales');
+function nfActualizarTotales() {
+  const totalH = nfServicios.reduce((a, s) => a + (s.horas || 0), 0);
+  const totalV = nfServicios.reduce((a, s) => a + (s.valor || 0), 0);
+  const tot = document.getElementById('nf-svc-totales');
   if (tot) {
     tot.style.display = 'flex';
-    tot.innerHTML = `<span>Total horas: <strong>${totalH}</strong></span>
-      <span>Total: <strong style="color:var(--text-accent,#2563eb)">$${totalV.toLocaleString('es-CL')}</strong></span>`;
+    tot.innerHTML = `<span>Total: <strong>${totalH}h</strong></span>
+      <span style="font-weight:600;color:var(--text-accent,#2563eb)">Total: $${totalV.toLocaleString('es-CL')}</span>`;
   }
 }
 
-function _elimSvcOT(i) { _otServicios.splice(i, 1); renderServiciosOT(); }
+function nfElimServicio(i) { nfServicios.splice(i, 1); nfRenderServicios(); }
+function nfElimRepuestoServicio(si, ri) {
+  if (nfServicios[si] && nfServicios[si].repuestos) {
+    nfServicios[si].repuestos.splice(ri, 1);
+    nfRenderServicios();
+  }
+}
 
-// ─── CREAR OT ──────────────────────────────────────────────────────────────────
+// ─── Repuestos del servicio actual ──────────────────────────────────────────
+function nfRenderRepuestos() {
+  const lista = document.getElementById('nf-repuestos-lista');
+  if (!lista) return;
+  if (!nfRepuestos.length) {
+    lista.innerHTML = '<div style="color:var(--text-muted);font-size:10px;padding:4px 0">Sin repuestos — agrega usando el botón</div>';
+    return;
+  }
+  lista.innerHTML = nfRepuestos.map((r, i) =>
+    `<div style="display:flex;align-items:center;gap:4px;margin-bottom:4px;font-size:11px">
+      <span style="flex:1">${_nfEsc(r.nombre)} (${r.cantidad} ${r.unidad})</span>
+      <button onclick="nfElimRepuesto(${i})" style="background:none;border:none;cursor:pointer;color:var(--text-muted);font-size:14px;padding:0">×</button>
+    </div>`
+  ).join('');
+}
 
-// Exponer en window para acceso desde HTML inline
-window.abrirFormNuevaOT  = abrirFormNuevaOT;
-window.cerrarFormNuevaOT = cerrarFormNuevaOT;
-window.crearOT           = crearOT;
+function nfAgregarRepuesto() {
+  const nombre = (document.getElementById('nf-repuesto-nombre')?.value || '').trim();
+  const cantidad = parseFloat(document.getElementById('nf-repuesto-cantidad')?.value) || 1;
+  const unidad = document.getElementById('nf-repuesto-unidad')?.value || 'unidad';
+  if (!nombre) { showToast('Ingresa el nombre del repuesto', 'warning'); return; }
+  nfRepuestos.push({ nombre, cantidad, unidad });
+  document.getElementById('nf-repuesto-nombre').value = '';
+  document.getElementById('nf-repuesto-cantidad').value = '1';
+  nfRenderRepuestos();
+}
 
-// Ocultar el botón "Nueva OT" dentro del panel cuando el módulo cargue
-// (el header ya tiene ese botón, no debe aparecer duplicado)
-new MutationObserver(() => {
-  document.querySelectorAll('#ot-listado .btn.bpa').forEach(btn => {
-    if ((btn.textContent || '').trim().includes('Nueva OT')) btn.style.display = 'none';
+function nfElimRepuesto(i) { nfRepuestos.splice(i, 1); nfRenderRepuestos(); }
+
+// ─── Servicios sugeridos por historial ─────────────────────────────────────
+function nfActualizarSugerencias(patente) {
+  const sugBox = document.getElementById('nf-svc-sugerencias');
+  if (!sugBox) return;
+  if (!patente) { sugBox.innerHTML = ''; return; }
+  const ots = APP.lsGet('ots') || [];
+  const otsVehiculo = ots.filter(o => (o.vehiculo_patente || o.patente || '').toUpperCase() === patente.toUpperCase());
+  if (!otsVehiculo.length) { sugBox.innerHTML = ''; return; }
+  const config = APP.lsGet('config') || {};
+  const reglas = (config.upselling || []).length ? config.upselling : [
+    { servicio: 'Cambio aceite + filtros', tipo: 'tiempo', meses: 6 },
+    { servicio: 'Mantención 10.000 km', tipo: 'km', km: 10000 },
+    { servicio: 'Revisión frenos', tipo: 'tiempo', meses: 12 }
+  ];
+  const kmActual = parseInt(document.getElementById('nf-km')?.value) || 0;
+  let sugerencias = [];
+  reglas.forEach(regla => {
+    const otsServicio = otsVehiculo.filter(o => {
+      const servs = o.servicios || [];
+      const svcNombres = servs.map(s => (s.nombre || '').toLowerCase());
+      return svcNombres.some(n => n.includes(regla.servicio.toLowerCase()));
+    });
+    if (!otsServicio.length) return;
+    const ultimo = otsServicio[otsServicio.length - 1];
+    if (regla.tipo === 'tiempo' && regla.meses) {
+      const fechaUlt = ultimo.fecha_ingreso || ultimo.creado || Date.now();
+      const mesesPasados = (Date.now() - fechaUlt) / (30 * 24 * 60 * 60 * 1000);
+      if (mesesPasados >= regla.meses) {
+        sugerencias.push({ servicio: regla.servicio, tipo: 'tiempo', valor: Math.round(mesesPasados) + ' meses', ultimo: ultimo });
+      }
+    }
+    if (regla.tipo === 'km' && regla.km && kmActual) {
+      const kmUlt = parseInt(ultimo.vehiculo_km_entrada || ultimo.kilometraje?.entrada || 0);
+      if (kmUlt && (kmActual - kmUlt) >= regla.km) {
+        sugerencias.push({ servicio: regla.servicio, tipo: 'km', valor: (kmActual - kmUlt) + ' km', ultimo: ultimo });
+      }
+    }
   });
-}).observe(document.body, { childList: true, subtree: true });
+  if (!sugerencias.length) { sugBox.innerHTML = ''; return; }
+  sugBox.innerHTML = `<div style="font-size:11px;font-weight:600;color:var(--text-muted);margin-bottom:6px">🔔 Servicios sugeridos</div>
+    <div style="font-size:10px;color:var(--text-muted);margin-bottom:6px">(basado en historial del vehículo)</div>
+    ${sugerencias.map(s => `<div style="border:0.5px solid #d97706;border-radius:var(--radius);padding:8px 10px;margin-bottom:4px;background:#fef3c7;font-size:11px">
+      <div style="font-weight:500">⚠️ ${_nfEsc(s.servicio)}</div>
+      <div style="font-size:10px;color:var(--text-muted);margin-bottom:4px">${s.tipo === 'tiempo' ? 'Último: hace ' + s.valor : '⏱ ' + s.valor + ' desde último servicio'}</div>
+      <button onclick="nfAgregarSugerencia('${_nfEsc(s.servicio)}')" style="font-size:10px;padding:3px 8px;border:0.5px solid var(--border);border-radius:var(--radius);background:var(--surface-1);cursor:pointer;color:var(--text-primary)">
+        + Agregar a esta OT
+      </button>
+    </div>`).join('')}`;
+}
 
-function crearOT() {
-  // ── Datos mínimos (quick mode)
-  const patente = (document.getElementById('nq-patente')?.value || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
-  if (!patente) { showToast('Ingresa la patente'); return; }
+function nfAgregarSugerencia(servicioNombre) {
+  const servicios = APP.lsGet('servicios') || [];
+  const svc = servicios.find(s => (s.nombre || '').toLowerCase() === servicioNombre.toLowerCase());
+  document.getElementById('nf-svc-nombre').value = servicioNombre;
+  if (svc) {
+    document.getElementById('nf-svc-horas').value = svc.horas || svc.horasEst || '';
+    document.getElementById('nf-svc-valor').value = svc.valor || svc.precioFijo || '';
+    if (svc.repuestos || svc.repuestosSugeridos) {
+      const reps = svc.repuestos || svc.repuestosSugeridos || [];
+      nfRepuestos = reps.map(r => ({
+        nombre: r.nombre || r.desc || '',
+        cantidad: r.cantidad || 1,
+        unidad: r.unidad || 'unidad'
+      }));
+      nfRenderRepuestos();
+    }
+  }
+  nfMostrarBotonAgregar();
+  document.getElementById('nf-svc-buscar').value = servicioNombre;
+}
 
-  // Cliente
-  let clienteId  = document.getElementById('nq-cliente')?.value || '';
-  let clienteNom = document.getElementById('nq-cliente-chip-nom')?.textContent?.trim() || '';
-  let clienteWz  = document.getElementById('nq-wz')?.value?.trim() || '';
+// ─── BLOQUE 3: VEHÍCULO ────────────────────────────────────────────────────
+function nfPatenteInput(pat) {
+  pat = pat.toUpperCase().replace(/[^A-Z0-9]/g, '');
+  document.getElementById('nf-patente').value = pat;
+  nfVerificarHistorial(pat);
+}
 
-  // ¿Nuevo cliente?
-  const nuevoNom = (document.getElementById('nq-cliente-nuevo-nombre')?.value || '').trim();
-  const nuevoWz  = (document.getElementById('nq-cliente-nuevo-wz')?.value || '').trim();
+function nfVerificarHistorial(patente) {
+  const btn = document.getElementById('nf-historial-btn');
+  if (!btn) return;
+  if (!patente || patente.length < 4) { btn.style.display = 'none'; return; }
+  const ots = APP.lsGet('ots') || [];
+  const tieneHist = ots.some(o => (o.vehiculo_patente || o.patente || '').toUpperCase() === patente.toUpperCase());
+  btn.style.display = tieneHist ? 'inline-flex' : 'none';
+  if (tieneHist) nfActualizarSugerencias(patente);
+}
 
-  if (!clienteId && nuevoNom) {
-    const clientes = APP.lsGet('clientes') || [];
-    const cli = { id: 'CLI' + Date.now(), nombre: nuevoNom, wz: nuevoWz || clienteWz, patentes: [patente], fecha_registro: Date.now() };
-    clientes.push(cli);
-    APP.lsSet('clientes', clientes);
-    clienteId  = cli.id;
-    clienteNom = nuevoNom;
-    if (!clienteWz) clienteWz = nuevoWz;
+function nfAbrirHistorial() {
+  const patente = document.getElementById('nf-patente')?.value || '';
+  if (!patente) return;
+  const ots = APP.lsGet('ots') || [];
+  const historial = ots.filter(o => (o.vehiculo_patente || o.patente || '').toUpperCase() === patente.toUpperCase())
+    .sort((a, b) => (b.fecha_ingreso || b.creado || 0) - (a.fecha_ingreso || a.creado || 0));
+  const overlay = document.createElement('div');
+  overlay.className = 'modal-overlay';
+  overlay.style.cssText = 'position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center';
+  const modalHtml = `<div style="background:var(--surface-2);border-radius:var(--radius);max-width:600px;width:90vw;max-height:80vh;overflow:hidden;display:flex;flex-direction:column">
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:0.5px solid var(--border)">
+      <h3 style="font-size:14px;margin:0">📋 Historial - ${patente}</h3>
+      <button onclick="this.closest('.modal-overlay').remove()" style="background:none;border:none;cursor:pointer;font-size:20px;color:var(--text-muted)">×</button>
+    </div>
+    <div style="padding:12px 16px;overflow-y:auto;flex:1">
+      ${historial.length ? historial.map(ot => {
+        const fecha = new Date(ot.fecha_ingreso || ot.creado || Date.now()).toLocaleDateString('es-CL');
+        const servs = ot.servicios || [];
+        const servStr = servs.map(s => s.nombre).filter(Boolean).join(', ') || ot.servicio || '—';
+        return `<div style="border:0.5px solid var(--border);border-radius:var(--radius);padding:10px;margin-bottom:8px;background:var(--surface-1)">
+          <div style="display:flex;justify-content:space-between;font-size:12px">
+            <span style="font-weight:500">📅 ${fecha}</span>
+            <span style="color:var(--text-accent)">OT #${ot.id || ''}</span>
+          </div>
+          <div style="font-size:11px;color:var(--text-secondary);margin-top:4px">Servicios: ${servStr}</div>
+          <div style="font-size:11px;color:var(--text-secondary)">Técnico: ${ot.tecnico_nombre || ot.tecnico || '—'}</div>
+          <div style="font-size:11px;color:var(--text-secondary)">Estado: ${ot.estado || '—'} · Total: $${(ot.servicios ? ot.servicios.reduce((a, s) => a + (s.valor || 0), 0) : (ot.valor || 0)).toLocaleString('es-CL')}</div>
+        </div>`;
+      }).join('') : '<div style="text-align:center;padding:20px;color:var(--text-muted);font-size:12px">Este vehículo no tiene servicios anteriores</div>'}
+    </div>
+  </div>`;
+  overlay.innerHTML = modalHtml;
+  overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
+  document.body.appendChild(overlay);
+}
+
+function nfActualizarProveedores(marca) {
+  const box = document.getElementById('nf-proveedores-box');
+  if (!box) return;
+  if (!marca) { box.style.display = 'none'; return; }
+  const proveedores = window._nfProveedores || APP.lsGet('proveedores') || [];
+  const filtrados = proveedores.filter(p => p.marcas && Array.isArray(p.marcas) && p.marcas.includes(marca));
+  if (!filtrados.length) {
+    box.style.display = 'block';
+    box.innerHTML = `<div style="font-size:11px;font-weight:500;margin-bottom:6px">Proveedores para ${marca}</div>
+      <div style="font-size:11px;color:var(--text-muted);padding:8px;background:var(--surface-1);border-radius:var(--radius)">No hay proveedores para <strong>${marca}</strong>. Agrégalos en el módulo Proveedores.</div>`;
+    return;
+  }
+  box.style.display = 'block';
+  box.innerHTML = `<div style="font-size:11px;font-weight:500;margin-bottom:6px">Proveedores para ${marca}</div>
+    ${filtrados.map(p => `<div style="display:flex;align-items:center;justify-content:space-between;padding:7px 10px;border:0.5px solid var(--border);border-radius:var(--radius);margin-bottom:4px;font-size:11px;background:var(--surface-1)">
+      <span><strong>${_nfEsc(p.nombre || '')}</strong>${p.rubro ? ' - ' + p.rubro : ''}</span>
+      <button onclick="nfCotizarWA('${_nfEsc(p.nombre)}','${_nfEsc(p.whatsapp || p.wzp || p.telefono || '')}')" style="font-size:10px;padding:3px 7px;border:0.5px solid #25D366;border-radius:var(--radius);background:#25D366;color:#fff;cursor:pointer">📱 Cotizar WA</button>
+    </div>`).join('')}`;
+}
+
+function nfCotizarWA(nombreProv, telefono) {
+  const marca = document.getElementById('nf-marca')?.value || '';
+  const modelo = document.getElementById('nf-modelo')?.value || '';
+  const anio = document.getElementById('nf-anio')?.value || '';
+  const chasis = document.getElementById('nf-chasis')?.value || '';
+  const motor = document.getElementById('nf-motor')?.value || '';
+  const patente = document.getElementById('nf-patente')?.value || '';
+  // Recopilar repuestos de todos los servicios agregados
+  let repuestosTexto = '';
+  if (nfServicios.length) {
+    const todosReps = [];
+    nfServicios.forEach(s => {
+      if (s.repuestos && s.repuestos.length) {
+        s.repuestos.forEach(r => todosReps.push(r));
+      }
+    });
+    if (todosReps.length) {
+      repuestosTexto = '\n\nRepuestos requeridos:\n' + todosReps.map(r => `- ${r.nombre} - Cant: ${r.cantidad} ${r.unidad}`).join('\n');
+    }
+  }
+  if (!repuestosTexto) repuestosTexto = '\n\n(Pendiente de diagnóstico)';
+  const mensaje = `Hola Estimad@ ${nombreProv},\nnecesito cotización de repuestos:\n\nN° OT: NUEVA\nVehículo: ${marca} ${modelo} ${anio}\nPatente: ${patente || 'No registrada'}\nN° Chasis/VIN: ${chasis || 'No registrado'}\nN° Motor: ${motor || 'No registrado'}${repuestosTexto}\n\nIntegral Automotriz\n+569 5165 5331`;
+  const num = telefono.replace(/\D/g, '');
+  if (num) window.open('https://wa.me/' + num + '?text=' + encodeURIComponent(mensaje), '_blank');
+  else showToast('Proveedor sin teléfono registrado', 'warning');
+}
+
+// ─── BLOQUE 6: RECEPCIÓN ACTIVA ────────────────────────────────────────────
+function nfToggleSinDanos(cb) {
+  const group = document.getElementById('nf-desc-danos-group');
+  if (!group) return;
+  if (cb && cb.checked) {
+    document.querySelectorAll('.nf-dano-cb').forEach(c => { if (c !== cb) c.checked = false; });
+    group.style.display = 'none';
+    return;
+  }
+  const algunDanos = [...document.querySelectorAll('.nf-dano-cb')].some(c => c.checked && c.value !== 'Sin daños');
+  group.style.display = algunDanos ? 'block' : 'none';
+}
+
+function nfAgregarFoto(input) {
+  if (!input || !input.files) return;
+  const maxFotos = 10;
+  for (const file of input.files) {
+    if (nfFotos.length >= maxFotos) break;
+    const reader = new FileReader();
+    reader.onload = e => {
+      nfFotos.push(e.target.result);
+      nfRenderFotos();
+    };
+    reader.readAsDataURL(file);
+  }
+  input.value = '';
+}
+
+function nfRenderFotos() {
+  const prev = document.getElementById('nf-fotos-preview');
+  if (!prev) return;
+  prev.innerHTML = nfFotos.map((f, i) =>
+    `<div style="position:relative;display:inline-block;width:60px;height:60px;margin:4px">
+      <img src="${f}" style="width:100%;height:100%;object-fit:cover;border-radius:4px;border:0.5px solid var(--border)">
+      <button onclick="nfElimFoto(${i})" style="position:absolute;top:-6px;right:-6px;width:18px;height:18px;border-radius:50%;border:none;background:#ef4444;color:#fff;font-size:12px;cursor:pointer;display:flex;align-items:center;justify-content:center">×</button>
+    </div>`
+  ).join('');
+}
+
+function nfElimFoto(i) { nfFotos.splice(i, 1); nfRenderFotos(); }
+
+// ─── GUARDAR OT ─────────────────────────────────────────────────────────────
+function nfGuardarOT() {
+  const g = id => (document.getElementById(id)?.value || '').trim();
+  const c = id => document.getElementById(id)?.checked || false;
+
+  const patente = g('nf-patente').toUpperCase().replace(/[^A-Z0-9]/g, '');
+  const clienteNombre = g('nf-cliente-nombre');
+  const clienteApellido = g('nf-cliente-apellido');
+  const whatsapp = g('nf-cliente-whatsapp');
+  const email = g('nf-cliente-email');
+
+  if (!clienteNombre && !patente) {
+    showToast('Ingresa al menos el nombre del cliente o la patente', 'warning');
+    return;
   }
 
-  if (!clienteNom && !clienteId) { showToast('Selecciona o ingresa un cliente'); return; }
+  const esExpress = c('nf-express');
+  const esGarantia = c('nf-garantia');
+  const pruebaRuta = c('nf-prueba-ruta');
 
-  // Servicio y técnico (quick)
-  const svcEl  = document.getElementById('nq-servicio');
-  const tecEl  = document.getElementById('nq-tecnico');
-  const svcNom = svcEl?.options[svcEl.selectedIndex]?.text || '';
-  const svcId  = svcEl?.value || '';
-  const tecNom = tecEl?.options[tecEl.selectedIndex]?.text || '';
-  const tecId  = tecEl?.value || '';
+  const fechaCitaStr = g('nf-fecha-cita');
+  const horaCitaStr = g('nf-hora-cita');
+  const fechaTs = (esExpress || !fechaCitaStr)
+    ? Date.now()
+    : new Date(fechaCitaStr + 'T' + (horaCitaStr || '00:00')).getTime();
 
-  // ── Número de OT
-  const now    = new Date();
-  const pad    = n => String(n).padStart(2, '0');
-  const ds     = `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}`;
-  const allOTs = APP.lsGet('ots') || [];
-  const todayN = allOTs.filter(o => o.id && o.id.startsWith(ds)).length;
-  const otId   = ds + String(todayN + 1).padStart(4, '0');
+  const estado = esExpress ? 'en_proceso'
+    : esGarantia ? 'cotizacion'
+    : fechaCitaStr ? 'agendado'
+    : 'agendado';
 
-  // ── Motivos
-  const motivos = [..._otMotivos];
-  if ((svcId || svcNom) && svcNom !== '— Selecciona servicio —') {
-    if (!motivos.some(m => m.servicio_id === svcId)) {
-      motivos.push({ descripcion: svcNom, servicio_id: svcId, servicio_nombre: svcNom, procedimiento: 'reparacion', estado_aprobacion: 'pendiente' });
+  const marca = g('nf-marca');
+  const modelo = g('nf-modelo');
+  const anio = g('nf-anio');
+  const color = g('nf-color');
+  const km = parseInt(g('nf-km')) || 0;
+  const chasis = g('nf-chasis');
+  const motor = g('nf-motor');
+
+  const tecnico = g('nf-tecnico');
+  const motivo = g('nf-motivo');
+  const servicios = nfServicios.map(s => ({
+    nombre: s.nombre,
+    horas: s.horas || 0,
+    valor: s.valor || 0,
+    repuestos: (s.repuestos || []).map(r => ({ nombre: r.nombre, cantidad: r.cantidad, unidad: r.unidad }))
+  }));
+
+  // Recepción
+  const fluidos = [...document.querySelectorAll('.nf-fluido-cb:checked')].map(el => el.value);
+  const inventario = [...document.querySelectorAll('.nf-inventario-cb:checked')].map(el => el.value);
+  const danos = [...document.querySelectorAll('.nf-dano-cb:checked')].map(el => el.value);
+
+  // Cliente
+  const clientes = APP.lsGet('clientes') || [];
+  let clienteId = nfClienteSel?.id || '';
+  if (!clienteId) {
+    const existente = clientes.find(c =>
+      (c.whatsapp || c.wz) && (c.whatsapp || c.wz) === whatsapp
+    );
+    if (existente) {
+      clienteId = existente.id;
+      if (clienteNombre) existente.nombre = clienteNombre;
+      if (clienteApellido) existente.apellido = clienteApellido;
+      if (whatsapp) { existente.whatsapp = whatsapp; existente.wz = whatsapp; }
+      if (email) existente.email = email;
+    } else {
+      clienteId = 'CLI' + Date.now();
+      clientes.push({
+        id: clienteId,
+        nombre: clienteNombre || '',
+        apellido: clienteApellido || '',
+        whatsapp: whatsapp || '',
+        wz: whatsapp || '',
+        email: email || '',
+        fecha_registro: Date.now()
+      });
+    }
+    APP.lsSet('clientes', clientes);
+  } else {
+    // Actualizar datos del cliente existente
+    const cli = clientes.find(c => c.id === clienteId);
+    if (cli) {
+      if (clienteNombre) cli.nombre = clienteNombre;
+      if (clienteApellido) cli.apellido = clienteApellido;
+      if (whatsapp) { cli.whatsapp = whatsapp; cli.wz = whatsapp; }
+      if (email) cli.email = email;
+      APP.lsSet('clientes', clientes);
     }
   }
 
-  // ── Datos modo completo
-  const fechaCita = document.getElementById('nc-fecha-cita')?.value || '';
-  const horaCita  = document.getElementById('nc-hora-cita')?.value  || '';
-  const fechaTs   = fechaCita
-    ? new Date(fechaCita + (horaCita ? 'T' + horaCita : 'T00:00')).getTime()
-    : Date.now();
+  // Vehículo
+  const vehiculos = APP.lsGet('vehiculos') || [];
+  let vehiculoId = '';
+  if (patente) {
+    const vehExist = vehiculos.find(v => v.patente === patente);
+    if (vehExist) {
+      vehiculoId = vehExist.id || 'VEH' + Date.now();
+      vehExist.marca = marca || vehExist.marca;
+      vehExist.modelo = modelo || vehExist.modelo;
+      vehExist.anio = anio || vehExist.anio;
+      vehExist.color = color || vehExist.color;
+      vehExist.cliente_id = clienteId;
+    } else {
+      vehiculoId = 'VEH' + Date.now();
+      vehiculos.push({
+        id: vehiculoId,
+        patente,
+        marca, modelo, anio, color,
+        chasis, motor,
+        km_entrada: km,
+        cliente_id: clienteId
+      });
+    }
+    APP.lsSet('vehiculos', vehiculos);
+  }
 
-  const estadoInicial = document.getElementById('nc-estado-inicial')?.value || 'agendado';
-  const tipo          = document.getElementById('nc-tipo-express')?.checked ? 'express' : 'avanzada';
-
-  const fluidos    = [...document.querySelectorAll('.nc-fluido:checked')].map(el => el.value);
-  const inventario = [...document.querySelectorAll('.nc-inventario:checked')].map(el => el.value);
-  const danos      = [...document.querySelectorAll('.nc-dano:checked')].map(el => el.value);
+  // Generar ID OT
+  const now = new Date();
+  const pad = n => String(n).padStart(2, '0');
+  const ds = `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}`;
+  const allOTs = APP.lsGet('ots') || [];
+  const todayN = allOTs.filter(o => o.id && o.id.startsWith(ds)).length;
+  const otId = ds + String(todayN + 1).padStart(4, '0');
 
   const ot = {
-    id:   otId,
+    id: otId,
     fase: 'recepcion',
-    tipo,
-    es_garantia:         document.getElementById('nc-es-garantia')?.checked  || false,
-    autoriza_prueba_ruta: document.getElementById('nc-autoriza-ruta')?.checked || false,
-    requiere_diagnostico: document.getElementById('nc-req-diagnostico')?.checked || false,
+    estado,
+    es_express: esExpress,
+    es_garantia: esGarantia,
+    autoriza_prueba_ruta: pruebaRuta,
     fecha_ingreso: Date.now(),
-    fecha_cita:    fechaTs,
-    estado:        estadoInicial,
-    facturada:     false,
-
-    patente,
-    cliente_id:    clienteId,
-    cliente_nombre: clienteNom || nuevoNom,
-    cliente_wz:    clienteWz,
-
-    vehiculo_marca:  document.getElementById('nc-marca')?.value  || '',
-    vehiculo_modelo: document.getElementById('nc-modelo')?.value || '',
-    vehiculo_anio:   document.getElementById('nc-anio')?.value   || '',
-    vehiculo_color:  document.getElementById('nc-color')?.value  || '',
-    vehiculo_motor:  document.getElementById('nc-motor')?.value  || '',
-
-    tecnico_id:    tecId  || document.getElementById('nc-tecnico')?.value  || '',
-    tecnico_nombre: tecNom || '',
-    asesor_id:     document.getElementById('nc-asesor')?.value || '',
-
-    kilometraje: {
-      entrada: parseInt(document.getElementById('nc-km')?.value || '0') || 0,
-      salida: 0,
-      unidad: 'km',
-    },
-    nivel_combustible: document.getElementById('nc-nivel-comb')?.value || '',
-
-    motivos,
-    servicios: [..._otServicios],
-
+    fecha_cita: fechaTs,
+    cliente_nombre: clienteNombre || '',
+    cliente_apellido: clienteApellido || '',
+    cliente_whatsapp: whatsapp || '',
+    cliente_email: email || '',
+    cliente_id: clienteId,
+    vehiculo_patente: patente,
+    vehiculo_marca: marca,
+    vehiculo_modelo: modelo,
+    vehiculo_anio: anio,
+    vehiculo_color: color,
+    vehiculo_km_entrada: km,
+    vehiculo_chasis: chasis,
+    vehiculo_motor: motor,
+    vehiculo_id: vehiculoId,
+    tecnico_id: tecnico,
+    motivo_ingreso: motivo,
+    servicios: servicios,
     recepcion: {
-      objetos_valor:    document.getElementById('nc-objetos-valor')?.value || '',
-      documentos:       document.getElementById('nc-documentos')?.value    || '',
-      combustible:      document.getElementById('nc-nivel-comb')?.value    || '',
-      fluidos_ok:       fluidos,
-      inventario,
-      danos,
-      descripcion_danos: document.getElementById('nc-desc-danos')?.value  || '',
-      observaciones: '',
-      fotos_ingreso: [],
+      objetos_valor: g('nf-objetos-valor') || '',
+      documentos: g('nf-documentos') || '',
+      combustible: g('nf-combustible') || '',
+      fluidos_ok: fluidos,
+      inventario: inventario,
+      danos: danos,
+      descripcion_danos: g('nf-desc-danos') || '',
+      fotos_ingreso: nfFotos
     },
-
-    repuestos_cotizados: [],
-    pago: { estado: 'pendiente', metodo: 'pendiente', referencia: '', monto: 0, vuelto: 0 },
+    pago: {
+      estado: 'pendiente',
+      metodo: '',
+      referencia: '',
+      monto: 0
+    },
     historial_eventos: [{
       fecha: Date.now(),
-      fase: 'recepcion',
-      accion: 'OT creada',
-      usuario: 'Sistema',
-      descripcion: `Patente: ${patente} | Cliente: ${clienteNom || nuevoNom}`,
-    }],
+      accion: 'OT creada' + (esExpress ? ' (Express)' : ''),
+      usuario: 'Sistema'
+    }]
   };
 
   allOTs.push(ot);
   APP.lsSet('ots', allOTs);
-  cerrarFormNuevaOT();
+  APP.lsSet('ultimo_ot_id', otId);
+
+  nfCerrarFormulario();
+  // Refrescar vista
   if (typeof renderKanban === 'function') renderKanban();
-  showToast(`✓ OT #${otId} creada correctamente`);
+  else if (typeof renderListaOTs === 'function') renderListaOTs();
+  showToast('✓ OT #' + otId + ' creada correctamente');
 }
+
+// ─── Helpers ────────────────────────────────────────────────────────────────
+function _nfEsc(s) { return (s || '').replace(/'/g, "\\'").replace(/"/g, '&quot;'); }
+
+// ─── Init ────────────────────────────────────────────────────────────────────
+// Inicializar repuesto unidades
+(function() {
+  const uEl = document.getElementById('nf-repuesto-unidad');
+  if (uEl) uEl.innerHTML = NF_UNIDADES.map(u => `<option value="${u}">${u}</option>`).join('');
+})();
+
+// Exponer funciones
+window.nfAbrirFormulario = nfAbrirFormulario;
+window.nfCerrarFormulario = nfCerrarFormulario;
+window.nfGuardarOT = nfGuardarOT;
+window.nfBuscarCliente = nfBuscarCliente;
+window.nfSelCliente = nfSelCliente;
+window.nfSelVehiculo = nfSelVehiculo;
+window.nfToggleExpress = nfToggleExpress;
+window.nfBuscarServicio = nfBuscarServicio;
+window.nfSelServicio = nfSelServicio;
+window.nfMostrarBotonAgregar = nfMostrarBotonAgregar;
+window.nfAgregarServicio = nfAgregarServicio;
+window.nfAgregarRepuesto = nfAgregarRepuesto;
+window.nfPatenteInput = nfPatenteInput;
+window.nfAbrirHistorial = nfAbrirHistorial;
+window.nfToggleSinDanos = nfToggleSinDanos;
+window.nfAgregarFoto = nfAgregarFoto;
+window.nfActualizarProveedores = nfActualizarProveedores;
+window.nfCotizarWA = nfCotizarWA;
+window.nfAgregarSugerencia = nfAgregarSugerencia;
