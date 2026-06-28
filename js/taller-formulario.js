@@ -32,7 +32,10 @@ function nfAbrirFormulario() {
   // Ocultar listado, mostrar form
   const listado = document.getElementById('ot-listado');
   if (listado) listado.style.display = 'none';
-  document.getElementById('ot-nueva').style.display = 'flex';
+  const overlay = document.getElementById('ot-nueva');
+  overlay.style.display = 'flex';
+  // No cerrar al hacer clic fuera del modal (solo con botones/X)
+  overlay.onclick = null;
   // Poblar selects
   nfPoblarSelectores();
   // Enfocar buscador de cliente
