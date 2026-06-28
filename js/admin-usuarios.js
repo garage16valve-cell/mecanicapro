@@ -96,6 +96,12 @@
         <div style="font-size:13px;color:var(--text-muted);margin-top:4px">Selecciona tu perfil para continuar</div>
       </div>
       <div id="login-users-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:14px;max-width:640px;width:100%"></div>
+      <button onclick="usuariosEntrarDirecto()" style="
+        margin-top:28px;padding:8px 20px;border:1.5px dashed var(--border);border-radius:8px;
+        background:transparent;color:var(--text-muted);font-size:11px;cursor:pointer;
+        display:flex;align-items:center;gap:6px">
+        ⚡ Entrar directamente (desarrollo)
+      </button>
     `;
     document.body.appendChild(screen);
     _renderLoginUsers();
@@ -131,41 +137,63 @@
     _mostrarModalPin(u);
   };
 
+  function _cerrarModalPin() {
+    const el = document.getElementById('pin-modal-overlay');
+    if (el) el.remove();
+  }
+
   function _mostrarModalPin(usuario) {
     const bloq = _intentos[usuario.id];
-    const ahora = Date.now();
-    if (bloq && bloq.hasta > ahora) {
+    if (bloq && bloq.hasta > Date.now()) {
       _mostrarBloqueo(usuario, bloq.hasta);
       return;
     }
 
-    APP.modal.abrir(`
-      <div class="modal-header">
-        <h2 style="display:flex;align-items:center;gap:10px">
-          <div style="width:36px;height:36px;border-radius:50%;background:${usuario.color};
-            display:flex;align-items:center;justify-content:center;font-size:16px;
-            font-weight:700;color:#fff;flex-shrink:0">${(usuario.nombre||'?')[0].toUpperCase()}</div>
-          <span>Ingresa tu PIN</span>
-        </h2>
-        <button class="modal-close" onclick="APP.modal.cerrar()">×</button>
-      </div>
-      <div class="modal-body" style="padding:24px 20px;text-align:center">
-        <div style="font-size:12px;color:var(--text-muted);margin-bottom:16px">${_esc(usuario.nombre)} — ${ROLES[usuario.rol]||usuario.rol}</div>
-        <div id="pin-error" style="min-height:20px;color:var(--text-danger);font-size:12px;margin-bottom:8px"></div>
-        <div style="display:flex;gap:10px;justify-content:center;margin-bottom:8px" id="pin-inputs-wrap">
-          ${[0,1,2,3].map(i => `<input id="pin-d${i}" type="password" inputmode="numeric" maxlength="1"
-            style="width:52px;height:60px;font-size:28px;font-weight:700;text-align:center;
-            border:2px solid var(--border);border-radius:8px;background:var(--surface-1);
-            color:var(--text-primary);outline:none;caret-color:transparent"
-            oninput="usuariosPinInput(this,${i},${usuario.id})"
-            onkeydown="usuariosPinKeydown(event,${i})">`).join('')}
-        </div>
-        <div id="pin-bloqueo-msg" style="font-size:12px;color:var(--text-danger);margin-top:8px;min-height:18px"></div>
-      </div>
-    `, 'pequeño');
+    _cerrarModalPin();
 
-    setTimeout(() => document.getElementById('pin-d0')?.focus(), 50);
+    const overlay = document.createElement('div');
+    overlay.id = 'pin-modal-overlay';
+    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;z-index:10001';
+    overlay.innerHTML = `
+      <div style="background:var(--surface-1);border-radius:12px;padding:0;min-width:300px;max-width:360px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,.3)">
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--border)">
+          <div style="display:flex;align-items:center;gap:10px">
+            <div style="width:36px;height:36px;border-radius:50%;background:${usuario.color};
+              display:flex;align-items:center;justify-content:center;font-size:16px;
+              font-weight:700;color:#fff;flex-shrink:0">${(usuario.nombre||'?')[0].toUpperCase()}</div>
+            <div>
+              <div style="font-size:14px;font-weight:600">Ingresa tu PIN</div>
+              <div style="font-size:11px;color:var(--text-muted)">${_esc(usuario.nombre)} — ${ROLES[usuario.rol]||usuario.rol}</div>
+            </div>
+          </div>
+          <button onclick="_cerrarModalPinGlobal()" style="background:none;border:none;cursor:pointer;
+            font-size:20px;color:var(--text-muted);padding:4px 8px;line-height:1">×</button>
+        </div>
+        <div style="padding:24px 20px;text-align:center">
+          <div id="pin-error" style="min-height:20px;color:var(--text-danger);font-size:12px;margin-bottom:12px"></div>
+          <div style="display:flex;gap:10px;justify-content:center" id="pin-inputs-wrap">
+            ${[0,1,2,3].map(i => `<input id="pin-d${i}" type="password" inputmode="numeric" maxlength="1"
+              autocomplete="off"
+              style="width:56px;height:64px;font-size:30px;font-weight:700;text-align:center;
+              border:2px solid var(--border);border-radius:8px;background:var(--surface-0);
+              color:var(--text-primary);outline:none;transition:border-color .15s"
+              oninput="usuariosPinInput(this,${i},${usuario.id})"
+              onkeydown="usuariosPinKeydown(event,${i})"
+              onfocus="this.style.borderColor=('${usuario.color}')"
+              onblur="this.style.borderColor=''">`).join('')}
+          </div>
+          <div style="font-size:11px;color:var(--text-muted);margin-top:14px">Escribe los 4 dígitos de tu PIN</div>
+        </div>
+      </div>`;
+
+    // Cerrar al hacer click fuera del modal
+    overlay.addEventListener('click', e => { if (e.target === overlay) _cerrarModalPin(); });
+    document.body.appendChild(overlay);
+    setTimeout(() => document.getElementById('pin-d0')?.focus(), 80);
   }
+
+  // Expuesto globalmente para el onclick inline del botón ×
+  window._cerrarModalPinGlobal = _cerrarModalPin;
 
   window.usuariosPinInput = function (el, idx, usuarioId) {
     const val = el.value.replace(/\D/g, '');
@@ -193,9 +221,8 @@
     if (!u) return;
 
     if (String(u.pin) === String(pin)) {
-      // Limpiar intentos
       delete _intentos[usuarioId];
-      APP.modal.cerrar();
+      _cerrarModalPin();
       _iniciarSesion(u);
     } else {
       // Registrar intento fallido
@@ -220,7 +247,7 @@
       if (_intentos[usuarioId].count >= 3) {
         _intentos[usuarioId].hasta = Date.now() + 30000;
         _intentos[usuarioId].count = 0;
-        APP.modal.cerrar();
+        _cerrarModalPin();
         _mostrarBloqueo(u, _intentos[usuarioId].hasta);
       } else {
         if (errEl) errEl.textContent = `PIN incorrecto. ${restantes} intento${restantes !== 1 ? 's' : ''} restante${restantes !== 1 ? 's' : ''}.`;
@@ -352,6 +379,13 @@
       ns.style.display = alguno ? '' : 'none';
     });
   }
+
+  // ─── Entrada directa (desarrollo) ───
+  window.usuariosEntrarDirecto = function () {
+    _ensureDefaultUser();
+    const u = APP.lsGet('usuarios', []).find(x => x.id === 1) || APP.lsGet('usuarios', [])[0];
+    if (u) _iniciarSesion(u);
+  };
 
   // ─── Cerrar sesión ───
   window.usuariosCerrarSesion = function () {
