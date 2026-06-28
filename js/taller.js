@@ -1151,7 +1151,8 @@ function abrirDetalleOT(id) {
 
   // Campos readonly por defecto
   ['det-nombre','det-rut','det-wz','det-mail','det-km',
-   'det-marca','det-modelo','det-anio','det-motor','det-comb','det-tipo','det-vin','det-nmotor',
+   'det-marca','det-modelo','det-anio','det-motor',
+   'det-vin','det-nmotor','det-patente',
    'det-fecha','det-hora','det-hora-entrada','det-hora-salida','det-notas','det-valor']
     .forEach(id => { const el = document.getElementById(id); if (el) el.setAttribute('readonly',''); });
 
