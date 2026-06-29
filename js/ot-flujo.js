@@ -79,11 +79,13 @@ function otCargarServicios(ot_id) {
 
   const ots = APP.lsGet('ots', []);
   const ot = ots.find(o => o.id === ot_id);
+  if (!ot) return;
+
   const servicios_seleccionados = ot.servicios_diagnostico || [];
 
   const html = servicios.map(s => `
     <label style="display:flex;align-items:center;gap:8px;padding:8px;border:0.5px solid var(--border);border-radius:var(--radius);cursor:pointer;background:var(--surface-1)">
-      <input type="checkbox" ${servicios_seleccionados.includes(s.id) ? 'checked' : ''} onchange="otSeleccionarServicio('${ot_id}','${s.id}')">
+      <input type="checkbox" value="${s.id}" ${servicios_seleccionados.includes(s.id) ? 'checked' : ''} onchange="otSeleccionarServicio('${ot_id}','${s.id}')">
       <div style="flex:1">
         <div style="font-size:12px;font-weight:500">${s.nombre}</div>
         <div style="font-size:10px;color:var(--text-muted)">${s.horas}h estimadas</div>
@@ -91,7 +93,11 @@ function otCargarServicios(ot_id) {
     </label>
   `).join('');
 
-  document.getElementById('ot-diagnostico-servicios-lista').innerHTML = html;
+  // Intentar llenar el elemento del panel detalle
+  const container = document.getElementById('ot-diagnostico-servicios-lista');
+  if (container) {
+    container.innerHTML = html;
+  }
 }
 
 function otSeleccionarServicio(ot_id, servicio_id) {
