@@ -1368,4 +1368,47 @@ function adminRenderReportes() {
   if (typeof _admKPIs === 'function') _admKPIs();
 }
 
+// ===== DATOS LEGALES PARA DOCUMENTOS =====
+function adminCargarDatosLegales() {
+  const config = APP.lsGet('taller_config', {});
+  const datosLegales = config.datos_legales || {};
+
+  document.getElementById('datos-legales-nombre').value = datosLegales.nombre_legal || '';
+  document.getElementById('datos-legales-rut').value = datosLegales.rut || '';
+  document.getElementById('datos-legales-direccion').value = datosLegales.direccion || '';
+  document.getElementById('datos-legales-comuna').value = datosLegales.comuna || '';
+  document.getElementById('datos-legales-email').value = datosLegales.email || '';
+  document.getElementById('datos-legales-telefono').value = datosLegales.telefono || '';
+}
+
+function adminGuardarDatosLegales() {
+  const nombre = document.getElementById('datos-legales-nombre').value.trim();
+  const rut = document.getElementById('datos-legales-rut').value.trim();
+  const direccion = document.getElementById('datos-legales-direccion').value.trim();
+  const comuna = document.getElementById('datos-legales-comuna').value.trim();
+  const email = document.getElementById('datos-legales-email').value.trim();
+  const telefono = document.getElementById('datos-legales-telefono').value.trim();
+
+  if (!nombre || !rut || !direccion || !comuna) {
+    APP.toast.show('⚠️ Completa todos los campos obligatorios', 'warning');
+    return;
+  }
+
+  const config = APP.lsGet('taller_config', {});
+  config.datos_legales = {
+    nombre_legal: nombre,
+    rut,
+    direccion,
+    comuna,
+    email,
+    telefono
+  };
+
+  APP.lsSet('taller_config', config);
+  APP.toast.show('✅ Datos legales guardados', 'success');
+}
+
+window.adminCargarDatosLegales = adminCargarDatosLegales;
+window.adminGuardarDatosLegales = adminGuardarDatosLegales;
+
 

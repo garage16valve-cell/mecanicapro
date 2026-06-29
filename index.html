@@ -2793,6 +2793,41 @@
   <div id="adm-tab-config" style="display:none">
 
     <h2 style="margin-bottom:20px">Configuración</h2>
+
+    <!-- ⚖️ DATOS LEGALES PARA DOCUMENTOS -->
+    <div style="background:var(--surface-1);padding:20px;border-radius:8px;margin-bottom:20px;border:0.5px solid #d97706">
+      <h3 style="margin-bottom:14px;display:flex;align-items:center;gap:8px"><i class="ti ti-scale"></i> Datos Legales Para Documentos</h3>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+        <div>
+          <label style="display:block;font-size:12px;color:var(--text-muted);margin-bottom:4px">Nombre legal de empresa <span style="color:#ef4444">*</span></label>
+          <input type="text" id="datos-legales-nombre" placeholder="Razón social" style="width:100%;padding:10px;border:0.5px solid var(--border);border-radius:4px;box-sizing:border-box;background:var(--surface-2);color:var(--text-primary)">
+        </div>
+        <div>
+          <label style="display:block;font-size:12px;color:var(--text-muted);margin-bottom:4px">RUT <span style="color:#ef4444">*</span></label>
+          <input type="text" id="datos-legales-rut" placeholder="XX.XXX.XXX-X" style="width:100%;padding:10px;border:0.5px solid var(--border);border-radius:4px;box-sizing:border-box;background:var(--surface-2);color:var(--text-primary)">
+        </div>
+        <div>
+          <label style="display:block;font-size:12px;color:var(--text-muted);margin-bottom:4px">Dirección legal <span style="color:#ef4444">*</span></label>
+          <input type="text" id="datos-legales-direccion" placeholder="Calle, número" style="width:100%;padding:10px;border:0.5px solid var(--border);border-radius:4px;box-sizing:border-box;background:var(--surface-2);color:var(--text-primary)">
+        </div>
+        <div>
+          <label style="display:block;font-size:12px;color:var(--text-muted);margin-bottom:4px">Comuna <span style="color:#ef4444">*</span></label>
+          <input type="text" id="datos-legales-comuna" placeholder="Comuna" style="width:100%;padding:10px;border:0.5px solid var(--border);border-radius:4px;box-sizing:border-box;background:var(--surface-2);color:var(--text-primary)">
+        </div>
+        <div>
+          <label style="display:block;font-size:12px;color:var(--text-muted);margin-bottom:4px">Email (opcional)</label>
+          <input type="email" id="datos-legales-email" placeholder="contacto@empresa.cl" style="width:100%;padding:10px;border:0.5px solid var(--border);border-radius:4px;box-sizing:border-box;background:var(--surface-2);color:var(--text-primary)">
+        </div>
+        <div>
+          <label style="display:block;font-size:12px;color:var(--text-muted);margin-bottom:4px">Teléfono (opcional)</label>
+          <input type="text" id="datos-legales-telefono" placeholder="+56 9 XXXX XXXX" style="width:100%;padding:10px;border:0.5px solid var(--border);border-radius:4px;box-sizing:border-box;background:var(--surface-2);color:var(--text-primary)">
+        </div>
+      </div>
+      <div style="margin-top:14px">
+        <button class="btn bpa" onclick="adminGuardarDatosLegales()" style="padding:8px 16px;font-size:11px"><i class="ti ti-device-floppy"></i> Guardar datos legales</button>
+      </div>
+    </div>
+
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
 
       <!-- Columna izquierda: Datos del Taller -->
