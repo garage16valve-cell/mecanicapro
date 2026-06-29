@@ -12,20 +12,29 @@ function init_servicios() {
 
 // ===== TAB PRINCIPAL =====
 function svcSetTab(tab) {
-  const cat  = document.getElementById('svc-tab-catalogo');
-  const cfg  = document.getElementById('svc-tab-config');
-  const bCat = document.getElementById('svc-tab-btn-cat');
-  const bCfg = document.getElementById('svc-tab-btn-config');
-  if (!cat || !cfg) return;
-  if (tab === 'config') {
-    cat.style.display = 'none'; cfg.style.display = '';
-    bCat.style.borderBottomColor = 'transparent'; bCat.style.color = 'var(--text-secondary)';
+  const cat   = document.getElementById('svc-tab-catalogo');
+  const upsell = document.getElementById('svc-tab-upselling');
+  const cfg   = document.getElementById('svc-tab-config');
+  const bCat  = document.getElementById('svc-tab-btn-cat');
+  const bUp   = document.getElementById('svc-tab-btn-upsell');
+  const bCfg  = document.getElementById('svc-tab-btn-config');
+  if (!cat || !cfg || !upsell) return;
+  [cat, upsell, cfg].forEach(e => e.style.display = 'none');
+  [bCat, bUp, bCfg].forEach(e => {
+    e.style.borderBottomColor = 'transparent';
+    e.style.color = 'var(--text-secondary)';
+  });
+  if (tab === 'cat') {
+    cat.style.display = '';
+    bCat.style.borderBottomColor = 'var(--fill-accent)'; bCat.style.color = 'var(--text-accent)';
+  } else if (tab === 'upselling') {
+    upsell.style.display = '';
+    bUp.style.borderBottomColor = 'var(--fill-accent)'; bUp.style.color = 'var(--text-accent)';
+    _svcRenderUpselling();
+  } else {
+    cfg.style.display = '';
     bCfg.style.borderBottomColor = 'var(--fill-accent)'; bCfg.style.color = 'var(--text-accent)';
     svcCatRender();
-  } else {
-    cat.style.display = ''; cfg.style.display = 'none';
-    bCat.style.borderBottomColor = 'var(--fill-accent)'; bCat.style.color = 'var(--text-accent)';
-    bCfg.style.borderBottomColor = 'transparent'; bCfg.style.color = 'var(--text-secondary)';
   }
 }
 
@@ -56,12 +65,6 @@ function svcSetSubTab(tab) {
     if (sOp) sOp.style.display = '';
     if (bOp) { bOp.style.borderBottomColor = 'var(--fill-accent)'; bOp.style.color = 'var(--text-accent)'; }
     svcOpRender();
-  } else if (tab === 'upselling') {
-    const sUp = document.getElementById('svc-subtab-upselling');
-    const bUp = document.getElementById('svc-subtab-btn-upsell');
-    if (sUp) sUp.style.display = '';
-    if (bUp) { bUp.style.borderBottomColor = 'var(--fill-accent)'; bUp.style.color = 'var(--text-accent)'; }
-    _svcRenderUpselling();
   } else {
     if (sCat) sCat.style.display = '';
     if (bCat) { bCat.style.borderBottomColor = 'var(--fill-accent)'; bCat.style.color = 'var(--text-accent)'; }
