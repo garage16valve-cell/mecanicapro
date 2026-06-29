@@ -1483,6 +1483,138 @@
 
 </div><!-- /#pg-ot -->
 
+<!-- ===== PANEL DETALLE OT CON TABS ===== -->
+<div id="ot-detalle-panel-tabs" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);z-index:1000;overflow-y:auto;padding:20px">
+  <div style="background:var(--bg-primary);max-width:900px;margin:20px auto;border-radius:8px;box-shadow:0 10px 40px rgba(0,0,0,0.3)">
+
+    <!-- Encabezado -->
+    <div style="background:var(--surface-1);padding:16px;border-bottom:0.5px solid var(--border);display:flex;align-items:center;justify-content:space-between;border-radius:8px 8px 0 0">
+      <div>
+        <div style="font-size:16px;font-weight:600" id="ot-detalle-titulo">OT #0000</div>
+        <div style="font-size:12px;color:var(--text-muted)">
+          <span id="ot-detalle-vehiculo">Toyota Corolla 2020</span> ·
+          <span id="ot-detalle-cliente">Cliente</span>
+        </div>
+      </div>
+      <button onclick="document.getElementById('ot-detalle-panel-tabs').style.display='none'" style="background:none;border:none;font-size:24px;cursor:pointer;color:var(--text-muted)">×</button>
+    </div>
+
+    <!-- Tabs -->
+    <div id="ot-detalle-tabs" style="display:flex;gap:0;border-bottom:0.5px solid var(--border);background:var(--surface-1);padding:0">
+      <button id="ot-btn-recepcion" class="btn" onclick="otMostrarTabRecepcion(document.getElementById('ot-detalle-ot-id-hidden').value)" style="border:none;border-radius:0;flex:1;padding:12px;text-align:center;border-bottom:2px solid var(--fill-accent);font-size:12px">📝 Recepción</button>
+      <button id="ot-btn-diagnostico" class="btn" onclick="otMostrarTabDiagnostico(document.getElementById('ot-detalle-ot-id-hidden').value)" style="border:none;border-radius:0;flex:1;padding:12px;text-align:center;border-bottom:2px solid transparent;font-size:12px">🔍 Diagnóstico</button>
+      <button id="ot-btn-cotizacion" class="btn" onclick="otMostrarTabCotizacion(document.getElementById('ot-detalle-ot-id-hidden').value)" style="border:none;border-radius:0;flex:1;padding:12px;text-align:center;border-bottom:2px solid transparent;font-size:12px">💰 Cotización</button>
+    </div>
+
+    <!-- Contenido Tabs -->
+    <div style="padding:20px;max-height:70vh;overflow-y:auto">
+      <input type="hidden" id="ot-detalle-ot-id-hidden">
+
+      <!-- TAB 1: RECEPCIÓN -->
+      <div id="ot-tab-recepcion" style="display:none">
+        <div class="card" style="margin-bottom:16px">
+          <div class="ch"><span class="ct">📋 Datos del cliente y vehículo</span></div>
+          <div class="fgrid2">
+            <div><label style="font-size:11px;color:var(--text-muted)">Cliente</label><div style="font-weight:500" id="ot-recepcion-cliente">—</div></div>
+            <div><label style="font-size:11px;color:var(--text-muted)">Vehículo</label><div style="font-weight:500" id="ot-recepcion-vehiculo">—</div></div>
+            <div><label style="font-size:11px;color:var(--text-muted)">Patente</label><div style="font-weight:500;font-family:var(--font-mono)" id="ot-recepcion-patente">—</div></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="ch"><span class="ct">📝 Síntomas del cliente</span></div>
+          <div class="fg">
+            <label>¿Qué síntomas tiene el vehículo? <span style="color:#ef4444">*</span></label>
+            <textarea id="ot-recepcion-sintomas" placeholder="Ej: Ruido al frenar, vibración en volante..." style="min-height:100px"></textarea>
+          </div>
+          <input type="hidden" id="ot-recepcion-ot-id">
+          <div style="display:flex;gap:8px;justify-content:space-between;margin-top:16px">
+            <button class="btn" onclick="otMostrarTabRecepcion(document.getElementById('ot-recepcion-ot-id').value)" style="font-size:11px">↻ Descartar cambios</button>
+            <div style="display:flex;gap:8px">
+              <button class="btn bpa" onclick="otGuardarSintomas()" style="font-size:11px">
+                <i class="ti ti-device-floppy"></i> Guardar síntomas
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB 2: DIAGNÓSTICO -->
+      <div id="ot-tab-diagnostico" style="display:none">
+        <div class="card" style="margin-bottom:16px">
+          <div class="ch"><span class="ct">📋 Síntomas registrados</span></div>
+          <div style="padding:12px;background:var(--surface-1);border-radius:var(--radius);font-size:12px;color:var(--text-secondary)" id="ot-diagnostico-sintomas-ro">Sin síntomas</div>
+        </div>
+
+        <div class="card" style="margin-bottom:16px">
+          <div class="ch"><span class="ct">🔍 Diagnóstico técnico</span></div>
+          <div class="fg">
+            <label>¿Cuál es el diagnóstico? <span style="color:#ef4444">*</span></label>
+            <textarea id="ot-diagnostico-input" placeholder="Describe el problema técnico encontrado..." style="min-height:100px"></textarea>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="ch"><span class="ct">🔧 Servicios a realizar</span></div>
+          <div id="ot-diagnostico-servicios-lista" style="display:flex;flex-direction:column;gap:8px"></div>
+        </div>
+
+        <input type="hidden" id="ot-diagnostico-ot-id">
+        <div style="display:flex;gap:8px;justify-content:space-between;margin-top:16px">
+          <button class="btn" onclick="otVolverRecepcion(document.getElementById('ot-diagnostico-ot-id').value)" style="font-size:11px">
+            <i class="ti ti-arrow-left"></i> Volver a Recepción
+          </button>
+          <button class="btn bpa" onclick="otGuardarDiagnosticoNuevo()" style="font-size:11px">
+            <i class="ti ti-device-floppy"></i> Guardar y avanzar
+          </button>
+        </div>
+      </div>
+
+      <!-- TAB 3: COTIZACIÓN -->
+      <div id="ot-tab-cotizacion" style="display:none">
+        <div class="card" style="margin-bottom:16px">
+          <div class="ch"><span class="ct">🔍 Diagnóstico</span></div>
+          <div style="padding:12px;background:var(--surface-1);border-radius:var(--radius);font-size:12px;color:var(--text-secondary)" id="ot-cotizacion-diagnostico-ro">Sin diagnóstico</div>
+        </div>
+
+        <div class="card" style="margin-bottom:16px">
+          <div class="ch"><span class="ct">📦 Repuestos</span></div>
+          <div id="ot-cotizacion-tabla-repuestos" style="margin-bottom:12px;overflow-x:auto"></div>
+          <button class="btn bpa" style="width:100%;justify-content:center;font-size:11px" onclick="otAbrirModalAgregarRepuesto(document.getElementById('ot-cotizacion-ot-id').value)">
+            <i class="ti ti-plus"></i> Agregar repuesto manual
+          </button>
+        </div>
+
+        <div class="card" style="margin-bottom:16px">
+          <div class="ch"><span class="ct">💼 Mano de obra</span></div>
+          <div class="fgrid2">
+            <div class="fg">
+              <label>Horas</label>
+              <input id="ot-cotizacion-horas" type="number" min="0" step="0.5" value="0" oninput="otActualizarTotales(document.getElementById('ot-cotizacion-ot-id').value)">
+            </div>
+            <div class="fg">
+              <label>Tarifa/hora</label>
+              <input type="text" id="ot-cotizacion-tarifa" readonly value="$0">
+            </div>
+          </div>
+        </div>
+
+        <div id="ot-cotizacion-panel-totales"></div>
+
+        <input type="hidden" id="ot-cotizacion-ot-id">
+        <div style="display:flex;gap:8px;justify-content:space-between;margin-top:16px">
+          <button class="btn" onclick="otVolverDiagnostico(document.getElementById('ot-cotizacion-ot-id').value)" style="font-size:11px">
+            <i class="ti ti-arrow-left"></i> Volver a Diagnóstico
+          </button>
+          <button class="btn bpa" onclick="otGuardarCotizacion()" style="font-size:11px">
+            <i class="ti ti-device-floppy"></i> Guardar cotización
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- CLIENTES -->
 <div class="page" id="pg-clientes">
   <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap">

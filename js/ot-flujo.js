@@ -360,6 +360,172 @@ function otActualizarTotales(ot_id) {
 }
 
 // Exportar
+// ===== NAVEGACIÓN ENTRE FASES =====
+function otAbrirDetalleOT(ot_id) {
+  const ots = APP.lsGet('ots', []);
+  const ot = ots.find(o => o.id === ot_id);
+  if (!ot) return;
+
+  // Mostrar panel detalle
+  document.getElementById('ot-detalle-panel-tabs').style.display = '';
+  document.getElementById('ot-detalle-ot-id-hidden').value = ot_id;
+
+  // Mostrar tab según estado actual
+  const estado = ot.estado || 'recepcion';
+
+  if (estado === 'recepcion' || estado === 'agendado') {
+    otMostrarTabRecepcion(ot_id);
+  } else if (estado === 'en_diagnostico' || estado === 'diagnostico') {
+    otMostrarTabDiagnostico(ot_id);
+  } else if (estado === 'armar_cotizacion' || estado === 'cotizacion') {
+    otMostrarTabCotizacion(ot_id);
+  } else {
+    otMostrarTabRecepcion(ot_id);
+  }
+}
+
+function otMostrarTabRecepcion(ot_id) {
+  const ots = APP.lsGet('ots', []);
+  const ot = ots.find(o => o.id === ot_id);
+  if (!ot) return;
+
+  document.getElementById('ot-tab-recepcion').style.display = '';
+  document.getElementById('ot-tab-diagnostico').style.display = 'none';
+  document.getElementById('ot-tab-cotizacion').style.display = 'none';
+
+  // Datos cliente/vehículo
+  document.getElementById('ot-recepcion-cliente').textContent = ot.cliente_nombre || '—';
+  document.getElementById('ot-recepcion-vehiculo').textContent = `${ot.marca || '—'} ${ot.modelo || '—'} ${ot.anio || ''}`;
+  document.getElementById('ot-recepcion-patente').textContent = ot.patente || '—';
+
+  // Síntomas
+  document.getElementById('ot-recepcion-sintomas').value = ot.sintomas || '';
+  document.getElementById('ot-recepcion-ot-id').value = ot_id;
+
+  // Highlight tab activo
+  document.querySelectorAll('#ot-detalle-tabs button').forEach(btn => btn.style.borderBottomColor = 'transparent');
+  document.getElementById('ot-btn-recepcion').style.borderBottomColor = 'var(--fill-accent)';
+}
+
+function otMostrarTabDiagnostico(ot_id) {
+  const ots = APP.lsGet('ots', []);
+  const ot = ots.find(o => o.id === ot_id);
+  if (!ot) return;
+
+  document.getElementById('ot-tab-recepcion').style.display = 'none';
+  document.getElementById('ot-tab-diagnostico').style.display = '';
+  document.getElementById('ot-tab-cotizacion').style.display = 'none';
+
+  // Síntomas read-only
+  document.getElementById('ot-diagnostico-sintomas-ro').textContent = ot.sintomas || 'Sin síntomas registrados';
+
+  // Diagnóstico editable
+  document.getElementById('ot-diagnostico-input').value = ot.diagnostico || '';
+  document.getElementById('ot-diagnostico-ot-id').value = ot_id;
+
+  // Cargar servicios
+  otCargarServicios(ot_id);
+
+  // Highlight tab activo
+  document.querySelectorAll('#ot-detalle-tabs button').forEach(btn => btn.style.borderBottomColor = 'transparent');
+  document.getElementById('ot-btn-diagnostico').style.borderBottomColor = 'var(--fill-accent)';
+}
+
+function otMostrarTabCotizacion(ot_id) {
+  const ots = APP.lsGet('ots', []);
+  const ot = ots.find(o => o.id === ot_id);
+  if (!ot) return;
+
+  document.getElementById('ot-tab-recepcion').style.display = 'none';
+  document.getElementById('ot-tab-diagnostico').style.display = 'none';
+  document.getElementById('ot-tab-cotizacion').style.display = '';
+
+  // Diagnóstico read-only
+  document.getElementById('ot-cotizacion-diagnostico-ro').textContent = ot.diagnostico || 'Sin diagnóstico';
+
+  // Cargar cotización
+  otRenderTablaCotizacion(ot_id);
+  otActualizarTotales(ot_id);
+
+  document.getElementById('ot-cotizacion-ot-id').value = ot_id;
+
+  // Highlight tab activo
+  document.querySelectorAll('#ot-detalle-tabs button').forEach(btn => btn.style.borderBottomColor = 'transparent');
+  document.getElementById('ot-btn-cotizacion').style.borderBottomColor = 'var(--fill-accent)';
+}
+
+function otGuardarSintomas() {
+  const ot_id = document.getElementById('ot-recepcion-ot-id').value;
+  const sintomas = document.getElementById('ot-recepcion-sintomas').value.trim();
+
+  if (!sintomas) {
+    APP.toast.show('⚠️ Anotar síntomas es obligatorio', 'warning');
+    return;
+  }
+
+  const ots = APP.lsGet('ots', []);
+  const ot = ots.find(o => o.id === ot_id);
+  if (!ot) return;
+
+  ot.sintomas = sintomas;
+  ot.estado = 'en_diagnostico';
+  ot.fecha_modificacion = new Date().toISOString();
+
+  APP.lsSet('ots', ots);
+  otMostrarTabDiagnostico(ot_id);
+  APP.toast.show('✅ Síntomas guardados. Avanzando a diagnóstico...', 'success');
+}
+
+function otGuardarDiagnosticoNuevo() {
+  const ot_id = document.getElementById('ot-diagnostico-ot-id').value;
+  const diagnostico = document.getElementById('ot-diagnostico-input').value.trim();
+
+  if (!diagnostico) {
+    APP.toast.show('⚠️ Anotar diagnóstico es obligatorio', 'warning');
+    return;
+  }
+
+  const ots = APP.lsGet('ots', []);
+  const ot = ots.find(o => o.id === ot_id);
+  if (!ot) return;
+
+  // Obtener servicios seleccionados
+  const servicios_seleccionados = Array.from(
+    document.querySelectorAll('#ot-diagnostico-servicios-lista input[type="checkbox"]:checked')
+  ).map(cb => cb.value);
+
+  ot.diagnostico = diagnostico;
+  ot.servicios_seleccionados = servicios_seleccionados;
+  ot.estado = 'armar_cotizacion';
+  ot.fecha_modificacion = new Date().toISOString();
+
+  APP.lsSet('ots', ots);
+  otMostrarTabCotizacion(ot_id);
+  APP.toast.show('✅ Diagnóstico guardado. Avanzando a cotización...', 'success');
+}
+
+function otVolverRecepcion(ot_id) {
+  otMostrarTabRecepcion(ot_id);
+}
+
+function otVolverDiagnostico(ot_id) {
+  otMostrarTabDiagnostico(ot_id);
+}
+
+function otGuardarCotizacion() {
+  const ot_id = document.getElementById('ot-cotizacion-ot-id').value;
+  const ots = APP.lsGet('ots', []);
+  const ot = ots.find(o => o.id === ot_id);
+  if (!ot) return;
+
+  ot.estado = 'esperando_aprobacion';
+  ot.fecha_modificacion = new Date().toISOString();
+
+  APP.lsSet('ots', ots);
+  APP.toast.show('✅ Cotización guardada', 'success');
+  tallerMostrarPanelAcciones(ot_id);
+}
+
 window.otAbrirRecepcion = otAbrirRecepcion;
 window.otGuardarSintomas = otGuardarSintomas;
 window.otAbrirDiagnostico = otAbrirDiagnostico;
@@ -375,3 +541,12 @@ window.otGuardarRepuesto = otGuardarRepuesto;
 window.otActualizarRepuesto = otActualizarRepuesto;
 window.otEliminarRepuesto = otEliminarRepuesto;
 window.otActualizarTotales = otActualizarTotales;
+window.otAbrirDetalleOT = otAbrirDetalleOT;
+window.otMostrarTabRecepcion = otMostrarTabRecepcion;
+window.otMostrarTabDiagnostico = otMostrarTabDiagnostico;
+window.otMostrarTabCotizacion = otMostrarTabCotizacion;
+window.otGuardarSintomas = otGuardarSintomas;
+window.otGuardarDiagnosticoNuevo = otGuardarDiagnosticoNuevo;
+window.otVolverRecepcion = otVolverRecepcion;
+window.otVolverDiagnostico = otVolverDiagnostico;
+window.otGuardarCotizacion = otGuardarCotizacion;
