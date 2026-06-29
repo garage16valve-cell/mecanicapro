@@ -194,8 +194,8 @@ function _renderOTCard(ot) {
       onclick="otAbrirDetalleOT('${ot.id}')">
       <i class="ti ti-edit"></i> Editar
     </button>
-    <button class="btn kanban-btn bpa" title="Ver detalle"
-      onclick="abrirDetalleOT('${ot.id}')">
+    <button class="btn kanban-btn bpa" title="Ver detalle con tabs"
+      onclick="otAbrirDetalleOT('${ot.id}')">
       <i class="ti ti-list-details"></i> Detalle
     </button>
     <button class="btn kanban-btn" title="WhatsApp cliente"
