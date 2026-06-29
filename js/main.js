@@ -441,17 +441,17 @@ function initExampleData() {
       nombre_fantasia: 'Garage 16 Valve',
       rut: '76.123.456-7',
       telefono: '+56951234567',
-      email: 'info@garage16valve.cl',
       direccion: 'Avenida Brasil 2543, Valparaíso',
       ciudad: 'Valparaíso',
       region: 'Valparaíso',
-      horario_inicio: '09:00',
-      horario_fin: '18:00',
-      horario_descanso_inicio: '13:00',
-      horario_descanso_fin: '14:00',
-      dias_laborales: ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes'],
+      link_agenda: 'https://integral-automotriz-spa.reservio.com/booking',
       logo_base64: '',
-      descripcion: 'Taller automotriz especializado en diagnóstico y reparación'
+      hora_inicio: '09:00',
+      hora_fin: '18:00',
+      descanso_inicio: '13:00',
+      descanso_fin: '14:00',
+      capacidad_maxima: 8,
+      precio_minimo_hora: 25000
     });
   }
 
@@ -478,7 +478,20 @@ function initExampleData() {
   const tc = APP.lsGet('taller_config');
   if (tc) {
     const mtc = APP.lsGet('mp_taller_config', {});
-    const sync = { ...mtc, nombre: mtc.nombre || tc.nombre_fantasia, rut: mtc.rut || tc.rut, direccion: mtc.direccion || tc.direccion, telefono: mtc.telefono || tc.telefono, horaInicio: mtc.horaInicio || tc.horario_inicio, horaFin: mtc.horaFin || tc.horario_fin };
+    const sync = {
+      ...mtc,
+      nombre: mtc.nombre || tc.nombre_fantasia,
+      rut: mtc.rut || tc.rut,
+      direccion: mtc.direccion || tc.direccion,
+      telefono: mtc.telefono || tc.telefono,
+      agenda: mtc.agenda || tc.link_agenda,
+      horaInicio: mtc.horaInicio || tc.hora_inicio || '09:00',
+      horaFin: mtc.horaFin || tc.hora_fin || '18:00',
+      capHorasDia: mtc.capHorasDia || tc.capacidad_maxima || 8,
+      precioMinHora: mtc.precioMinHora || tc.precio_minimo_hora || 0,
+      horaDescansoInicio: mtc.horaDescansoInicio || tc.descanso_inicio || '13:00',
+      horaDescansoFin: mtc.horaDescansoFin || tc.descanso_fin || '14:00'
+    };
     APP.lsSet('mp_taller_config', sync);
   }
 

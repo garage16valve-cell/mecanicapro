@@ -192,21 +192,7 @@ function admGuardarConfigRepuestos() {
 
 // ===== INIT =====
 function init_admin() {
-  _admActualizarBotonesPeriodo();
-  _admKPIs();
-  _admTablaServicios();
-  _admTablaMecanicos();
-  _admGraficoMensual();
-  _admFrecuencia();
-  repRenderEficiencia();
-  _admCargarConfig();
-  _admCargarConfigOperativa();
   if (typeof tallerCargarDatos === 'function') tallerCargarDatos();
-  _admCargarConfigRepuestos();
-  _admRenderIntegraciones();
-  _admPanelServicios();
-  _admCatRender();
-  if (typeof admUsuariosRender === 'function') admUsuariosRender();
 }
 
 // ===== PERÍODO =====
@@ -687,13 +673,23 @@ function admEliminarLogo() {
 }
 
 // ═══════════════════════════════════════════════════════════════════
-// DATOS DEL TALLER — SOLO LOGO + NOMBRE
+// DATOS DEL TALLER — formulario completo + config operativa
 // ═══════════════════════════════════════════════════════════════════
 
 function tallerCargarDatos() {
   const config = APP.lsGet('taller_config') || {};
-  const el = document.getElementById('taller-nombre-fantasia');
-  if (el) el.value = config.nombre_fantasia || '';
+  const s = (id, v) => { const el = document.getElementById(id); if (el) el.value = v ?? ''; };
+  s('taller-nombre-fantasia', config.nombre_fantasia);
+  s('taller-rut', config.rut);
+  s('taller-direccion', config.direccion);
+  s('taller-telefono', config.telefono);
+  s('taller-link-agenda', config.link_agenda || '');
+  s('taller-hora-inicio', config.hora_inicio || '09:00');
+  s('taller-hora-fin', config.hora_fin || '18:00');
+  s('taller-capacidad-maxima', config.capacidad_maxima ?? 8);
+  s('taller-precio-minimo-hora', config.precio_minimo_hora ?? '');
+  s('taller-descanso-inicio', config.descanso_inicio || '13:00');
+  s('taller-descanso-fin', config.descanso_fin || '14:00');
 
   if (config.logo_base64) {
     const img = document.getElementById('taller-logo-img');
@@ -738,12 +734,40 @@ function tallerEliminarLogo() {
 }
 
 function tallerGuardarDatos() {
-  const nombre = (document.getElementById('taller-nombre-fantasia')?.value || '').trim();
+  const g = id => (document.getElementById(id)?.value || '').trim();
   const config = APP.lsGet('taller_config') || {};
-  config.nombre_fantasia = nombre;
+  config.nombre_fantasia = g('taller-nombre-fantasia');
+  config.rut = g('taller-rut');
+  config.direccion = g('taller-direccion');
+  config.telefono = g('taller-telefono');
+  config.link_agenda = g('taller-link-agenda');
+  config.hora_inicio = g('taller-hora-inicio') || '09:00';
+  config.hora_fin = g('taller-hora-fin') || '18:00';
+  config.capacidad_maxima = parseFloat(g('taller-capacidad-maxima')) || 8;
+  config.precio_minimo_hora = parseFloat(g('taller-precio-minimo-hora')) || 0;
+  config.descanso_inicio = g('taller-descanso-inicio') || '13:00';
+  config.descanso_fin = g('taller-descanso-fin') || '14:00';
   APP.lsSet('taller_config', config);
+
+  // Sincronizar a mp_taller_config (compatibilidad)
+  const mtc = APP.lsGet('mp_taller_config', {});
+  APP.lsSet('mp_taller_config', {
+    ...mtc,
+    nombre: config.nombre_fantasia,
+    rut: config.rut,
+    direccion: config.direccion,
+    telefono: config.telefono,
+    agenda: config.link_agenda,
+    horaInicio: config.hora_inicio,
+    horaFin: config.hora_fin,
+    capHorasDia: config.capacidad_maxima,
+    precioMinHora: config.precio_minimo_hora,
+    horaDescansoInicio: config.descanso_inicio,
+    horaDescansoFin: config.descanso_fin
+  });
+
   tallerActualizarHeader();
-  APP.toast.show('✅ Datos guardados');
+  APP.toast.show('✅ Datos del taller guardados');
 }
 
 function tallerActualizarHeader() {
@@ -762,7 +786,7 @@ function tallerActualizarHeader() {
     if (defEl) defEl.style.display = 'flex';
   }
   if (nomEl) nomEl.textContent = config.nombre_fantasia || 'MecánicaPro';
-  if (subEl) subEl.textContent = config.nombre_fantasia ? 'Taller Valparaíso' : 'SaaS · Taller Valparaíso';
+  if (subEl) subEl.textContent = (config.ciudad ? config.ciudad + ', ' : '') + (config.region || 'Taller Valparaíso');
 }
 
 // ===== CONFIGURACIÓN OPERATIVA =====

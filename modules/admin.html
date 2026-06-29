@@ -1,208 +1,109 @@
-<!-- USUARIOS -->
-<div class="page" id="pg-usuarios">
+<div class="module-wrap" id="module-admin">
 
-  <div class="card">
-    <div class="ch">
-      <span class="ct"><i class="ti ti-users" style="font-size:13px"></i> Usuarios del sistema</span>
-      <button class="btn bpa" onclick="admUsuarioNuevo()" style="font-size:11px">
-        <i class="ti ti-plus"></i> Agregar usuario
-      </button>
-    </div>
-    <div style="overflow-x:auto">
-      <table class="tbl">
-        <thead><tr>
-          <th>Nombre</th>
-          <th>Rol</th>
-          <th>WhatsApp</th>
-          <th>Estado</th>
-          <th style="width:80px">Opciones</th>
-        </tr></thead>
-        <tbody id="adm-usu-tbody">
-          <tr><td colspan="5" style="text-align:center;padding:20px;color:var(--text-muted);font-size:11px">Cargando…</td></tr>
-        </tbody>
-      </table>
-    </div>
-  </div>
+  <h2 style="margin-bottom:20px">Configuración</h2>
 
-  <div class="card" style="margin-top:14px">
-    <div class="ch"><span class="ct" style="font-size:12px"><i class="ti ti-shield-lock" style="font-size:13px"></i> Permisos por rol</span></div>
-    <div style="overflow-x:auto">
-      <table class="tbl" style="font-size:11px">
-        <thead><tr>
-          <th>Módulo</th>
-          <th style="text-align:center">Administrador</th>
-          <th style="text-align:center">Recepcionista</th>
-          <th style="text-align:center">Mecánico</th>
-          <th style="text-align:center">Contable</th>
-        </tr></thead>
-        <tbody>
-          <tr><td>Dashboard</td><td style="text-align:center;color:#10b981">✓</td><td style="text-align:center;color:#10b981">✓</td><td style="text-align:center;color:var(--text-muted)">—</td><td style="text-align:center;color:#10b981">✓</td></tr>
-          <tr><td>Agenda</td><td style="text-align:center;color:#10b981">✓</td><td style="text-align:center;color:#10b981">✓</td><td style="text-align:center;color:var(--text-muted)">—</td><td style="text-align:center;color:var(--text-muted)">—</td></tr>
-          <tr><td>Órdenes de trabajo</td><td style="text-align:center;color:#10b981">✓</td><td style="text-align:center;color:#10b981">✓</td><td style="text-align:center;color:#f59e0b">Solo propias</td><td style="text-align:center;color:var(--text-muted)">—</td></tr>
-          <tr><td>Clientes</td><td style="text-align:center;color:#10b981">✓</td><td style="text-align:center;color:#10b981">✓</td><td style="text-align:center;color:var(--text-muted)">—</td><td style="text-align:center;color:var(--text-muted)">—</td></tr>
-          <tr><td>Servicios</td><td style="text-align:center;color:#10b981">✓</td><td style="text-align:center;color:#10b981">✓</td><td style="text-align:center;color:var(--text-muted)">—</td><td style="text-align:center;color:var(--text-muted)">—</td></tr>
-          <tr><td>Finanzas / Contable</td><td style="text-align:center;color:#10b981">✓</td><td style="text-align:center;color:var(--text-muted)">—</td><td style="text-align:center;color:var(--text-muted)">—</td><td style="text-align:center;color:#10b981">✓</td></tr>
-          <tr><td>Reportes Admin</td><td style="text-align:center;color:#10b981">✓</td><td style="text-align:center;color:var(--text-muted)">—</td><td style="text-align:center;color:var(--text-muted)">—</td><td style="text-align:center;color:#10b981">✓</td></tr>
-          <tr><td>Configuración / Usuarios</td><td style="text-align:center;color:#10b981">✓</td><td style="text-align:center;color:var(--text-muted)">—</td><td style="text-align:center;color:var(--text-muted)">—</td><td style="text-align:center;color:var(--text-muted)">—</td></tr>
-          <tr><td style="color:var(--text-danger)">Precio costo / % ganancia</td><td style="text-align:center;color:#10b981">✓</td><td style="text-align:center;color:var(--text-muted)">—</td><td style="text-align:center;color:var(--text-danger)">Oculto</td><td style="text-align:center;color:var(--text-muted)">—</td></tr>
-        </tbody>
-      </table>
-    </div>
-  </div>
+  <div style="display:grid; grid-template-columns:1fr 1fr; gap:20px">
 
-</div>
+    <!-- COLUMNA IZQUIERDA: Datos del Taller -->
+    <div>
+      <h3 style="margin-bottom:14px">Datos del Taller</h3>
 
-<!-- REPORTES -->
-<div class="page active" id="pg-reportes">
+      <div style="background:var(--surface-1); padding:20px; border-radius:8px">
 
-  <!-- Selector de período -->
-  <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;flex-wrap:wrap">
-    <span style="font-size:11px;color:var(--text-muted);font-weight:500">Período:</span>
-    <div style="display:flex;border:0.5px solid var(--border);border-radius:var(--radius);overflow:hidden">
-      <button id="adm-per-sem" class="btn" onclick="admSetPeriodo('semana')" style="border-radius:0;border:none;border-right:0.5px solid var(--border);font-size:11px">Semana</button>
-      <button id="adm-per-mes" class="btn" onclick="admSetPeriodo('mes')"    style="border-radius:0;border:none;border-right:0.5px solid var(--border);font-size:11px">Mes</button>
-      <button id="adm-per-ano" class="btn" onclick="admSetPeriodo('año')"   style="border-radius:0;border:none;font-size:11px">Año</button>
-    </div>
-    <span id="adm-periodo-label" style="font-size:11px;color:var(--text-muted)"></span>
-    <div style="flex:1"></div>
-    <button class="btn" style="font-size:11px" onclick="admExportarPDF()"><i class="ti ti-download"></i> PDF</button>
-    <button class="btn" style="font-size:11px" onclick="admExportarExcel()"><i class="ti ti-table-export"></i> Excel</button>
-  </div>
+        <!-- Nombre del taller -->
+        <div style="margin-bottom:14px">
+          <label style="display:block; font-size:12px; color:var(--text-muted); margin-bottom:4px">Nombre del taller</label>
+          <input type="text" id="taller-nombre-fantasia" placeholder="Integral Automotriz Spa" style="width:100%; padding:10px; border:1px solid var(--border-color); border-radius:4px; box-sizing:border-box">
+        </div>
 
-  <!-- KPIs -->
-  <div class="kgrid5">
-    <div class="kcard"><div class="kl">OTs completadas</div><div class="kv" id="adm-kpi-ots">—</div><div class="ks ku" id="adm-kpi-ots-sub"></div></div>
-    <div class="kcard"><div class="kl">Ingresos</div><div class="kv" id="adm-kpi-ingresos">—</div><div class="ks ku" id="adm-kpi-ing-sub"></div></div>
-    <div class="kcard"><div class="kl">Clientes nuevos</div><div class="kv" id="adm-kpi-clientes">—</div><div class="ks ku" id="adm-kpi-cli-sub"></div></div>
-    <div class="kcard"><div class="kl">Rent./hora real</div><div class="kv" id="adm-kpi-renth">—</div><div class="ks" id="adm-kpi-renth-sub" style="color:var(--text-muted)"></div></div>
-    <div class="kcard"><div class="kl">Satisfacción</div><div class="kv" id="adm-kpi-sat">4.8 ★</div><div class="ks" id="adm-kpi-sat-sub" style="color:var(--text-muted)"></div></div>
-  </div>
+        <!-- RUT -->
+        <div style="margin-bottom:14px">
+          <label style="display:block; font-size:12px; color:var(--text-muted); margin-bottom:4px">RUT</label>
+          <input type="text" id="taller-rut" placeholder="76.543.210-8" style="width:100%; padding:10px; border:1px solid var(--border-color); border-radius:4px; box-sizing:border-box">
+        </div>
 
-  <!-- Servicios + Mecánicos -->
-  <div class="g2">
-    <div class="card">
-      <div class="ch"><span class="ct">Servicios más rentables</span></div>
-      <div style="overflow-x:auto">
-        <table class="tbl" style="min-width:560px">
-          <thead><tr>
-            <th>Servicio</th><th>OTs</th><th>T.est promedio</th><th>T.real promedio</th>
-            <th>Eficiencia</th><th>Ingresos</th><th>Rent./hora</th>
-          </tr></thead>
-          <tbody id="adm-tbody-svc">
-            <tr><td colspan="7" style="text-align:center;color:var(--text-muted);padding:16px;font-size:11px">Cargando…</td></tr>
-          </tbody>
-        </table>
+        <!-- Dirección -->
+        <div style="margin-bottom:14px">
+          <label style="display:block; font-size:12px; color:var(--text-muted); margin-bottom:4px">Dirección</label>
+          <input type="text" id="taller-direccion" placeholder="Valparaíso, Chile" style="width:100%; padding:10px; border:1px solid var(--border-color); border-radius:4px; box-sizing:border-box">
+        </div>
+
+        <!-- Teléfono -->
+        <div style="margin-bottom:14px">
+          <label style="display:block; font-size:12px; color:var(--text-muted); margin-bottom:4px">Teléfono</label>
+          <input type="text" id="taller-telefono" placeholder="+56 9 5165 5331" style="width:100%; padding:10px; border:1px solid var(--border-color); border-radius:4px; box-sizing:border-box">
+        </div>
+
+        <!-- Link de agendamiento -->
+        <div style="margin-bottom:14px">
+          <label style="display:block; font-size:12px; color:var(--text-muted); margin-bottom:4px">Link de agendamiento</label>
+          <input type="text" id="taller-link-agenda" placeholder="plataforma.cl/agenda/..." style="width:100%; padding:10px; border:1px solid var(--border-color); border-radius:4px; box-sizing:border-box">
+        </div>
+
+        <!-- Logo del Taller -->
+        <div style="margin-bottom:14px">
+          <label style="font-weight:500; display:block; margin-bottom:10px">Logo del Taller</label>
+          <div id="taller-logo-preview" style="width:100px; height:100px; background:var(--surface-2); border:2px dashed var(--border-color); border-radius:8px; display:flex; align-items:center; justify-content:center; margin-bottom:10px; overflow:hidden">
+            <span id="taller-logo-text" style="color:var(--text-muted); text-align:center; font-size:12px">Sin logo</span>
+            <img id="taller-logo-img" style="display:none; max-width:100%; max-height:100%; object-fit:contain">
+          </div>
+          <input type="file" id="taller-logo-upload" accept="image/*" onchange="tallerCargarLogo()" style="margin-bottom:8px">
+          <p style="font-size:11px; color:var(--text-muted); margin-bottom:8px">PNG o JPG, máximo 500KB</p>
+          <button onclick="tallerEliminarLogo()" style="background:var(--bg-danger); color:white; padding:6px 12px; border:none; border-radius:4px; cursor:pointer; font-size:12px">Eliminar logo</button>
+        </div>
+
+        <!-- Botón guardar -->
+        <div style="margin-top:20px">
+          <button onclick="tallerGuardarDatos()" style="background:var(--bg-primary); color:white; padding:12px 20px; border:none; border-radius:4px; cursor:pointer; font-weight:500; width:100%">Guardar datos del taller</button>
+        </div>
+
       </div>
     </div>
-    <div class="card">
-      <div class="ch"><span class="ct">Rendimiento por mecánico</span><span style="font-size:10px;color:var(--text-muted)">Solo Admin</span></div>
-      <table class="tbl">
-        <thead><tr><th>Mecánico</th><th>OTs</th><th>T.real total</th><th>Eficiencia</th><th>Ingresos</th></tr></thead>
-        <tbody id="adm-tbody-mec">
-          <tr><td colspan="5" style="text-align:center;color:var(--text-muted);padding:16px;font-size:11px">Cargando…</td></tr>
-        </tbody>
-      </table>
-    </div>
-  </div>
 
-  <!-- Gráfico mensual -->
-  <div class="card" style="margin-top:14px">
-    <div class="ch">
-      <span class="ct"><i class="ti ti-chart-bar" style="font-size:13px"></i> Carga de trabajo mensual (últimos 12 meses)</span>
-    </div>
-    <div id="adm-grafico-svg" style="min-height:120px"></div>
-    <div style="display:flex;gap:16px;margin-top:6px;font-size:10px;color:var(--text-muted)">
-      <span style="display:flex;align-items:center;gap:4px"><span style="display:inline-block;width:12px;height:12px;background:var(--fill-accent);border-radius:2px;opacity:.8"></span>OTs completadas</span>
-      <span style="display:flex;align-items:center;gap:4px"><span style="display:inline-block;width:12px;height:12px;background:var(--fill-accent);border-radius:2px;opacity:.3"></span>Horas trabajadas (escala relativa)</span>
-    </div>
-  </div>
+    <!-- COLUMNA DERECHA: Configuración Operativa -->
+    <div>
+      <h3 style="margin-bottom:14px">Configuración operativa</h3>
 
-  <!-- Frecuencia + Stock -->
-  <div class="g2" style="margin-top:14px">
-    <div class="card">
-      <div class="ch"><span class="ct"><i class="ti ti-car" style="font-size:13px"></i> Marcas y modelos más frecuentes</span></div>
-      <table class="tbl">
-        <thead><tr><th>Marca</th><th>OTs</th><th>Modelo top</th><th>Servicio más frecuente</th></tr></thead>
-        <tbody id="adm-frecuencia-tbody">
-          <tr><td colspan="4" style="text-align:center;color:var(--text-muted);padding:16px;font-size:11px">Cargando…</td></tr>
-        </tbody>
-      </table>
-    </div>
-    <div class="card">
-      <div class="ch"><span class="ct"><i class="ti ti-package" style="font-size:13px"></i> Stock sugerido — repuestos de alta rotación</span></div>
-      <table class="tbl">
-        <thead><tr><th>Repuesto</th><th>Usos</th><th>Sugerencia</th></tr></thead>
-        <tbody id="adm-stock-tbody">
-          <tr><td colspan="3" style="text-align:center;color:var(--text-muted);padding:16px;font-size:11px">Cargando…</td></tr>
-        </tbody>
-      </table>
-    </div>
-  </div>
+      <div style="background:var(--surface-1); padding:20px; border-radius:8px">
 
-  <!-- Eficiencia por servicio -->
-  <div class="card" style="margin-top:14px">
-    <div class="ch">
-      <span class="ct"><i class="ti ti-chart-bar" style="font-size:13px"></i> Reporte de eficiencia por servicio</span>
-      <button class="btn" onclick="repRenderEficiencia()" style="font-size:11px;padding:4px 9px"><i class="ti ti-refresh"></i> Actualizar</button>
-    </div>
-    <div style="font-size:11px;color:var(--text-muted);margin-bottom:12px">
-      Compara el tiempo estimado del catálogo vs. el tiempo real registrado en OTs completadas.
-      La tendencia muestra las últimas 5 ejecuciones (verde ≥95%, amarillo 75–95%, rojo &lt;75%).
-    </div>
-    <div style="overflow-x:auto">
-      <table class="tbl" style="min-width:540px">
-        <thead>
-          <tr>
-            <th>Servicio</th>
-            <th style="text-align:center">Ejecuciones</th>
-            <th>T.est catálogo</th>
-            <th>T.real promedio</th>
-            <th style="text-align:center">Eficiencia %</th>
-            <th>Tendencia</th>
-          </tr>
-        </thead>
-        <tbody id="rep-efic-tbody">
-          <tr><td colspan="6" style="text-align:center;color:var(--text-muted);padding:20px;font-size:11px">Cargando…</td></tr>
-        </tbody>
-      </table>
-    </div>
-    <div style="margin-top:12px;padding:10px;background:var(--surface-1);border-radius:var(--radius);font-size:10px;color:var(--text-muted)">
-      <strong>Eficiencia</strong> = tiempo estimado ÷ tiempo real × 100. &gt;95% = excelente · 75–95% = normal · &lt;75% = revisar.
-    </div>
-  </div>
+        <!-- Hora inicio jornada -->
+        <div style="margin-bottom:14px">
+          <label style="display:block; font-size:12px; color:var(--text-muted); margin-bottom:4px">Hora inicio jornada</label>
+          <input type="time" id="taller-hora-inicio" style="width:100%; padding:10px; border:1px solid var(--border-color); border-radius:4px; box-sizing:border-box">
+        </div>
 
-</div>
+        <!-- Hora fin jornada -->
+        <div style="margin-bottom:14px">
+          <label style="display:block; font-size:12px; color:var(--text-muted); margin-bottom:4px">Hora fin jornada</label>
+          <input type="time" id="taller-hora-fin" style="width:100%; padding:10px; border:1px solid var(--border-color); border-radius:4px; box-sizing:border-box">
+        </div>
 
-<!-- CONFIGURACIÓN -->
-<div class="page" id="pg-config">
+        <!-- Capacidad máxima -->
+        <div style="margin-bottom:14px">
+          <label style="display:block; font-size:12px; color:var(--text-muted); margin-bottom:4px">Capacidad máxima (hora/día)</label>
+          <input type="number" id="taller-capacidad-maxima" placeholder="8" style="width:100%; padding:10px; border:1px solid var(--border-color); border-radius:4px; box-sizing:border-box">
+          <p style="font-size:11px; color:var(--text-muted); margin-top:4px">Afecta al semáforo de capacidad en Agenda</p>
+        </div>
 
-  <h3 style="font-size:14px;font-weight:600;margin:0 0 16px">Configuración</h3>
+        <!-- Precio mínimo por hora -->
+        <div style="margin-bottom:14px">
+          <label style="display:block; font-size:12px; color:var(--text-muted); margin-bottom:4px">Precio mínimo por hora (Mano de obra)</label>
+          <input type="number" id="taller-precio-minimo-hora" placeholder="25000" style="width:100%; padding:10px; border:1px solid var(--border-color); border-radius:4px; box-sizing:border-box">
+        </div>
 
-  <div style="background:var(--surface-1);padding:20px;border-radius:8px;max-width:500px">
+        <!-- Descanso inicio -->
+        <div style="margin-bottom:14px">
+          <label style="display:block; font-size:12px; color:var(--text-muted); margin-bottom:4px">Descanso inicio</label>
+          <input type="time" id="taller-descanso-inicio" style="width:100%; padding:10px; border:1px solid var(--border-color); border-radius:4px; box-sizing:border-box">
+        </div>
 
-    <!-- Logo del Taller -->
-    <div style="margin-bottom:20px">
-      <label style="font-weight:500;display:block;margin-bottom:10px;font-size:12px">Logo del Taller</label>
-      <div id="taller-logo-preview" style="width:150px;height:150px;background:var(--surface-2);border:2px dashed var(--border-strong);border-radius:8px;display:flex;align-items:center;justify-content:center;margin-bottom:10px;overflow:hidden">
-        <span id="taller-logo-text" style="color:var(--text-muted);text-align:center;font-size:11px">Sin logo</span>
-        <img id="taller-logo-img" style="display:none;max-width:100%;max-height:100%;object-fit:contain">
+        <!-- Descanso fin -->
+        <div style="margin-bottom:14px">
+          <label style="display:block; font-size:12px; color:var(--text-muted); margin-bottom:4px">Descanso fin</label>
+          <input type="time" id="taller-descanso-fin" style="width:100%; padding:10px; border:1px solid var(--border-color); border-radius:4px; box-sizing:border-box">
+        </div>
+
       </div>
-      <input type="file" id="taller-logo-upload" accept="image/*" onchange="tallerCargarLogo()" style="margin-bottom:6px;font-size:12px">
-      <div style="font-size:10px;color:var(--text-muted);margin-bottom:8px">PNG o JPG, máximo 500KB</div>
-      <button class="btn" onclick="tallerEliminarLogo()" style="font-size:11px;color:var(--text-danger)"><i class="ti ti-trash"></i> Eliminar logo</button>
-    </div>
-
-    <!-- Nombre de Fantasía -->
-    <div style="margin-bottom:14px">
-      <label style="display:block;font-weight:500;margin-bottom:4px;font-size:12px">Nombre de Fantasía</label>
-      <input type="text" id="taller-nombre-fantasia" placeholder="Ej: Garage 16 Valve" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:4px;box-sizing:border-box;background:var(--surface-0);color:var(--text-primary);font-size:12px">
-    </div>
-
-    <!-- Botón guardar -->
-    <div style="margin-top:20px">
-      <button class="btn bpa" onclick="tallerGuardarDatos()" style="width:100%">
-        <i class="ti ti-device-floppy"></i> Guardar Cambios
-      </button>
     </div>
 
   </div>
