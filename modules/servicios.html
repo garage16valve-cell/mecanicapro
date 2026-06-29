@@ -107,6 +107,10 @@
         style="border:none;border-radius:0;border-bottom:2px solid transparent;color:var(--text-secondary);font-size:12px;padding:8px 16px">
         Operarios
       </button>
+      <button id="svc-subtab-btn-upsell" class="btn" onclick="svcSetSubTab('upselling')"
+        style="border:none;border-radius:0;border-bottom:2px solid transparent;color:var(--text-secondary);font-size:12px;padding:8px 16px">
+        <i class="ti ti-sparkles" style="font-size:13px;vertical-align:-2px;margin-right:4px"></i>Upselling
+      </button>
     </div>
 
     <!-- Sub-tab: Categorías -->
@@ -260,6 +264,21 @@
             </div>
           </div>
         </div>
+      </div>
+    </div>
+
+    <!-- Sub-tab: Upselling -->
+    <div id="svc-subtab-upselling" style="display:none">
+      <div class="card">
+        <div class="ch">
+          <span class="ct"><i class="ti ti-sparkles" style="font-size:13px"></i> Reglas de upselling inteligente</span>
+          <button class="btn bpa" onclick="svcUpsellAgregar()" style="font-size:11px"><i class="ti ti-plus"></i> Agregar regla</button>
+        </div>
+        <div style="font-size:10px;color:var(--text-muted);margin-bottom:10px">
+          Cuando una OT se abre para un vehículo, el sistema verifica cuántos meses han pasado desde el último servicio y sugiere estos de forma proactiva.
+        </div>
+        <div id="svc-upsell-lista" style="font-size:11px"></div>
+        <button class="btn" style="margin-top:8px;font-size:11px" onclick="svcUpsellReset()"><i class="ti ti-refresh"></i> Restaurar reglas por defecto</button>
       </div>
     </div>
 

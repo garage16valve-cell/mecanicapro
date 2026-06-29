@@ -205,8 +205,6 @@ function init_admin() {
   _admRenderIntegraciones();
   _admPanelServicios();
   _admCatRender();
-  _admRenderUpselling();
-
   if (typeof admUsuariosRender === 'function') admUsuariosRender();
 }
 
@@ -727,67 +725,6 @@ function _admPanelServicios() {
     ? svcs.map(s => `<span class="tag" style="margin:2px">${_admEsc(s.nombre)}</span>`).join('')
     : '<span style="font-size:11px;color:var(--text-muted)">Sin servicios. Ve al módulo Servicios para crear el catálogo.</span>';
 }
-
-// ===== UPSELLING =====
-const _ADM_UPSELL_DEFAULT = [
-  { servicio:'Cambio aceite + filtros',    meses:6  },
-  { servicio:'Mantención 10.000 km',       meses:12 },
-  { servicio:'Cambio de frenos',           meses:24 },
-  { servicio:'Alineación y balanceo',      meses:12 },
-  { servicio:'Diagnóstico scanner',        meses:12 },
-  { servicio:'Cambio de embrague',         meses:36 },
-];
-
-function _admRenderUpselling() {
-  const lista = document.getElementById('adm-upsell-lista');
-  if (!lista) return;
-  const rs   = APP.lsGet('mp_upselling_rules', _ADM_UPSELL_DEFAULT);
-  const svcs = APP.lsGet('mp_servicios', []);
-  const dlId = 'upsell-svc-dl';
-
-  lista.innerHTML = `<datalist id="${dlId}">${svcs.map(s => `<option value="${_admEsc(s.nombre)}">`).join('')}</datalist>`
-    + (rs.length ? rs.map((r, i) => `
-    <div style="display:flex;gap:6px;align-items:center;padding:7px 0;border-bottom:0.5px solid var(--border)">
-      <i class="ti ti-sparkles" style="font-size:12px;color:var(--text-accent);flex-shrink:0"></i>
-      <input list="${dlId}" value="${_admEsc(r.servicio)}" placeholder="Nombre del servicio…"
-        style="flex:1;font-size:11px;border:0.5px solid var(--border);border-radius:var(--radius);padding:4px 8px;background:var(--surface-1);color:var(--text-primary)"
-        onchange="admUpsellSync(${i},'servicio',this.value)">
-      <span style="font-size:11px;color:var(--text-muted);white-space:nowrap">cada</span>
-      <input type="number" min="1" max="120" value="${r.meses || 12}"
-        style="width:58px;font-size:11px;border:0.5px solid var(--border);border-radius:var(--radius);padding:4px 8px;background:var(--surface-1);color:var(--text-primary);text-align:center"
-        onchange="admUpsellSync(${i},'meses',this.value)">
-      <span style="font-size:11px;color:var(--text-muted)">meses</span>
-      <button class="btn" style="padding:3px 7px;font-size:12px;color:var(--text-danger)" onclick="admUpsellElim(${i})"><i class="ti ti-x"></i></button>
-    </div>`).join('')
-    : '<div style="font-size:11px;color:var(--text-muted);padding:8px 0">Sin reglas. Usa el botón Agregar.</div>');
-}
-
-function admUpsellSync(i, campo, val) {
-  const rs = APP.lsGet('mp_upselling_rules', _ADM_UPSELL_DEFAULT);
-  if (rs[i]) { rs[i][campo] = campo === 'meses' ? (parseInt(val) || 1) : val; APP.lsSet('mp_upselling_rules', rs); }
-}
-
-function admUpsellAgregar() {
-  const rs = APP.lsGet('mp_upselling_rules', _ADM_UPSELL_DEFAULT);
-  rs.push({ servicio:'', meses:12 });
-  APP.lsSet('mp_upselling_rules', rs);
-  _admRenderUpselling();
-}
-
-function admUpsellElim(i) {
-  const rs = APP.lsGet('mp_upselling_rules', _ADM_UPSELL_DEFAULT);
-  rs.splice(i, 1);
-  APP.lsSet('mp_upselling_rules', rs);
-  _admRenderUpselling();
-}
-
-function admUpsellReset() {
-  APP.modal.confirmar('¿Restaurar las reglas de upselling por defecto? Se perderán los cambios manuales.', () => {
-    APP.lsSet('mp_upselling_rules', JSON.parse(JSON.stringify(_ADM_UPSELL_DEFAULT)));
-    _admRenderUpselling();
-  }, 'Restaurar', 'Cancelar');
-}
-
 // ===== HELPERS =====
 function _admSet(id, val) { const el = document.getElementById(id); if (el) el.textContent = val ?? ''; }
 

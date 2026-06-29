@@ -56,6 +56,12 @@ function svcSetSubTab(tab) {
     if (sOp) sOp.style.display = '';
     if (bOp) { bOp.style.borderBottomColor = 'var(--fill-accent)'; bOp.style.color = 'var(--text-accent)'; }
     svcOpRender();
+  } else if (tab === 'upselling') {
+    const sUp = document.getElementById('svc-subtab-upselling');
+    const bUp = document.getElementById('svc-subtab-btn-upsell');
+    if (sUp) sUp.style.display = '';
+    if (bUp) { bUp.style.borderBottomColor = 'var(--fill-accent)'; bUp.style.color = 'var(--text-accent)'; }
+    _svcRenderUpselling();
   } else {
     if (sCat) sCat.style.display = '';
     if (bCat) { bCat.style.borderBottomColor = 'var(--fill-accent)'; bCat.style.color = 'var(--text-accent)'; }
@@ -781,6 +787,66 @@ function _svcMostrarSugerencias(svc) {
 function _svcOcultarSugerencias() {
   const box = document.getElementById('svc-sug-box');
   if (box) box.style.display = 'none';
+}
+
+// ===== UPSELLING =====
+const _SVC_UPSELL_DEFAULT = [
+  { servicio:'Cambio aceite + filtros',    meses:6  },
+  { servicio:'Mantención 10.000 km',       meses:12 },
+  { servicio:'Cambio de frenos',           meses:24 },
+  { servicio:'Alineación y balanceo',      meses:12 },
+  { servicio:'Diagnóstico scanner',        meses:12 },
+  { servicio:'Cambio de embrague',         meses:36 },
+];
+
+function _svcRenderUpselling() {
+  const lista = document.getElementById('svc-upsell-lista');
+  if (!lista) return;
+  const rs   = APP.lsGet('mp_upselling_rules', _SVC_UPSELL_DEFAULT);
+  const svcs = APP.lsGet('mp_servicios', []);
+  const dlId = 'svc-upsell-svc-dl';
+
+  lista.innerHTML = `<datalist id="${dlId}">${svcs.map(s => `<option value="${_esc(s.nombre)}">`).join('')}</datalist>`
+    + (rs.length ? rs.map((r, i) => `
+    <div style="display:flex;gap:6px;align-items:center;padding:7px 0;border-bottom:0.5px solid var(--border)">
+      <i class="ti ti-sparkles" style="font-size:12px;color:var(--text-accent);flex-shrink:0"></i>
+      <input list="${dlId}" value="${_esc(r.servicio)}" placeholder="Nombre del servicio…"
+        style="flex:1;font-size:11px;border:0.5px solid var(--border);border-radius:var(--radius);padding:4px 8px;background:var(--surface-1);color:var(--text-primary)"
+        onchange="svcUpsellSync(${i},'servicio',this.value)">
+      <span style="font-size:11px;color:var(--text-muted);white-space:nowrap">cada</span>
+      <input type="number" min="1" max="120" value="${r.meses || 12}"
+        style="width:58px;font-size:11px;border:0.5px solid var(--border);border-radius:var(--radius);padding:4px 8px;background:var(--surface-1);color:var(--text-primary);text-align:center"
+        onchange="svcUpsellSync(${i},'meses',this.value)">
+      <span style="font-size:11px;color:var(--text-muted)">meses</span>
+      <button class="btn" style="padding:3px 7px;font-size:12px;color:var(--text-danger)" onclick="svcUpsellElim(${i})"><i class="ti ti-x"></i></button>
+    </div>`).join('')
+    : '<div style="font-size:11px;color:var(--text-muted);padding:8px 0">Sin reglas. Usa el botón Agregar.</div>');
+}
+
+function svcUpsellSync(i, campo, val) {
+  const rs = APP.lsGet('mp_upselling_rules', _SVC_UPSELL_DEFAULT);
+  if (rs[i]) { rs[i][campo] = campo === 'meses' ? (parseInt(val) || 1) : val; APP.lsSet('mp_upselling_rules', rs); }
+}
+
+function svcUpsellAgregar() {
+  const rs = APP.lsGet('mp_upselling_rules', _SVC_UPSELL_DEFAULT);
+  rs.push({ servicio:'', meses:12 });
+  APP.lsSet('mp_upselling_rules', rs);
+  _svcRenderUpselling();
+}
+
+function svcUpsellElim(i) {
+  const rs = APP.lsGet('mp_upselling_rules', _SVC_UPSELL_DEFAULT);
+  rs.splice(i, 1);
+  APP.lsSet('mp_upselling_rules', rs);
+  _svcRenderUpselling();
+}
+
+function svcUpsellReset() {
+  APP.modal.confirmar('¿Restaurar las reglas de upselling por defecto? Se perderán los cambios manuales.', () => {
+    APP.lsSet('mp_upselling_rules', JSON.parse(JSON.stringify(_SVC_UPSELL_DEFAULT)));
+    _svcRenderUpselling();
+  }, 'Restaurar', 'Cancelar');
 }
 
 // ===== HELPERS =====
