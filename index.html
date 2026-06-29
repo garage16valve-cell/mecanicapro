@@ -6,6 +6,7 @@
 <title>MecánicaPro — Sistema de Gestión de Taller</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.x/dist/tabler-icons.min.css">
 <link rel="stylesheet" href="css/styles.css">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 </head>
 <body>
 <div class="app">
@@ -39,6 +40,7 @@
 
       <div class="ns">Finanzas</div>
       <div class="ni" onclick="nav('contable',this)"><i class="ti ti-calculator"></i>Motor contable</div>
+      <div class="ni" onclick="nav('finanzas',this);finCargar()"><i class="ti ti-chart-bar"></i>Finanzas</div>
       <div class="ni" onclick="nav('facturacion',this)"><i class="ti ti-receipt"></i>Facturación</div>
 
       <div class="ns">Marketing</div>
@@ -1848,8 +1850,94 @@
 
       <!-- ===== MÓDULO: FINANZAS ===== -->
       <div class="module-wrap" id="module-finanzas">
+<!-- FINANZAS DASHBOARD -->
+<div class="page" id="pg-finanzas">
+
+  <!-- Tabs principales -->
+  <div style="display:flex;gap:10px;border-bottom:1px solid var(--border);margin-bottom:20px">
+    <button onclick="finSetTab('dashboard')" class="tab-btn active" id="fin-btn-dashboard">📊 Dashboard</button>
+    <button onclick="finSetTab('libros')" class="tab-btn" id="fin-btn-libros">📖 Libros</button>
+    <button onclick="finSetTab('flujo')" class="tab-btn" id="fin-btn-flujo">💸 Flujo de caja</button>
+    <button onclick="finSetTab('remuneraciones')" class="tab-btn" id="fin-btn-remuneraciones">👷 Remuneraciones</button>
+    <button onclick="finSetTab('proveedores')" class="tab-btn" id="fin-btn-proveedores">🏭 Proveedores</button>
+    <button onclick="finSetTab('gastos')" class="tab-btn" id="fin-btn-gastos">🧾 Gastos</button>
+  </div>
+
+  <!-- TAB 1: DASHBOARD -->
+  <div id="fin-tab-dashboard" class="tab-panel" style="display:block">
+    <h2>Dashboard Finanzas</h2>
+
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:20px">
+
+      <div style="background:var(--surface-1);padding:14px;border-radius:8px">
+        <div style="font-size:12px;color:var(--text-muted);margin-bottom:8px">Ingresos del mes</div>
+        <div id="fin-ingresos-mes" style="font-size:22px;font-weight:500">$0 CLP</div>
+      </div>
+
+      <div style="background:var(--surface-1);padding:14px;border-radius:8px">
+        <div style="font-size:12px;color:var(--text-muted);margin-bottom:8px">Total egresos</div>
+        <div id="fin-egresos-mes" style="font-size:22px;font-weight:500">$0 CLP</div>
+      </div>
+
+      <div style="background:var(--surface-1);padding:14px;border-radius:8px">
+        <div style="font-size:12px;color:var(--text-muted);margin-bottom:8px">IVA a pagar</div>
+        <div id="fin-iva-pagar" style="font-size:22px;font-weight:500">$0 CLP</div>
+      </div>
+
+      <div style="background:var(--surface-1);padding:14px;border-radius:8px">
+        <div style="font-size:12px;color:var(--text-muted);margin-bottom:8px">Margen neto</div>
+        <div id="fin-margen-neto" style="font-size:22px;font-weight:500">$0 CLP</div>
+      </div>
+
+    </div>
+
+    <div style="background:var(--surface-1);padding:14px;border-radius:8px;margin-bottom:20px">
+      <h3>Distribución de ingresos (Motor Contable)</h3>
+      <div id="fin-distribucion-cuentas"></div>
+    </div>
+
+    <div style="background:var(--surface-1);padding:14px;border-radius:8px">
+      <h3>Últimos 6 meses</h3>
+      <canvas id="fin-chart-6meses" style="max-height:300px"></canvas>
+      <p style="font-size:12px;color:var(--text-muted);margin-top:10px">Valores calculados desde los registros del período.</p>
+    </div>
+
+  </div>
+
+  <!-- TAB 2: LIBROS -->
+  <div id="fin-tab-libros" class="tab-panel" style="display:none">
+    <h2>Libros Contables</h2>
+    <p>Próximamente...</p>
+  </div>
+
+  <!-- TAB 3: FLUJO CAJA -->
+  <div id="fin-tab-flujo" class="tab-panel" style="display:none">
+    <h2>Flujo de Caja</h2>
+    <p>Próximamente...</p>
+  </div>
+
+  <!-- TAB 4: REMUNERACIONES -->
+  <div id="fin-tab-remuneraciones" class="tab-panel" style="display:none">
+    <h2>Remuneraciones</h2>
+    <p>Próximamente...</p>
+  </div>
+
+  <!-- TAB 5: PROVEEDORES -->
+  <div id="fin-tab-proveedores" class="tab-panel" style="display:none">
+    <h2>Proveedores</h2>
+    <p>Próximamente...</p>
+  </div>
+
+  <!-- TAB 6: GASTOS -->
+  <div id="fin-tab-gastos" class="tab-panel" style="display:none">
+    <h2>Gastos Generales</h2>
+    <p>Próximamente...</p>
+  </div>
+
+</div>
+
 <!-- MOTOR CONTABLE -->
-<div class="page active" id="pg-contable">
+<div class="page" id="pg-contable">
   <div class="g2">
     <div class="card">
       <div class="ch"><span class="ct">Distribución de fondos</span><button class="btn bpa" onclick="agregarCuenta()" style="font-size:11px;padding:4px 9px"><i class="ti ti-plus"></i>Nueva cuenta</button></div>

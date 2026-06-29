@@ -1,3 +1,136 @@
+let _finChartInstance = null;
+
+// ===== FINANZAS DASHBOARD (FASE 1) =====
+
+function finSetTab(tabName) {
+  document.querySelectorAll('#pg-finanzas .tab-panel').forEach(el => el.style.display = 'none');
+  document.querySelectorAll('#pg-finanzas .tab-btn').forEach(el => el.classList.remove('active'));
+  const panel = document.getElementById('fin-tab-' + tabName);
+  const btn   = document.getElementById('fin-btn-' + tabName);
+  if (panel) panel.style.display = 'block';
+  if (btn) btn.classList.add('active');
+  if (tabName === 'dashboard') finRenderDashboard();
+}
+
+function finCargar() {
+  finRenderDashboard();
+}
+
+function finRenderDashboard() {
+  if (APP.lsGet('usuario_rol') !== 'Administrador') {
+    document.getElementById('fin-tab-dashboard').innerHTML = '<p style="padding:24px;color:var(--text-danger);font-size:13px">⛔ Acceso denegado. Solo usuarios con perfil Administrador pueden ver este panel.</p>';
+    return;
+  }
+
+  const now = new Date();
+  const mesActual = now.getMonth() + 1;
+  const añoActual = now.getFullYear();
+
+  const flujo = APP.lsGet('finanzas_flujo_caja') || [];
+
+  const ingresosMes = flujo.filter(m => {
+    const f = new Date(m.fecha);
+    return m.tipo === 'ingreso' && f.getMonth() + 1 === mesActual && f.getFullYear() === añoActual;
+  }).reduce((sum, m) => sum + (m.monto || 0), 0);
+
+  const egresosMes = flujo.filter(m => {
+    const f = new Date(m.fecha);
+    return m.tipo === 'egreso' && f.getMonth() + 1 === mesActual && f.getFullYear() === añoActual;
+  }).reduce((sum, m) => sum + (m.monto || 0), 0);
+
+  const ivaDebito  = flujo.filter(m => m.categoria === 'IVA débito fiscal' && m.tipo === 'ingreso').reduce((sum, m) => sum + (m.monto || 0), 0);
+  const ivaCredito = flujo.filter(m => m.categoria === 'IVA crédito fiscal' && m.tipo === 'egreso').reduce((sum, m) => sum + (m.monto || 0), 0);
+  const ivaPagar   = ivaDebito - ivaCredito;
+  const margenNeto = ingresosMes - egresosMes;
+
+  document.getElementById('fin-ingresos-mes').textContent = '$' + ingresosMes.toLocaleString('es-CL') + ' CLP';
+  document.getElementById('fin-egresos-mes').textContent  = '$' + egresosMes.toLocaleString('es-CL') + ' CLP';
+  document.getElementById('fin-iva-pagar').textContent    = '$' + ivaPagar.toLocaleString('es-CL') + ' CLP';
+
+  const margenEl = document.getElementById('fin-margen-neto');
+  margenEl.textContent = '$' + margenNeto.toLocaleString('es-CL') + ' CLP';
+  margenEl.style.color = margenNeto < 0 ? 'var(--text-danger)' : '';
+
+  finRenderDistribucion();
+  finRenderGrafico6Meses();
+}
+
+function finRenderDistribucion() {
+  const motorConfig = APP.lsGet('motor_contable_config') || { cuentas: [] };
+  const now = new Date();
+  const mesActual = now.getMonth() + 1;
+  const añoActual = now.getFullYear();
+  const flujo = APP.lsGet('finanzas_flujo_caja') || [];
+
+  const distribDiv = document.getElementById('fin-distribucion-cuentas');
+  if (!distribDiv) return;
+  distribDiv.innerHTML = '';
+
+  motorConfig.cuentas.forEach(cuenta => {
+    const totalCuenta = flujo.filter(m =>
+      m.categoria === cuenta.nombre &&
+      m.tipo === 'ingreso' &&
+      new Date(m.fecha).getMonth() + 1 === mesActual &&
+      new Date(m.fecha).getFullYear() === añoActual
+    ).reduce((sum, m) => sum + (m.monto || 0), 0);
+
+    distribDiv.innerHTML +=
+      '<div style="margin-bottom:12px">' +
+        '<div style="font-size:12px;margin-bottom:4px;color:var(--text-muted)">' + cuenta.nombre + '</div>' +
+        '<div style="background:' + (cuenta.color || '#3B82F6') + ';height:24px;border-radius:4px;padding:4px 8px;color:white;font-size:12px;display:flex;align-items:center">' +
+          '$' + totalCuenta.toLocaleString('es-CL') + ' CLP' +
+        '</div>' +
+      '</div>';
+  });
+}
+
+function finRenderGrafico6Meses() {
+  const ctx = document.getElementById('fin-chart-6meses');
+  if (!ctx || typeof Chart === 'undefined') return;
+  const flujo = APP.lsGet('finanzas_flujo_caja') || [];
+  const meses = [];
+  const ingresos = [];
+  const egresos  = [];
+
+  for (let i = 5; i >= 0; i--) {
+    const fecha = new Date();
+    fecha.setMonth(fecha.getMonth() - i);
+    const mes = fecha.getMonth() + 1;
+    const año = fecha.getFullYear();
+    meses.push(fecha.toLocaleDateString('es-CL', { month: 'short' }));
+
+    ingresos.push(
+      flujo.filter(m => {
+        const f = new Date(m.fecha);
+        return m.tipo === 'ingreso' && f.getMonth() + 1 === mes && f.getFullYear() === año;
+      }).reduce((sum, m) => sum + (m.monto || 0), 0)
+    );
+    egresos.push(
+      flujo.filter(m => {
+        const f = new Date(m.fecha);
+        return m.tipo === 'egreso' && f.getMonth() + 1 === mes && f.getFullYear() === año;
+      }).reduce((sum, m) => sum + (m.monto || 0), 0)
+    );
+  }
+
+  if (_finChartInstance) _finChartInstance.destroy();
+  _finChartInstance = new Chart(ctx.getContext('2d'), {
+    type: 'bar',
+    data: {
+      labels: meses,
+      datasets: [
+        { label: 'Ingresos', data: ingresos, backgroundColor: '#10B981' },
+        { label: 'Egresos',  data: egresos,  backgroundColor: '#EF4444' }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: true,
+      plugins: { legend: { position: 'bottom' } }
+    }
+  });
+}
+
 // ===== MÓDULO: FINANZAS (Motor contable, Facturación) =====
 function init_finanzas() {
   renderCuentas();

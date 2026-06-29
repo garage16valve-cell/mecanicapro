@@ -527,3 +527,8 @@ body.modo-taller .fg { gap: 5px; margin-bottom: 14px; }
 .ag-dragging { opacity: .4 !important; cursor: grabbing !important; }
 #ag-tooltip { animation: agTooltipIn .15s ease; }
 @keyframes agTooltipIn { from { opacity: 0; transform: translateY(3px); } to { opacity: 1; transform: translateY(0); } }
+
+/* ══════ FINANZAS: TAB BUTTONS ══════ */
+.tab-btn { padding:8px 14px;border:none;border-radius:0;border-bottom:2px solid transparent;background:transparent;color:var(--text-secondary);font-size:12px;cursor:pointer;transition:all .12s;font-family:var(--font-sans);white-space:nowrap }
+.tab-btn:hover { color:var(--text-primary);background:var(--surface-1) }
+.tab-btn.active { border-bottom-color:var(--fill-accent);color:var(--text-accent) }
