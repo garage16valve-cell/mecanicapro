@@ -1184,3 +1184,136 @@ function _diagFinalizar() {
   abrirDetalleOT(id);
   APP.toast.show('🔬 Diagnóstico finalizado — OT avanza a Repuestos', 'success');
 }
+
+// ===== PANEL INLINE OT — EXPANDIBLE EN LISTA =====
+
+const _FASES_ORDEN = ['recepcion','diagnostico','repuestos','reparacion','control','cotizacion','pago','entrega'];
+
+const _FASES_LABELS = {
+  recepcion:'Recepción', diagnostico:'Diagnóstico', repuestos:'Repuestos',
+  reparacion:'Reparación', control:'Control', cotizacion:'Cotización',
+  pago:'Pago', entrega:'Entrega', cancelada:'Cancelada'
+};
+
+function faseSiguiente(faseActual) {
+  if (faseActual === 'entrega' || faseActual === 'cancelada') return null;
+  const i = _FASES_ORDEN.indexOf(faseActual);
+  return i >= 0 && i < _FASES_ORDEN.length - 1 ? _FASES_ORDEN[i + 1] : null;
+}
+
+function faseAnterior(faseActual) {
+  if (faseActual === 'recepcion') return null;
+  const i = _FASES_ORDEN.indexOf(faseActual);
+  return i > 0 ? _FASES_ORDEN[i - 1] : null;
+}
+
+function togglePanelOT(otId) {
+  const panelExistente = document.querySelector('.ot-panel-inline');
+
+  if (panelExistente) {
+    const panelOtId = panelExistente.getAttribute('data-panel-ot-id');
+    panelExistente.remove();
+    if (panelOtId === otId) return;
+  }
+
+  const ots = APP.lsGet('ots') || APP.lsGet('mp_ots') || [];
+  const ot = ots.find(o => o.id === otId);
+  if (!ot) return;
+
+  insertarPanelOT(otId, ot);
+}
+
+function insertarPanelOT(otId, ot) {
+  const fase = ot.fase || 'recepcion';
+  const siguiente = faseSiguiente(fase);
+  const anterior = faseAnterior(fase);
+  const nombreCliente = [ot.cliente_nombre, ot.cliente_apellido].filter(Boolean).join(' ') || '(Sin cliente)';
+
+  // Checklist
+  let checklistHTML = '';
+  if (siguiente && typeof getChecklistFase === 'function') {
+    const check = getChecklistFase(ot, siguiente);
+
+    // Evaluar campos existentes para mostrar OK
+    const configRaw = localStorage.getItem('mp_config_checklist');
+    const defaults = {
+      rut_cliente:         { modo:'bloquea',  fase:'recepcion', label:'RUT cliente' },
+      patente:             { modo:'bloquea',  fase:'recepcion', label:'Patente' },
+      diagnostico_anotado: { modo:'bloquea',  fase:'diagnostico', label:'Diagnóstico' },
+      nmotor:              { modo:'advierte', fase:'todos', label:'N° Motor' },
+      km_entrada:          { modo:'advierte', fase:'todos', label:'Km entrada' },
+      color:               { modo:'advierte', fase:'todos', label:'Color' },
+      cotizacion_items:    { modo:'advierte', fase:'repuestos', label:'Ítems cotización' }
+    };
+    const cfg = configRaw ? JSON.parse(configRaw) : defaults;
+    const campoMap = {
+      rut_cliente: ot.cliente_rut,
+      patente: ot.patente,
+      diagnostico_anotado: ot.diagnostico,
+      nmotor: ot.nmotor,
+      km_entrada: ot.km_entrada,
+      color: ot.color,
+      cotizacion_items: ot.repuestos && ot.repuestos.length > 0
+    };
+
+    const items = [];
+    for (const [key, conf] of Object.entries(cfg)) {
+      if (conf.fase !== siguiente && conf.fase !== 'todos') continue;
+      const label = conf.label || key;
+      const valor = campoMap[key];
+      const falta = valor === null || valor === undefined || valor === '' || valor === 0 || valor === false;
+      items.push({ label, falta, modo: conf.modo });
+    }
+
+    if (items.length > 0) {
+      checklistHTML = '<div style="margin-bottom:12px">';
+      checklistHTML += '<div style="font-size:10px;font-weight:600;color:var(--text-muted);text-transform:uppercase;margin-bottom:6px">Checklist para avanzar a ' + (_FASES_LABELS[siguiente] || siguiente) + '</div>';
+      items.forEach(item => {
+        if (item.falta && item.modo === 'bloquea') {
+          checklistHTML += '<div style="font-size:11px;color:#ef4444;padding:2px 0">✕ ' + item.label + '</div>';
+        } else if (!item.falta && item.modo === 'bloquea') {
+          checklistHTML += '<div style="font-size:11px;color:#16a34a;padding:2px 0">✓ ' + item.label + '</div>';
+        } else if (item.falta && item.modo === 'advierte') {
+          checklistHTML += '<div style="font-size:11px;color:#d97706;padding:2px 0">⚠ ' + item.label + '</div>';
+        } else {
+          checklistHTML += '<div style="font-size:11px;color:#86efac;padding:2px 0">✓ ' + item.label + '</div>';
+        }
+      });
+      checklistHTML += '</div>';
+    }
+  }
+
+  // Botones
+  let botonesHTML = '<div style="display:flex;gap:8px;flex-wrap:wrap">';
+  if (anterior) {
+    botonesHTML += '<button class="btn" onclick="ejecutarCambioFase(\'' + otId + '\',\'' + anterior + '\')" style="font-size:11px;padding:6px 14px">';
+    botonesHTML += '<i class="ti ti-arrow-left"></i> ' + (_FASES_LABELS[anterior] || anterior) + '</button>';
+  }
+  if (siguiente) {
+    botonesHTML += '<button class="btn bpa" onclick="ejecutarCambioFase(\'' + otId + '\',\'' + siguiente + '\')" style="font-size:11px;padding:6px 14px">';
+    botonesHTML += (_FASES_LABELS[siguiente] || siguiente) + ' <i class="ti ti-arrow-right"></i></button>';
+  }
+  botonesHTML += '</div>';
+
+  const faseColor = (typeof FASE_COLORES !== 'undefined' && FASE_COLORES[fase]) || { color:'#6b7280', bg:'#f3f4f6', border:'#d1d5db', label: fase.toUpperCase() };
+
+  const panelDiv = document.createElement('div');
+  panelDiv.className = 'ot-panel-inline';
+  panelDiv.setAttribute('data-panel-ot-id', otId);
+  panelDiv.style.cssText = 'margin-bottom:8px;border:0.5px solid var(--border);border-radius:var(--radius);background:var(--surface-2);padding:14px;animation:slideDown .15s ease-out';
+  panelDiv.innerHTML =
+    '<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap">' +
+      '<span style="font-size:13px;font-weight:600">#' + (ot.numero || ot.id) + '</span>' +
+      '<span style="font-size:12px;color:var(--text-secondary)">' + nombreCliente + '</span>' +
+      '<span style="font-size:11px;font-family:var(--font-mono);color:var(--text-muted)">' + (ot.patente || '—') + '</span>' +
+      '<span style="font-size:10px;padding:2px 8px;border-radius:8px;background:' + faseColor.bg + ';color:' + faseColor.color + ';border:0.5px solid ' + faseColor.border + ';font-weight:600">' + (faseColor.label || fase) + '</span>' +
+    '</div>' +
+    checklistHTML +
+    botonesHTML +
+    '<div id="error-panel-' + otId + '" style="margin-top:8px"></div>';
+
+  const filaOT = document.querySelector('[data-ot-id="' + otId + '"]');
+  if (filaOT && filaOT.parentNode) {
+    filaOT.parentNode.insertBefore(panelDiv, filaOT.nextSibling);
+  }
+}

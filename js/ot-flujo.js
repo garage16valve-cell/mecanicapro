@@ -2327,3 +2327,148 @@ window.otDiagElimRepuestoServicio = otDiagElimRepuestoServicio;
 window.otDiagGuardarCatalogo = otDiagGuardarCatalogo;
 window.otDiagGuardarYAvanzar = otDiagGuardarYAvanzar;
 window.otDiagCargarOT = otDiagCargarOT;
+
+// ===== CHECKLIST Y CAMBIO DE FASE DESDE PANEL INLINE =====
+
+const _CHECKLIST_DEFAULTS = {
+  rut_cliente:         { modo:'bloquea',  fase:'recepcion',    label:'RUT cliente' },
+  patente:             { modo:'bloquea',  fase:'recepcion',    label:'Patente' },
+  diagnostico_anotado: { modo:'bloquea',  fase:'diagnostico',  label:'Diagnóstico' },
+  nmotor:              { modo:'advierte', fase:'todos',        label:'N° Motor' },
+  km_entrada:          { modo:'advierte', fase:'todos',        label:'Km entrada' },
+  color:               { modo:'advierte', fase:'todos',        label:'Color' },
+  cotizacion_items:    { modo:'advierte', fase:'repuestos',    label:'Ítems cotización' }
+};
+
+const _CHECKLIST_CAMPO_MAP = {
+  rut_cliente:         function(ot) { return ot.cliente_rut; },
+  patente:             function(ot) { return ot.patente; },
+  diagnostico_anotado: function(ot) { return ot.diagnostico; },
+  nmotor:              function(ot) { return ot.nmotor; },
+  km_entrada:          function(ot) { return ot.km_entrada; },
+  color:               function(ot) { return ot.color; },
+  cotizacion_items:    function(ot) { return ot.repuestos && ot.repuestos.length > 0; }
+};
+
+function getChecklistFase(ot, faseDestino) {
+  const configRaw = localStorage.getItem('mp_config_checklist');
+  const cfg = configRaw ? JSON.parse(configRaw) : _CHECKLIST_DEFAULTS;
+
+  const bloqueantes = [];
+  const opcionales = [];
+
+  for (const [key, conf] of Object.entries(cfg)) {
+    if (conf.fase !== faseDestino && conf.fase !== 'todos') continue;
+
+    const getter = _CHECKLIST_CAMPO_MAP[key];
+    if (!getter) continue;
+
+    const valor = getter(ot);
+    const falta = valor === null || valor === undefined || valor === '' || valor === 0 || valor === false;
+
+    if (!falta) continue;
+
+    const label = conf.label || key;
+    if (conf.modo === 'bloquea') {
+      bloqueantes.push(label);
+    } else {
+      opcionales.push(label);
+    }
+  }
+
+  return { bloqueantes, opcionales };
+}
+
+function ejecutarCambioFase(otId, faseDestino) {
+  const ots = APP.lsGet('ots') || [];
+  const ot = ots.find(o => o.id === otId);
+  if (!ot) return;
+
+  const check = getChecklistFase(ot, faseDestino);
+
+  if (check.bloqueantes.length > 0) {
+    const errDiv = document.getElementById('error-panel-' + otId);
+    if (errDiv) {
+      errDiv.innerHTML = '<div style="padding:8px 12px;background:#fef2f2;border:0.5px solid #fca5a5;border-radius:var(--radius);font-size:11px;color:#dc2626;margin-top:6px">' +
+        '<strong>No es posible avanzar.</strong> Faltan datos obligatorios: ' + check.bloqueantes.join(', ') +
+        '</div>';
+    }
+    return;
+  }
+
+  if (check.opcionales.length > 0) {
+    _mostrarModalOpcionales(otId, faseDestino, check.opcionales);
+    return;
+  }
+
+  cambiarFaseOT(otId, faseDestino, []);
+}
+
+function _mostrarModalOpcionales(otId, faseDestino, opcionales) {
+  let modal = document.getElementById('modal-checklist-opcionales');
+  if (modal) modal.remove();
+
+  modal = document.createElement('div');
+  modal.id = 'modal-checklist-opcionales';
+  modal.style.cssText = 'position:absolute;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.4);z-index:1100;display:flex;align-items:center;justify-content:center;padding:20px';
+  modal.onclick = function(e) { if (e.target === modal) modal.remove(); };
+
+  modal.innerHTML =
+    '<div style="background:var(--surface-2);border-radius:var(--radius);box-shadow:0 8px 30px rgba(0,0,0,.25);max-width:420px;width:100%">' +
+      '<div style="padding:14px 16px;border-bottom:0.5px solid var(--border);font-size:14px;font-weight:600">Datos incompletos</div>' +
+      '<div style="padding:16px">' +
+        '<p style="font-size:12px;color:var(--text-secondary);margin:0 0 12px;line-height:1.6">Los siguientes datos están vacíos: <strong>' + opcionales.join(', ') + '</strong>. ¿Deseas avanzar de todas formas?</p>' +
+        '<div style="display:flex;gap:8px;justify-content:flex-end">' +
+          '<button class="btn" onclick="document.getElementById(\'modal-checklist-opcionales\').remove()" style="font-size:11px;padding:8px 16px">Volver y completar</button>' +
+          '<button class="btn bpa" onclick="cambiarFaseOT(\'' + otId + '\',\'' + faseDestino + '\',' + JSON.stringify(opcionales) + ');document.getElementById(\'modal-checklist-opcionales\').remove()" style="font-size:11px;padding:8px 16px">Avanzar de todas formas</button>' +
+        '</div>' +
+      '</div>' +
+    '</div>';
+
+  const moduleTaller = document.getElementById('module-taller');
+  if (moduleTaller) {
+    moduleTaller.style.position = 'relative';
+    moduleTaller.appendChild(modal);
+  } else {
+    document.body.appendChild(modal);
+  }
+}
+
+function cambiarFaseOT(otId, faseDestino, opcionalesFaltantes) {
+  const ots = APP.lsGet('ots') || [];
+  const idx = ots.findIndex(o => o.id === otId);
+  if (idx < 0) return;
+
+  const faseAnteriorVal = ots[idx].fase || 'recepcion';
+  const sesion = JSON.parse(localStorage.getItem('sesion') || '{}');
+  const usuario = sesion.nombre || 'Sistema';
+  const ahora = new Date();
+
+  ots[idx].fase = faseDestino;
+  ots[idx].historial = ots[idx].historial || [];
+  ots[idx].historial.push({
+    evento: 'Cambio de fase',
+    descripcion: faseAnteriorVal + ' → ' + faseDestino,
+    fecha: ahora.toISOString(),
+    usuario: usuario,
+    opcionales_omitidos: opcionalesFaltantes && opcionalesFaltantes.length > 0 ? opcionalesFaltantes : undefined
+  });
+
+  APP.lsSet('ots', ots);
+
+  // Sincronizar mp_ots
+  APP.lsSet('mp_ots', ots);
+
+  // Cerrar panel inline y refrescar lista
+  const panel = document.querySelector('.ot-panel-inline');
+  if (panel) panel.remove();
+
+  if (typeof renderListaOTs === 'function') renderListaOTs();
+  if (typeof actualizarContadoresFiltro === 'function') actualizarContadoresFiltro();
+
+  if (APP.toast) APP.toast.show('✅ OT avanzó a ' + faseDestino, 'success');
+}
+
+window.getChecklistFase = getChecklistFase;
+window.ejecutarCambioFase = ejecutarCambioFase;
+window.cambiarFaseOT = cambiarFaseOT;
