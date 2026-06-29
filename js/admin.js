@@ -193,6 +193,133 @@ function admGuardarConfigRepuestos() {
 // ===== INIT =====
 function init_admin() {
   if (typeof tallerCargarDatos === 'function') tallerCargarDatos();
+  if (typeof adminRenderUsuarios === 'function') adminRenderUsuarios();
+}
+
+// ===== PESTAÑAS =====
+function admSetTab(tab) {
+  document.getElementById('adm-tab-usuarios').style.display = tab === 'usuarios' ? '' : 'none';
+  document.getElementById('adm-tab-config').style.display = tab === 'config' ? '' : 'none';
+  const setBtn = (id, active) => {
+    const b = document.getElementById(id);
+    if (!b) return;
+    b.style.borderBottomColor = active ? 'var(--fill-accent)' : 'transparent';
+    b.style.color = active ? 'var(--text-accent)' : 'var(--text-secondary)';
+  };
+  setBtn('adm-tab-btn-usuarios', tab === 'usuarios');
+  setBtn('adm-tab-btn-config', tab === 'config');
+  if (tab === 'usuarios' && typeof adminRenderUsuarios === 'function') adminRenderUsuarios();
+  if (tab === 'config' && typeof tallerCargarDatos === 'function') tallerCargarDatos();
+}
+
+// ===== USUARIOS =====
+function adminRenderUsuarios(buscar) {
+  const tbody = document.getElementById('admin-usuarios-tabla');
+  if (!tbody) return;
+  const usuarios = APP.lsGet('usuarios', []);
+  const filtro = (buscar || '').toLowerCase().trim();
+  const filtrados = filtro ? usuarios.filter(u =>
+    (u.nombre || '').toLowerCase().includes(filtro) ||
+    (u.apellido || '').toLowerCase().includes(filtro) ||
+    (u.rut || '').toLowerCase().includes(filtro) ||
+    (u.rol || '').toLowerCase().includes(filtro)
+  ) : usuarios;
+  if (!filtrados.length) {
+    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:20px;color:var(--text-muted)">' + (filtro ? 'Sin resultados' : 'Sin usuarios registrados') + '</td></tr>';
+    return;
+  }
+  const ROLES = { administrador:'Administrador', recepcionista:'Recepcionista', mecanico:'Mecánico', contable:'Contable' };
+  tbody.innerHTML = filtrados.map(u => {
+    const iniciales = ((u.nombre || '?')[0] + (u.apellido || '')[0]).toUpperCase() || '?';
+    const esActivo = u.estado !== 'inactivo';
+    return '<tr style="border-bottom:0.5px solid var(--border)">' +
+      '<td style="padding:8px">' +
+        '<div style="display:flex;align-items:center;gap:8px">' +
+          '<div style="width:28px;height:28px;border-radius:50%;background:' + (u.color || '#6b7280') + ';display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff;flex-shrink:0">' + iniciales[0] + '</div>' +
+          '<span style="font-weight:500">' + _admEsc(u.nombre) + '</span>' +
+        '</div></td>' +
+      '<td style="padding:8px">' + _admEsc(u.apellido || '') + '</td>' +
+      '<td style="padding:8px;color:var(--text-muted)">' + _admEsc(u.rut || '—') + '</td>' +
+      '<td style="padding:8px">' + _admEsc(u.whatsapp || '—') + '</td>' +
+      '<td style="padding:8px"><span class="tag">' + _admEsc(ROLES[u.rol] || u.rol) + '</span></td>' +
+      '<td style="padding:8px;text-align:center">' +
+        (esActivo
+          ? '<span style="background:#16a34a;color:#fff;padding:2px 8px;border-radius:20px;font-size:10px">Activo</span>'
+          : '<span style="background:#6b7280;color:#fff;padding:2px 8px;border-radius:20px;font-size:10px">Inactivo</span>') +
+      '</td>' +
+      '<td style="padding:8px;text-align:center">' +
+        '<button class="btn" onclick="adminEditarUsuario(' + u.id + ')" style="font-size:10px;padding:3px 7px"><i class="ti ti-pencil"></i></button>' +
+        (u.id !== 1 ? ' <button class="btn" onclick="adminEliminarUsuario(' + u.id + ')" style="font-size:10px;padding:3px 7px;color:#dc2626"><i class="ti ti-trash"></i></button>' : '') +
+      '</td></tr>';
+  }).join('');
+}
+
+var _adminUsuarioEditandoId = null;
+
+function adminNuevoUsuario() {
+  _adminUsuarioEditandoId = null;
+  ['nombre','apellido','rut','whatsapp'].forEach(f => {
+    const el = document.getElementById('modal-user-' + f);
+    if (el) el.value = '';
+  });
+  const rol = document.getElementById('modal-user-rol');
+  if (rol) rol.value = 'mecanico';
+  const est = document.getElementById('modal-user-estado');
+  if (est) est.value = 'activo';
+  const modal = document.getElementById('modal-editar-usuario');
+  if (modal) modal.style.display = 'block';
+}
+
+function adminEditarUsuario(id) {
+  _adminUsuarioEditandoId = id;
+  const u = (APP.lsGet('usuarios', [])).find(x => x.id === id);
+  if (!u) return;
+  const s = (f, v) => { const el = document.getElementById('modal-user-' + f); if (el) el.value = v ?? ''; };
+  s('nombre', u.nombre);
+  s('apellido', u.apellido);
+  s('rut', u.rut);
+  s('whatsapp', u.whatsapp);
+  const rol = document.getElementById('modal-user-rol');
+  if (rol) rol.value = u.rol || 'mecanico';
+  const est = document.getElementById('modal-user-estado');
+  if (est) est.value = u.estado || 'activo';
+  const modal = document.getElementById('modal-editar-usuario');
+  if (modal) modal.style.display = 'block';
+}
+
+function adminGuardarUsuario() {
+  const g = f => (document.getElementById('modal-user-' + f)?.value || '').trim();
+  const nombre = g('nombre');
+  if (!nombre) { APP.toast.show('El nombre es obligatorio.', 'warning'); return; }
+  const apellido = g('apellido');
+  const rut = g('rut');
+  const whatsapp = g('whatsapp');
+  const rol = document.getElementById('modal-user-rol')?.value || 'mecanico';
+  const estado = document.getElementById('modal-user-estado')?.value || 'activo';
+  let usuarios = APP.lsGet('usuarios', []);
+  if (_adminUsuarioEditandoId) {
+    usuarios = usuarios.map(u => u.id === _adminUsuarioEditandoId ? { ...u, nombre, apellido, rut, whatsapp, rol, estado } : u);
+  } else {
+    usuarios.push({ id: Date.now(), nombre, apellido, rut, whatsapp, rol, color: '#3B82F6', pin: '0000', estado, fecha_creacion: Date.now() });
+  }
+  APP.lsSet('usuarios', usuarios);
+  adminCerrarModalUsuario();
+  adminRenderUsuarios(document.getElementById('adm-usuarios-buscar')?.value);
+  APP.toast.show('Usuario guardado.', 'success');
+}
+
+function adminEliminarUsuario(id) {
+  if (!confirm('¿Eliminar este usuario? Esta acción no se puede deshacer.')) return;
+  let usuarios = APP.lsGet('usuarios', []).filter(u => u.id !== id);
+  APP.lsSet('usuarios', usuarios);
+  adminRenderUsuarios(document.getElementById('adm-usuarios-buscar')?.value);
+  APP.toast.show('Usuario eliminado.', 'success');
+}
+
+function adminCerrarModalUsuario() {
+  const modal = document.getElementById('modal-editar-usuario');
+  if (modal) modal.style.display = 'none';
+  _adminUsuarioEditandoId = null;
 }
 
 // ===== PERÍODO =====

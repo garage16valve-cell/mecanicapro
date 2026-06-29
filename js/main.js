@@ -83,6 +83,11 @@ function nav(page, el) {
     const targetPage = activeModule.querySelector(`#pg-${page}`);
     if (targetPage) targetPage.classList.add('active');
   }
+  // Admin tabs switching
+  if (moduleName === 'admin') {
+    if (page === 'config' && typeof admSetTab === 'function') admSetTab('config');
+    if (page === 'usuarios' && typeof admSetTab === 'function') admSetTab('usuarios');
+  }
 
   currentPage = page;
 
