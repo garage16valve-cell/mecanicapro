@@ -2126,6 +2126,31 @@ function otRecalcularPanelRepuestos() {
   if (g('ot-panel-iva')) g('ot-panel-iva').textContent = '$' + iva.toLocaleString('es-CL');
   if (g('ot-panel-total')) g('ot-panel-total').textContent = '$' + total.toLocaleString('es-CL');
 }
+function otPanelAgregarFilaRepuesto() {
+  const cont = document.getElementById('ot-panel-repuestos-tabla');
+  if (!cont) return;
+  let tbody = cont.querySelector('table tbody');
+  if (!tbody) {
+    cont.innerHTML = `<table style="width:100%;border-collapse:collapse;font-size:12px">
+      <thead><tr style="background:var(--surface-2);border-bottom:0.5px solid var(--border)">
+        <th style="text-align:left;padding:8px;font-size:10px;font-weight:600;color:var(--text-muted);text-transform:uppercase">Repuesto</th>
+        <th style="text-align:center;padding:8px;font-size:10px;font-weight:600;color:var(--text-muted);text-transform:uppercase">Cant.</th>
+        <th style="text-align:right;padding:8px;font-size:10px;font-weight:600;color:var(--text-muted);text-transform:uppercase">Precio</th>
+        <th style="text-align:right;padding:8px;font-size:10px;font-weight:600;color:var(--text-muted);text-transform:uppercase">Subtotal</th>
+        <th style="text-align:center;padding:8px;width:40px"></th>
+      </tr></thead><tbody></tbody></table>`;
+    tbody = cont.querySelector('table tbody');
+  }
+  const tr = document.createElement('tr');
+  tr.style.borderBottom = '0.5px solid var(--border)';
+  tr.innerHTML = `<td style="padding:6px"><input class="ot-rep-nombre" value="" style="width:100%;padding:4px 6px;border:0.5px solid var(--border);border-radius:4px;background:var(--surface-1);color:var(--text-primary)"></td>
+    <td style="padding:6px;text-align:center"><input class="ot-rep-cant" type="number" min="1" value="1" style="width:50px;text-align:center;padding:4px;border:0.5px solid var(--border);border-radius:4px;background:var(--surface-1);color:var(--text-primary)"></td>
+    <td style="padding:6px;text-align:right"><input class="ot-rep-precio" type="number" min="0" value="0" style="width:90px;text-align:right;padding:4px;border:0.5px solid var(--border);border-radius:4px;background:var(--surface-1);color:var(--text-primary)"></td>
+    <td style="padding:6px;text-align:right;font-weight:500" class="ot-rep-subtotal">$0</td>
+    <td style="padding:6px;text-align:center"><button class="btn" style="font-size:10px;padding:2px 6px;color:var(--text-danger)" onclick="this.closest('tr').remove();otRecalcularPanelRepuestos()"><i class="ti ti-trash"></i></button></td>`;
+  tbody.appendChild(tr);
+  otRecalcularPanelRepuestos();
+}
 window.otRecalcularPanelRepuestos = otRecalcularPanelRepuestos;
 window.otPanelAgregarFilaRepuesto = otPanelAgregarFilaRepuesto;
 window.otGuardarPanelRepuestos = otGuardarPanelRepuestos;
