@@ -13,9 +13,15 @@ function mktSetWZPTab(tab) {
   ['notif','plant'].forEach(t => {
     document.getElementById('mkt-wzp-' + t).style.display = (t === tab) ? '' : 'none';
   });
-  document.querySelectorAll('#mkt-wzp-container .tab').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('#mkt-wzp-container .btn').forEach(b => {
+    b.style.borderBottomColor = 'transparent';
+    b.style.color = 'var(--text-secondary)';
+  });
   const btn = document.getElementById('mkt-tab-' + tab + '-btn');
-  if (btn) btn.classList.add('active');
+  if (btn) {
+    btn.style.borderBottomColor = 'var(--fill-accent)';
+    btn.style.color = 'var(--text-accent)';
+  }
 }
 
 // ===== WHATSAPP — PLANTILLAS =====

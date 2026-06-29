@@ -44,7 +44,7 @@
       <div class="ns">Marketing</div>
       <div class="ni" onclick="nav('fidelizacion',this)"><i class="ti ti-heart"></i>Fidelización</div>
       <div class="ni" onclick="nav('redes',this)"><i class="ti ti-brand-instagram"></i>Redes sociales</div>
-      <div class="ni" onclick="nav('wzp',this)"><i class="ti ti-brand-whatsapp" style="color:#25d366"></i>WZP</div>
+      <div class="ni" onclick="nav('wzp',this)"><i class="ti ti-brand-whatsapp" style="color:#25d366"></i>WhatsApp</div>
 
       <div class="ns">Admin</div>
       <div class="ni" onclick="nav('reportes',this)"><i class="ti ti-chart-bar"></i>Reportes</div>
@@ -1853,9 +1853,11 @@
 <div class="page" id="pg-wzp">
 
   <div id="mkt-wzp-container">
-    <div style="display:flex;gap:10px;border-bottom:1px solid var(--border);margin-bottom:14px">
-      <button id="mkt-tab-notif-btn" class="tab active" onclick="mktSetWZPTab('notif')">Notificaciones</button>
-      <button id="mkt-tab-plant-btn" class="tab" onclick="mktSetWZPTab('plant')">Plantillas</button>
+    <div style="display:flex;gap:0;border-bottom:0.5px solid var(--border);margin-bottom:14px">
+      <button id="mkt-tab-notif-btn" class="btn" onclick="mktSetWZPTab('notif')"
+        style="border:none;border-radius:0;border-bottom:2px solid var(--fill-accent);color:var(--text-accent);font-size:12px;padding:8px 16px">Notificaciones</button>
+      <button id="mkt-tab-plant-btn" class="btn" onclick="mktSetWZPTab('plant')"
+        style="border:none;border-radius:0;border-bottom:2px solid transparent;color:var(--text-secondary);font-size:12px;padding:8px 16px">Plantillas</button>
     </div>
 
     <!-- TAB: NOTIFICACIONES -->
