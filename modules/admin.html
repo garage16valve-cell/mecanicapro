@@ -128,6 +128,17 @@
   <!-- ════════════════════════════════════════ -->
   <div id="adm-tab-config" style="display:none">
 
+    <!-- ═══════════════════════════════════════ -->
+    <!-- SUB-PESTAÑAS: Datos Taller / Flujo OT  -->
+    <!-- ═══════════════════════════════════════ -->
+    <div style="display:flex;gap:8px;margin-bottom:20px;border-bottom:0.5px solid var(--border);padding-bottom:12px">
+      <button id="btn-cfg-tab-datos-taller" class="btn-cfg-tab" onclick="activarCfgTab('cfg-tab-datos-taller')" style="background:none;border:none;color:var(--text-primary);cursor:pointer;padding:6px 12px;font-size:13px;font-weight:600;border-bottom:2px solid currentColor">Datos del taller</button>
+      <button id="btn-cfg-tab-flujo-ot" class="btn-cfg-tab" onclick="activarCfgTab('cfg-tab-flujo-ot')" style="background:none;border:none;color:var(--text-secondary);cursor:pointer;padding:6px 12px;font-size:13px">Flujo de OT</button>
+    </div>
+
+    <!-- CONTENIDO: Datos del Taller -->
+    <div id="cfg-tab-datos-taller" class="cfg-tab-content">
+
     <h2 style="margin-bottom:20px">Configuración</h2>
 
     <!-- ⚖️ DATOS LEGALES PARA DOCUMENTOS -->
@@ -270,7 +281,40 @@
       </div>
 
     </div>
+    </div><!-- /cfg-tab-datos-taller -->
+
+    <!-- CONTENIDO: Flujo de OT -->
+    <div id="cfg-tab-flujo-ot" class="cfg-tab-content" style="display:none">
+      <!-- Contenido futuro: Configuración checklist flujo OT -->
+      <div style="padding:20px;background:var(--surface-1);border-radius:8px;text-align:center;color:var(--text-muted)">
+        <p>Configuración de flujo de OT — próximamente</p>
+      </div>
+    </div>
+
   </div><!-- /adm-tab-config -->
+
+  <!-- FUNCIÓN: Cambiar sub-pestañas en configuración -->
+  <script>
+    function activarCfgTab(tabId) {
+      document.querySelectorAll('.cfg-tab-content').forEach(function(d) {
+        d.style.display = 'none';
+      });
+      document.getElementById(tabId).style.display = '';
+
+      document.querySelectorAll('.btn-cfg-tab').forEach(function(b) {
+        b.style.fontWeight = '';
+        b.style.borderBottom = '';
+        b.style.color = 'var(--text-secondary)';
+      });
+
+      var btn = document.getElementById('btn-' + tabId);
+      if (btn) {
+        btn.style.fontWeight = '600';
+        btn.style.borderBottom = '2px solid currentColor';
+        btn.style.color = 'var(--text-primary)';
+      }
+    }
+  </script>
 
   <!-- ════════════════════════════════════════ -->
   <!-- TAB: USUARIOS                           -->

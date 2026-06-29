@@ -22,7 +22,9 @@
       "Bash(cd \"C:/Users/camil/Downloads/Gestion de taller/modules\" && mv ordenes-trabajo.html _legacy_ordenes-trabajo.html && ls -la _legacy_*)",
       "Bash(cd \"C:/Users/camil/Downloads/Gestion de taller\" && *)",
       "Bash(cd \"C:/Users/camil/Downloads/Gestion de taller\" && rm -f modules/*.bak && git add -A && git commit -m \"chore: limpiar backups temporales post-sincronización\")",
-      "Bash(bash /tmp/verify_js.sh)"
+      "Bash(bash /tmp/verify_js.sh)",
+      "Bash(cat)",
+      "Bash(bash /tmp/sync_admin.sh)"
     ]
   }
 }
