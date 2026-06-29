@@ -520,3 +520,10 @@ body.modo-taller .fg { gap: 5px; margin-bottom: 14px; }
 @media (max-width: 768px) {
   .smart-select-option, .smart-select-add { min-height: 52px; font-size: 15px; }
 }
+
+/* ══════ AGENDA: DRAG & TOOLTIP ══════ */
+.ot-block { transition: opacity .15s, box-shadow .15s; }
+.ot-block:hover { opacity: .9; }
+.ag-dragging { opacity: .4 !important; cursor: grabbing !important; }
+#ag-tooltip { animation: agTooltipIn .15s ease; }
+@keyframes agTooltipIn { from { opacity: 0; transform: translateY(3px); } to { opacity: 1; transform: translateY(0); } }

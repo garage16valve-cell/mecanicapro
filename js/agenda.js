@@ -11,6 +11,11 @@ const _AG_COLORES_PALETTE = [
   '#8b5cf6','#ec4899','#06b6d4','#84cc16',
 ];
 
+const _AG_TECNICO_PALETTE = [
+  '#FF6B6B','#4ECDC4','#45B7D1','#96CEB4',
+  '#FFEAA7','#DDA0DD','#98D8C8','#F7DC6F',
+];
+
 const _AG_DIAS_CORTO  = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
 const _AG_DIAS_LARGO  = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
 const _AG_MESES       = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
@@ -20,7 +25,9 @@ let _agFechaRef = new Date();
 let _agMesMini  = null; // { anio, mes } para mini calendario
 let _agFiltroOp = '';   // ID o nombre del operario filtrado
 let _agTicker   = null;
-let _agDragData = null; // datos del arrastre actual
+let _agDragData    = null; // datos del arrastre actual
+let _agTooltipTimer = null;
+let _agTooltipEl    = null;
 
 // ===== INICIALIZACIÓN =====
 function init_agenda() {
@@ -141,6 +148,44 @@ function agendaGetColorSemaforo(pct) {
   return '#ef4444';
 }
 
+// ===== COLOR POR ESTADO =====
+function agendaGetColorEstado(estado) {
+  const map = {
+    'agendado':    '#3B82F6',
+    'agendada':    '#3B82F6',
+    'en-proceso':  '#F59E0B',
+    'en_proceso':  '#F59E0B',
+    'completado':  '#10B981',
+    'completada':  '#10B981',
+    'cancelado':   '#EF4444',
+    'cancelada':   '#EF4444',
+  };
+  return map[estado] || '#6B7280';
+}
+
+// ===== COLOR POR TÉCNICO (borde izquierdo) =====
+function agendaGetColorTecnico(nombre) {
+  if (!nombre) return 'transparent';
+  const colores = APP.lsGet('tecnico_colores', []);
+  const existente = colores.find(c => c.nombre === nombre || c.id_tecnico === nombre);
+  if (existente) return existente.color;
+  const usado = colores.map(c => c.color);
+  const libre = _AG_TECNICO_PALETTE.find(c => !usado.includes(c)) || _AG_TECNICO_PALETTE[colores.length % _AG_TECNICO_PALETTE.length];
+  colores.push({ nombre, id_tecnico: nombre, color: libre });
+  APP.lsSet('tecnico_colores', colores);
+  return libre;
+}
+
+// ===== VERIFICAR SOBRECARGA TÉCNICO (>8h/día) =====
+function _agTecnicoOverloaded(tecnico, fechaKey) {
+  if (!tecnico) return false;
+  const ots = APP.lsGet('mp_ots', []).filter(o =>
+    o.fechaCita === fechaKey && (o.tecnico === tecnico) && o.estado !== 'cerrado'
+  );
+  const totalMin = ots.reduce((s, o) => s + _agTiempoMinutos(o), 0);
+  return totalMin > 480;
+}
+
 // ===== VISTA DÍA — columnas por operario =====
 function _agRenderDia() {
   const ots  = _agOtsDelDia(_agFechaRef);
@@ -193,7 +238,7 @@ function _agRenderDia() {
     operadores.forEach(op => {
       const opOts = ots.filter(o => o.tecnico === op);
       const c     = _agColorMecanico(op);
-      html += `<div class="ag-col-dia" data-op="${op}" style="flex:1;position:relative;border-left:0.5px solid var(--border);min-width:80px" ondrop="agDragDrop(event,'${_agFechaKey(_agFechaRef)}')" ondragover="agDragOver(event)">`;
+      html += `<div class="ag-col-dia" data-op="${op}" style="flex:1;position:relative;border-left:0.5px solid var(--border);min-width:80px" ondrop="agendaDrop(event,'${_agFechaKey(_agFechaRef)}')" ondragover="agDragOver(event)">`;
       for (let h = _AG_H_INI; h <= _AG_H_FIN; h++) {
         const top = (h - _AG_H_INI) * _AG_PX_H;
         html += `<div style="position:absolute;top:${top}px;left:0;right:0;border-top:0.5px solid var(--border);pointer-events:none"></div>`;
@@ -210,7 +255,7 @@ function _agRenderDia() {
     });
   } else {
     // Sin operadores asignados — columna genérica
-    html += `<div class="ag-col-dia" data-op="" style="flex:1;position:relative;border-left:0.5px solid var(--border)" ondrop="agDragDrop(event,'${_agFechaKey(_agFechaRef)}')" ondragover="agDragOver(event)">`;
+    html += `<div class="ag-col-dia" data-op="" style="flex:1;position:relative;border-left:0.5px solid var(--border)" ondrop="agendaDrop(event,'${_agFechaKey(_agFechaRef)}')" ondragover="agDragOver(event)">`;
     for (let h = _AG_H_INI; h <= _AG_H_FIN; h++) {
       const top = (h - _AG_H_INI) * _AG_PX_H;
       html += `<div style="position:absolute;top:${top}px;left:0;right:0;border-top:0.5px solid var(--border);pointer-events:none"></div>`;
@@ -263,7 +308,7 @@ function _agBuildGridHtml(columnas) {
     const key   = _agFechaKey(fecha);
     const esHoy = key === hoy;
     const colWidth = nCols > 1 ? '' : '';
-    html += `<div class="ag-col-semana" data-fecha="${key}" style="flex:1;position:relative;${esHoy ? 'background:rgba(59,130,246,.03)' : ''}${nCols > 1 ? ';border-left:0.5px solid var(--border)' : ''}" ondrop="agDragDrop(event,'${key}')" ondragover="agDragOver(event)">`;
+    html += `<div class="ag-col-semana" data-fecha="${key}" style="flex:1;position:relative;${esHoy ? 'background:rgba(59,130,246,.03)' : ''}${nCols > 1 ? ';border-left:0.5px solid var(--border)' : ''}" ondrop="agendaDrop(event,'${key}')" ondragover="agDragOver(event)">`;
 
     for (let h = _AG_H_INI; h <= _AG_H_FIN; h++) {
       const top = (h - _AG_H_INI) * _AG_PX_H;
@@ -286,7 +331,7 @@ function _agBuildGridHtml(columnas) {
   return html;
 }
 
-// ===== BLOQUE DE EVENTO OT (con soporte drag) =====
+// ===== BLOQUE DE EVENTO OT (drag, colores, tooltip) =====
 function _agEventBlockHtml(ot, col, totalCols, anchoCompleto) {
   const hora = (ot.horaCita || '09:00').replace(/\./g, ':');
   const [hh, mm] = hora.split(':').map(Number);
@@ -296,18 +341,25 @@ function _agEventBlockHtml(ot, col, totalCols, anchoCompleto) {
   const durMin = _agTiempoMinutos(ot);
   const top    = Math.round(startMin * _AG_PX_MIN);
   const height = Math.max(22, Math.round(durMin * _AG_PX_MIN));
-  const color  = _agColorMecanico(ot.tecnico);
   const pct    = anchoCompleto ? 1 : 1 / totalCols;
   const left   = anchoCompleto ? 2 : col * (100 / totalCols) + 0.5;
   const right  = anchoCompleto ? 2 : (totalCols - col - 1) * (100 / totalCols) + 0.5;
   const stylePos = anchoCompleto
     ? `top:${top}px;left:2px;right:2px;height:${height}px`
     : `top:${top}px;left:${left.toFixed(1)}%;right:${right.toFixed(1)}%;height:${height}px`;
-  const info = `${ot.id} · ${ot.servicio || ''} · ${ot.tecnico || ''}`;
 
-  return `<div draggable="true" ondragstart="agDragStart(event,'${ot.id}')" onclick="agAbrirOT('${ot.id}')"
-    title="${info}"
-    style="position:absolute;${stylePos};background:${color};border-radius:3px;padding:2px 4px;cursor:grab;overflow:hidden;z-index:2;box-shadow:0 1px 3px rgba(0,0,0,.25)">
+  const colorEstado = agendaGetColorEstado(ot.estado);
+  const colorTec    = agendaGetColorTecnico(ot.tecnico);
+  const overloaded  = _agTecnicoOverloaded(ot.tecnico, ot.fechaCita);
+
+  let extraStyle = `background:${colorEstado};border-left:4px solid ${colorTec};`;
+  if (overloaded) extraStyle += 'box-shadow:0 0 0 1px #ef4444,0 1px 3px rgba(239,68,68,.3);';
+
+  return `<div draggable="true" ondragstart="agendaDragStart(event,'${ot.id}')" ondragend="agendaDragEnd(event)"
+    onclick="agAbrirOT('${ot.id}')"
+    onmouseover="agendaShowTooltip(event,'${ot.id}')" onmouseout="agendaHideTooltip()"
+    class="ot-block"
+    style="position:absolute;${stylePos};${extraStyle}border-radius:3px;padding:2px 4px;cursor:grab;overflow:hidden;z-index:2;box-shadow:0 1px 3px rgba(0,0,0,.25)">
     <div style="font-size:9px;font-weight:600;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.3">${ot.id} ${ot.clienteNombre || ''}</div>
     ${height > 32 ? `<div style="font-size:8px;color:rgba(255,255,255,.85);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${ot.servicio || ''}</div>` : ''}
     ${height > 46 ? `<div style="font-size:8px;color:rgba(255,255,255,.75)">${ot.tecnico || ''}</div>` : ''}
@@ -405,8 +457,9 @@ function _agRenderMes() {
     html += `</div>`;
     const otsDia = _agOtsDelDia(cur);
     otsDia.slice(0, 2).forEach(ot => {
-      const c = _agColorMecanico(ot.tecnico);
-      html += `<div onclick="event.stopPropagation();agAbrirOT('${ot.id}')" style="background:${c};color:#fff;font-size:7px;border-radius:2px;padding:1px 3px;margin-bottom:1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:pointer">${ot.horaCita || ''} ${ot.servicio || ot.id}</div>`;
+      const c  = agendaGetColorEstado(ot.estado);
+      const ct = agendaGetColorTecnico(ot.tecnico);
+      html += `<div onmouseover="agendaShowTooltip(event,'${ot.id}')" onmouseout="agendaHideTooltip()" onclick="event.stopPropagation();agAbrirOT('${ot.id}')" style="background:${c};color:#fff;font-size:7px;border-radius:2px;padding:1px 3px;margin-bottom:1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:pointer;border-left:2px solid ${ct}">${ot.horaCita || ''} ${ot.servicio || ot.id}</div>`;
     });
     if (otsDia.length > 2) html += `<div style="font-size:7px;color:var(--text-muted)">+${otsDia.length - 2}</div>`;
     html += '</div>';
@@ -488,11 +541,17 @@ function agMiniNext() {
 }
 
 // ===== DRAG & DROP =====
-function agDragStart(event, otId) {
+function agendaDragStart(event, otId) {
   _agDragData = { id: otId };
   event.dataTransfer.effectAllowed = 'move';
   event.dataTransfer.setData('text/plain', otId);
   event.target.style.opacity = '0.5';
+  event.target.classList.add('ag-dragging');
+}
+
+function agendaDragEnd(event) {
+  event.target.style.opacity = '';
+  event.target.classList.remove('ag-dragging');
 }
 
 function agDragOver(event) {
@@ -500,19 +559,22 @@ function agDragOver(event) {
   event.dataTransfer.dropEffect = 'move';
 }
 
-function agDragDrop(event, fechaKey) {
+function agendaDrop(event, fechaKey) {
   event.preventDefault();
   if (!_agDragData) return;
   const otId = _agDragData.id;
   _agDragData = null;
 
-  // Calcular hora desde posición Y
+  const ots  = APP.lsGet('mp_ots', []);
+  const ot   = ots.find(o => o.id === otId);
+  if (!ot) return;
+
   const rect = event.currentTarget.getBoundingClientRect();
   const y    = event.clientY - rect.top;
   const totalMinsVisible = (_AG_H_FIN - _AG_H_INI) * 60;
   const minsFromTop = Math.round((y / _AG_TOTAL_PX) * totalMinsVisible);
   const hh = Math.floor(minsFromTop / 60) + _AG_H_INI;
-  const mm = Math.round((minsFromTop % 60) / 15) * 15; // snap 15 min
+  const mm = Math.round((minsFromTop % 60) / 15) * 15;
 
   if (hh < _AG_H_INI || hh >= _AG_H_FIN) {
     alert('La hora está fuera del horario laboral (' + String(_AG_H_INI).padStart(2,'0') + ':00–' + String(_AG_H_FIN).padStart(2,'0') + ':00)');
@@ -520,6 +582,25 @@ function agDragDrop(event, fechaKey) {
   }
 
   const nuevaHora = `${String(hh).padStart(2,'0')}:${String(mm).padStart(2,'0')}`;
+  const nuevoInicio = hh * 60 + mm;
+  const nuevoFin    = nuevoInicio + _agTiempoMinutos(ot);
+
+  // Validar conflicto: misma fecha, mismo técnico, horario solapado, distinta OT
+  const conflicto = ots.some(o => {
+    if (o.id === otId || o.fechaCita !== fechaKey) return false;
+    if (String(o.tecnico) !== String(ot.tecnico) && String(o.id_tecnico_asignado) !== String(ot.tecnico)) return false;
+    if (o.estado === 'cerrado' || o.estado === 'cancelado' || o.estado === 'cancelada') return false;
+    const [oh, om] = (o.horaCita || '09:00').split(':').map(Number);
+    const oInicio = oh * 60 + om;
+    const oFin    = oInicio + _agTiempoMinutos(o);
+    return nuevoInicio < oFin && oInicio < nuevoFin;
+  });
+
+  if (conflicto) {
+    alert('⚠ El técnico ya tiene una OT agendada en ese horario. Revisa la agenda.');
+    return;
+  }
+
   agendaOnDragOT(otId, fechaKey, nuevaHora);
   _agRender();
 }
@@ -531,6 +612,40 @@ function agendaOnDragOT(otId, nuevaFecha, nuevaHora) {
   ots[idx].fechaCita = nuevaFecha;
   ots[idx].horaCita  = nuevaHora;
   APP.lsSet('mp_ots', ots);
+}
+
+// ===== TOOLTIP =====
+function agendaShowTooltip(event, id_ot) {
+  agendaHideTooltip();
+  _agTooltipTimer = setTimeout(() => {
+    const ots = APP.lsGet('mp_ots', []);
+    const ot  = ots.find(o => o.id === id_ot);
+    if (!ot) return;
+    const durMin = _agTiempoMinutos(ot);
+    const finH   = Math.floor((durMin + (parseInt(ot.horaCita?.split(':')[0]||9)*60 + parseInt(ot.horaCita?.split(':')[1]||0))) / 60);
+    const finM   = (durMin + (parseInt(ot.horaCita?.split(':')[0]||9)*60 + parseInt(ot.horaCita?.split(':')[1]||0))) % 60;
+    const el = document.createElement('div');
+    el.id = 'ag-tooltip';
+    el.innerHTML = `<div style="font-size:11px;line-height:1.6">
+      <div>🔧 <strong>${ot.clienteNombre || '—'}</strong></div>
+      <div>📋 ${ot.servicio || '—'}</div>
+      <div>⏱ ${durMin}min | ${ot.horaCita || '—'}-${String(finH).padStart(2,'0')}:${String(finM).padStart(2,'0')}</div>
+      <div>👨‍🔧 ${ot.tecnico || '—'}</div>
+    </div>`;
+    el.style.cssText = 'position:fixed;z-index:9999;background:var(--surface-2);border:0.5px solid var(--border);border-radius:6px;padding:8px 12px;box-shadow:0 4px 12px rgba(0,0,0,.2);pointer-events:none;font-size:11px;max-width:260px';
+    document.body.appendChild(el);
+    const r = el.getBoundingClientRect();
+    let l = event.clientX + 12, t = event.clientY + 12;
+    if (l + r.width > window.innerWidth)  l = event.clientX - r.width - 12;
+    if (t + r.height > window.innerHeight) t = event.clientY - r.height - 12;
+    el.style.left = l + 'px'; el.style.top = t + 'px';
+    _agTooltipEl = el;
+  }, 500);
+}
+
+function agendaHideTooltip() {
+  if (_agTooltipTimer) { clearTimeout(_agTooltipTimer); _agTooltipTimer = null; }
+  if (_agTooltipEl) { _agTooltipEl.remove(); _agTooltipEl = null; }
 }
 
 // ===== LÍNEA ROJA =====
