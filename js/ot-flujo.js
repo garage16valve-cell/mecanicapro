@@ -186,46 +186,59 @@ function otRenderTablaCotizacion(ot_id) {
   const ot = ots.find(o => o.id === ot_id);
   if (!ot.cotizacion) ot.cotizacion = { repuestos: [], mano_obra: 0 };
 
-  const html = `
-    <div class="card" style="margin-bottom:14px">
-      <div class="ch"><span class="ct">🔩 Repuestos</span></div>
-      <div style="margin-bottom:10px">
-        <table style="width:100%;font-size:11px;border-collapse:collapse">
-          <thead>
-            <tr style="background:var(--surface-1);border-bottom:0.5px solid var(--border)">
-              <th style="padding:8px;text-align:left">Descripción</th>
-              <th style="padding:8px;text-align:center;width:70px">Qty</th>
-              <th style="padding:8px;text-align:right;width:100px">Precio Unit.</th>
-              <th style="padding:8px;text-align:right;width:100px">Subtotal</th>
-              <th style="padding:8px;text-align:center;width:50px">Acción</th>
-            </tr>
-          </thead>
-          <tbody id="ot-cotizacion-repuestos-tbody"></tbody>
-        </table>
-      </div>
-      <button class="btn bpa" style="width:100%;justify-content:center;font-size:11px" onclick="otAbrirModalAgregarRepuesto('${ot_id}')">
-        <i class="ti ti-plus"></i> Agregar repuesto
-      </button>
-    </div>
-    <div class="card">
-      <div class="ch"><span class="ct">💼 Mano de obra</span></div>
-      <div class="fgrid2" style="margin-bottom:10px">
-        <div class="fg">
-          <label>Horas</label>
-          <input id="ot-cotizacion-horas" type="number" min="0" step="0.5" value="${ot.cotizacion.mano_obra_horas || 0}" oninput="otActualizarTotales('${ot_id}')">
-        </div>
-        <div class="fg">
-          <label>Tarifa/hora</label>
-          <input type="text" readonly value="$${APP.lsGet('taller_config', {}).tarifa_hora || 0}">
-        </div>
-      </div>
-      <div style="font-size:12px;font-weight:500;text-align:right;padding:8px;background:var(--surface-1);border-radius:var(--radius)">
-        Mano obra: $<span id="ot-cotizacion-mano-obra-valor">0</span>
-      </div>
-    </div>
+  const tablaHTML = `
+    <table style="width:100%;font-size:11px;border-collapse:collapse">
+      <thead>
+        <tr style="background:var(--surface-1);border-bottom:0.5px solid var(--border)">
+          <th style="padding:8px;text-align:left">Descripción</th>
+          <th style="padding:8px;text-align:center;width:70px">Qty</th>
+          <th style="padding:8px;text-align:right;width:100px">Precio Unit.</th>
+          <th style="padding:8px;text-align:right;width:100px">Subtotal</th>
+          <th style="padding:8px;text-align:center;width:50px">Acción</th>
+        </tr>
+      </thead>
+      <tbody id="ot-cotizacion-repuestos-tbody"></tbody>
+    </table>
   `;
 
-  document.getElementById('ot-cotizacion-panel-centro').innerHTML = html;
+  // Renderizar en el panel detalle si existe
+  const panelDetalle = document.getElementById('ot-cotizacion-tabla-repuestos');
+  if (panelDetalle) {
+    panelDetalle.innerHTML = tablaHTML;
+  }
+
+  // También en el panel original si existe
+  const panelOriginal = document.getElementById('ot-cotizacion-panel-centro');
+  if (panelOriginal) {
+    const html = `
+      <div class="card" style="margin-bottom:14px">
+        <div class="ch"><span class="ct">🔩 Repuestos</span></div>
+        <div style="margin-bottom:10px">
+          ${tablaHTML}
+        </div>
+        <button class="btn bpa" style="width:100%;justify-content:center;font-size:11px" onclick="otAbrirModalAgregarRepuesto('${ot_id}')">
+          <i class="ti ti-plus"></i> Agregar repuesto
+        </button>
+      </div>
+      <div class="card">
+        <div class="ch"><span class="ct">💼 Mano de obra</span></div>
+        <div class="fgrid2" style="margin-bottom:10px">
+          <div class="fg">
+            <label>Horas</label>
+            <input id="ot-cotizacion-horas" type="number" min="0" step="0.5" value="${ot.cotizacion.mano_obra_horas || 0}" oninput="otActualizarTotales('${ot_id}')">
+          </div>
+          <div class="fg">
+            <label>Tarifa/hora</label>
+            <input type="text" readonly value="$${APP.lsGet('taller_config', {}).tarifa_hora || 0}">
+          </div>
+        </div>
+        <div style="font-size:12px;font-weight:500;text-align:right;padding:8px;background:var(--surface-1);border-radius:var(--radius)">
+          Mano obra: $<span id="ot-cotizacion-mano-obra-valor">0</span>
+        </div>
+      </div>
+    `;
+    panelOriginal.innerHTML = html;
+  }
 
   // Renderizar repuestos
   if (ot.cotizacion.repuestos && ot.cotizacion.repuestos.length > 0) {
@@ -325,35 +338,48 @@ function otActualizarTotales(ot_id) {
   const iva = subtotal * 0.19;
   const total = subtotal + iva;
 
-  document.getElementById('ot-cotizacion-mano-obra-valor').textContent = mano_obra.toLocaleString('es-CL');
+  // Actualizar tarifa mostrada
+  const tarifaInput = document.getElementById('ot-cotizacion-tarifa');
+  if (tarifaInput) tarifaInput.value = '$' + tarifa_hora.toLocaleString('es-CL');
 
+  // Actualizar mano obra
+  const manoObraVal = document.getElementById('ot-cotizacion-mano-obra-valor');
+  if (manoObraVal) manoObraVal.textContent = mano_obra.toLocaleString('es-CL');
+
+  const totalesHTML = `
+    <div class="card">
+      <div class="ch"><span class="ct">💰 Totales</span></div>
+      <div style="display:flex;justify-content:space-between;padding:10px;border-bottom:0.5px solid var(--border);font-size:12px">
+        <span>Subtotal repuestos:</span>
+        <span style="font-weight:500">$${subtotal_repuestos.toLocaleString('es-CL')}</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;padding:10px;border-bottom:0.5px solid var(--border);font-size:12px">
+        <span>Mano de obra:</span>
+        <span style="font-weight:500">$${mano_obra.toLocaleString('es-CL')}</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;padding:10px;border-bottom:0.5px solid var(--border);font-size:12px">
+        <span>Subtotal:</span>
+        <span style="font-weight:500">$${subtotal.toLocaleString('es-CL')}</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;padding:10px;border-bottom:0.5px solid var(--border);font-size:12px;color:var(--text-secondary)">
+        <span>IVA 19%:</span>
+        <span style="font-weight:500">$${iva.toLocaleString('es-CL')}</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;padding:10px;background:var(--bg-accent);border-radius:var(--radius);font-size:13px;font-weight:600;color:var(--text-accent)">
+        <span>TOTAL:</span>
+        <span>$${total.toLocaleString('es-CL')}</span>
+      </div>
+    </div>
+  `;
+
+  // Panel detalle
+  const panelDetalle = document.getElementById('ot-cotizacion-panel-totales');
+  if (panelDetalle) panelDetalle.innerHTML = totalesHTML;
+
+  // Panel original
   const panel_derecha = document.getElementById('ot-cotizacion-panel-derecha');
   if (panel_derecha) {
-    panel_derecha.innerHTML = `
-      <div class="card">
-        <div class="ch"><span class="ct">💰 Totales</span></div>
-        <div style="display:flex;justify-content:space-between;padding:10px;border-bottom:0.5px solid var(--border);font-size:12px">
-          <span>Subtotal repuestos:</span>
-          <span style="font-weight:500">$${subtotal_repuestos.toLocaleString('es-CL')}</span>
-        </div>
-        <div style="display:flex;justify-content:space-between;padding:10px;border-bottom:0.5px solid var(--border);font-size:12px">
-          <span>Mano de obra:</span>
-          <span style="font-weight:500">$${mano_obra.toLocaleString('es-CL')}</span>
-        </div>
-        <div style="display:flex;justify-content:space-between;padding:10px;border-bottom:0.5px solid var(--border);font-size:12px">
-          <span>Subtotal:</span>
-          <span style="font-weight:500">$${subtotal.toLocaleString('es-CL')}</span>
-        </div>
-        <div style="display:flex;justify-content:space-between;padding:10px;border-bottom:0.5px solid var(--border);font-size:12px;color:var(--text-secondary)">
-          <span>IVA 19%:</span>
-          <span style="font-weight:500">$${iva.toLocaleString('es-CL')}</span>
-        </div>
-        <div style="display:flex;justify-content:space-between;padding:10px;background:var(--bg-accent);border-radius:var(--radius);font-size:13px;font-weight:600;color:var(--text-accent)">
-          <span>TOTAL:</span>
-          <span>$${total.toLocaleString('es-CL')}</span>
-        </div>
-      </div>
-    `;
+    panel_derecha.innerHTML = totalesHTML;
   }
 
   APP.lsSet('ots', ots);

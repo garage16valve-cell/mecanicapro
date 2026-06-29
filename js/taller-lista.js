@@ -190,8 +190,8 @@ function _renderOTCard(ot) {
       onclick="retrocederOT('${ot.id}')">
       <i class="ti ti-arrow-left"></i> Retroceder
     </button>
-    <button class="btn kanban-btn" title="Editar OT"
-      onclick="editarOTKanban('${ot.id}')">
+    <button class="btn kanban-btn" title="Editar OT - Abrir panel con tabs"
+      onclick="otAbrirDetalleOT('${ot.id}')">
       <i class="ti ti-edit"></i> Editar
     </button>
     <button class="btn kanban-btn bpa" title="Ver detalle"
