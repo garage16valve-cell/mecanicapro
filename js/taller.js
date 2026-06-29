@@ -212,11 +212,12 @@ function _ssReset(id) {
   if (inp) inp.value = '';
 }
 
-// ---- Obtener opciones de técnicos desde mp_operarios ----
+// ---- Obtener opciones de técnicos desde usuarios ----
 function _ssTecOps() {
-  const ops  = APP.lsGet('mp_operarios', []);
+  const users = APP.lsGet('usuarios', []);
+  const ops = users.filter(u => (u.rol === 'mecanico' || u.rol === 'técnico') && u.estado !== 'inactivo');
   const lista = [{ val: '', label: 'Sin asignar' }];
-  ops.filter(o => o.activo !== false).forEach(o => lista.push({ val: o.nombre || o.id, label: o.nombre || o.id }));
+  ops.forEach(o => lista.push({ val: o.nombre || o.id, label: o.nombre || o.id }));
   // Fallback si no hay operarios configurados
   if (!ops.length) ['Pedro Ramírez','Javier Muñoz','Luis González','Roberto Araya'].forEach(n => lista.push({ val: n, label: n }));
   return lista;
@@ -711,7 +712,7 @@ function _resetFormNuevaOT() {
   });
   // Resetear displays de smart selectors
   ['n-tipo','n-marca','n-anio','n-cli'].forEach(_ssReset);
-  // Técnico: refrescar desde mp_operarios y resetear
+  // Técnico: refrescar desde usuarios y resetear
   if (_SS['n-tec']) _SS['n-tec'].opciones = _ssTecOps();
   _ssReset('n-tec');
   // Región default: Valparaíso

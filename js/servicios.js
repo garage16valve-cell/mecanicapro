@@ -357,11 +357,12 @@ function svcOpGuardar() {
 
   if (_svcOpEditId) {
     const idx = usuarios.findIndex(x => String(x.id) === String(_svcOpEditId));
-    if (idx >= 0) { usuarios[idx] = { ...usuarios[idx], ...dato, whatsapp: dato.wz, wz: dato.wz }; }
+    if (idx >= 0) { usuarios[idx] = { ...usuarios[idx], ...dato, whatsapp: dato.wz, wz: dato.wz, estado: usuarios[idx].estado || 'activo' }; }
   } else {
     dato.id = 'op-' + Date.now();
     dato.creado = new Date().toISOString();
     dato.whatsapp = dato.wz;
+    dato.estado = 'activo';
     usuarios.push(dato);
   }
   APP.lsSet('usuarios', usuarios);

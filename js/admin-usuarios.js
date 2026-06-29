@@ -26,7 +26,7 @@
     rol:            'administrador',
     color:          '#3B82F6',
     pin:            '0000',
-    activo:         true,
+    estado:         'activo',
     fecha_creacion: Date.now(),
   };
 
@@ -111,7 +111,7 @@
   function _renderLoginUsers() {
     const grid = document.getElementById('login-users-grid');
     if (!grid) return;
-    const usuarios = APP.lsGet('usuarios', []).filter(u => u.activo);
+    const usuarios = APP.lsGet('usuarios', []).filter(u => u.estado !== 'inactivo');
     grid.innerHTML = '';
     usuarios.forEach(u => {
       const inicial = (u.nombre || '?')[0].toUpperCase();
@@ -417,7 +417,7 @@
     }
     tbody.innerHTML = usuarios.map(u => {
       const inicial = (u.nombre||'?')[0].toUpperCase();
-      const estadoBadge = u.activo
+      const estadoBadge = u.estado !== 'inactivo'
         ? `<span style="background:var(--fill-success);color:#fff;padding:2px 8px;border-radius:20px;font-size:10px">Activo</span>`
         : `<span style="background:var(--border);color:var(--text-muted);padding:2px 8px;border-radius:20px;font-size:10px">Inactivo</span>`;
       return `<tr>
@@ -497,10 +497,11 @@
               placeholder="••••" style="letter-spacing:4px;font-size:16px"></div>
         </div>
         <div class="fg" style="margin-top:4px">
-          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:12px">
-            <input id="usu-f-activo" type="checkbox" ${u?.activo!==false?'checked':''}>
-            Usuario activo (puede iniciar sesión)
-          </label>
+          <label>Estado</label>
+          <select id="usu-f-estado" style="width:100%;padding:8px;margin-top:4px;border:1px solid var(--border);border-radius:4px;background:var(--surface-0);color:var(--text-primary);font-size:12px">
+            <option value="activo" ${u?.estado!=='inactivo'?'selected':''}>Activo</option>
+            <option value="inactivo" ${u?.estado==='inactivo'?'selected':''}>Inactivo</option>
+          </select>
         </div>
         <div id="usu-f-error" style="color:var(--text-danger);font-size:12px;min-height:18px;margin-top:6px"></div>
       </div>
@@ -522,7 +523,7 @@
     const color   = document.getElementById('usu-f-color')?.value || '#3B82F6';
     const pin     = (document.getElementById('usu-f-pin')?.value || '').trim();
     const pin2    = (document.getElementById('usu-f-pin2')?.value || '').trim();
-    const activo  = document.getElementById('usu-f-activo')?.checked ?? true;
+    const estado = document.getElementById('usu-f-estado')?.value || 'activo';
     const errEl   = document.getElementById('usu-f-error');
 
     const err = m => { if (errEl) errEl.textContent = m; };
@@ -539,7 +540,7 @@
         if (u.id !== id) return u;
         return {
           ...u, nombre, apellido, rut, whatsapp: wa,
-          rol, color, activo,
+          rol, color, estado,
           ...(pin ? { pin } : {}),
         };
       });
@@ -550,7 +551,7 @@
         id:             Date.now(),
         nombre, apellido, rut,
         whatsapp:       wa,
-        rol, color, pin, activo,
+        rol, color, pin, estado,
         fecha_creacion: Date.now(),
       });
     }

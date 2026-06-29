@@ -179,7 +179,7 @@ function mktCheckAlertaResumen() {
 function mktEnviarResumenManual() { mktEnviarResumen(true); }
 
 function mktEnviarResumen(manual) {
-  const ops = APP.lsGet('mp_operarios', []).filter(o => o.activo !== false && o.nombre && o.wz);
+  const ops = APP.lsGet('usuarios', []).filter(o => (o.rol === 'mecanico' || o.rol === 'técnico') && o.estado !== 'inactivo' && o.nombre && o.whatsapp);
   if (!ops.length) { mktSetStatus('Sin operarios activos con WhatsApp configurado.'); return; }
   const manana    = new Date(); manana.setDate(manana.getDate() + 1);
   const mananaKey = [manana.getFullYear(), String(manana.getMonth()+1).padStart(2,'0'), String(manana.getDate()).padStart(2,'0')].join('-');
@@ -195,9 +195,10 @@ function mktEnviarResumen(manual) {
     const lineas = misOTs.length
       ? misOTs.map(o => `  ${o.horaCita || '--:--'} - ${o.servicio || 'Servicio'} | ${o.patente || '—'} | ${o.clienteNombre || '—'}`).join('\n')
       : '  (Sin citas agendadas para mañana)';
+    const wz = op.whatsapp || op.wz || '';
     const msg = `Hola ${op.nombre} 👋, aquí tu agenda para ${label}:\n\n${lineas}\n\nIntegral Automotriz Spa 🔧`;
-    mktLogAlerta('resumen-dia', op.nombre, op.wz, msg, 'enviado');
-    setTimeout(() => window.open('https://wa.me/' + op.wz.replace(/\D/g,'') + '?text=' + encodeURIComponent(msg), '_blank'), i * 900);
+    mktLogAlerta('resumen-dia', op.nombre, wz, msg, 'enviado');
+    setTimeout(() => window.open('https://wa.me/' + wz.replace(/\D/g,'') + '?text=' + encodeURIComponent(msg), '_blank'), i * 900);
     enviados++;
   });
   mktSetStatus(enviados ? '✓ Resumen enviado a ' + enviados + ' operario(s) para ' + label + '.' : 'Sin operarios con agenda mañana.');
@@ -214,16 +215,17 @@ function mktCheckAlerta30min() {
     !['cerrado','completado','nollego','cancelo'].includes(o.estado)
   );
   if (!ots.length) return;
-  const ops = APP.lsGet('mp_operarios', []);
+  const ops = APP.lsGet('usuarios', []).filter(o => o.rol === 'mecanico' || o.rol === 'técnico');
   ots.forEach(ot => {
     const key = ot.id + ':30min';
     if (_mktAlertaSentSet.has(key)) return;
     _mktAlertaSentSet.add(key);
-    const op = ops.find(o => o.nombre === ot.tecnico && o.activo !== false && o.wz);
+    const op = ops.find(o => o.nombre === ot.tecnico && o.estado !== 'inactivo' && (o.whatsapp || o.wz));
     if (!op) return;
+    const wz = op.whatsapp || op.wz || '';
     const msg = '⏰ En 30 min llega *' + (ot.clienteNombre || 'un cliente') + '* con *' + (ot.patente || '—') + '* para *' + (ot.servicio || 'servicio') + '*. ¡Prepárate! 🔧';
-    mktLogAlerta('aviso-30min', op.nombre, op.wz, msg, 'enviado');
-    window.open('https://wa.me/' + op.wz.replace(/\D/g,'') + '?text=' + encodeURIComponent(msg), '_blank');
+    mktLogAlerta('aviso-30min', op.nombre, wz, msg, 'enviado');
+    window.open('https://wa.me/' + wz.replace(/\D/g,'') + '?text=' + encodeURIComponent(msg), '_blank');
     mktRenderLog();
   });
 }

@@ -514,7 +514,67 @@ function updateBadgeClientes() {
   else { badge.style.display = 'none'; }
 }
 
+// ═══════════════════════════════════════════════════════════════════
+// MIGRACIÓN: operarios → usuarios (una única fuente)
+// ═══════════════════════════════════════════════════════════════════
+
+function migrateOperariosToUsuarios() {
+  const usuarios = APP.lsGet('usuarios') || [];
+  const operarios = APP.lsGet('operarios') || [];
+  const mp_operarios = APP.lsGet('mp_operarios') || [];
+
+  // Si ya hay usuarios, asumir migrado
+  if (Array.isArray(usuarios) && usuarios.length > 0) return;
+
+  const todos = [];
+
+  // Migrar desde 'operarios'
+  operarios.forEach(op => {
+    todos.push({
+      id: op.id || 'op_' + Date.now() + '_' + Math.random().toString(36).slice(2,6),
+      nombre: op.nombre || '',
+      apellido: op.apellido || '',
+      rut: op.rut || '',
+      whatsapp: op.whatsapp || op.wz || '',
+      email: op.email || '',
+      rol: op.rol || 'mecanico',
+      estado: op.activo === false ? 'inactivo' : 'activo',
+      formacion: op.formacion || {},
+      experiencia: op.experiencia || {},
+      certificaciones: op.certificaciones || [],
+      documentos: op.documentos || {},
+      fecha_creacion: op.fecha_creacion || new Date().toISOString().split('T')[0],
+    });
+  });
+
+  // Migrar desde 'mp_operarios'
+  mp_operarios.forEach(op => {
+    if (todos.some(t => t.nombre === op.nombre && t.whatsapp === (op.whatsapp || op.wz))) return;
+    todos.push({
+      id: 'op_' + Date.now() + '_' + Math.random().toString(36).slice(2,6),
+      nombre: op.nombre || '',
+      apellido: op.apellido || op.ape || '',
+      rut: op.rut || '',
+      whatsapp: op.whatsapp || op.wz || '',
+      email: op.email || '',
+      rol: 'mecanico',
+      estado: op.activo === false ? 'inactivo' : 'activo',
+      formacion: {},
+      experiencia: {},
+      certificaciones: [],
+      documentos: {},
+      fecha_creacion: new Date().toISOString().split('T')[0],
+    });
+  });
+
+  if (todos.length > 0) {
+    APP.lsSet('usuarios', todos);
+    console.log('✅ Migración: ' + todos.length + ' operarios → usuarios');
+  }
+}
+
 // ===== INICIO =====
+migrateOperariosToUsuarios();
 initExampleData();
 nav('dashboard', document.querySelector('.ni.active'));
 APP.modoTaller.init();
