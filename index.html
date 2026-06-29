@@ -2631,79 +2631,154 @@
   <!-- ════════════════════════════════════════ -->
   <div id="adm-tab-usuarios" style="display:block">
   <h2 style="margin-bottom:14px">Usuarios y roles</h2>
-  <div style="margin-bottom:14px;display:flex;gap:8px;flex-wrap:wrap">
-    <button class="btn bpa" onclick="adminNuevoUsuario()" style="font-size:11px"><i class="ti ti-plus"></i> Nuevo usuario</button>
-    <input id="adm-usuarios-buscar" type="text" placeholder="Buscar por nombre, RUT o rol…" style="flex:1;min-width:200px;padding:6px 10px;border:0.5px solid var(--border);border-radius:var(--radius);background:var(--surface-1);color:var(--text-primary);font-size:11px" oninput="adminRenderUsuarios(this.value)">
+
+  <!-- TABS -->
+  <div style="display:flex;gap:0;margin-bottom:16px;border-bottom:0.5px solid var(--border)">
+    <button id="adm-users-tab-btn" class="btn" onclick="admSetUsersTab('usuarios')" style="border:none;border-radius:0;border-bottom:2px solid var(--fill-accent);color:var(--text-accent);font-size:12px;padding:8px 14px;background:transparent;cursor:pointer">👤 Usuarios</button>
+    <button id="adm-roles-tab-btn" class="btn" onclick="admSetUsersTab('roles')" style="border:none;border-radius:0;border-bottom:2px solid transparent;color:var(--text-secondary);font-size:12px;padding:8px 14px;background:transparent;cursor:pointer">🔐 Roles y Permisos</button>
   </div>
-  
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
-    <!-- TABLA USUARIOS (izquierda 60%) -->
-    <div style="overflow-x:auto">
-      <table style="width:100%;border-collapse:collapse;font-size:11px;min-width:500px">
-        <thead>
-          <tr style="border-bottom:0.5px solid var(--border);background:var(--surface-1)">
-            <th style="text-align:left;padding:10px">Nombre</th>
-            <th style="text-align:left;padding:10px">Apellido</th>
-            <th style="text-align:left;padding:10px">RUT</th>
-            <th style="text-align:left;padding:10px">WhatsApp</th>
-            <th style="text-align:left;padding:10px">Rol</th>
-            <th style="text-align:center;padding:10px">Estado</th>
-            <th style="text-align:center;padding:10px">Opciones</th>
-          </tr>
-        </thead>
-        <tbody id="admin-usuarios-tabla"></tbody>
-      </table>
+
+  <div id="adm-usuarios-content" style="display:block">
+    <div style="margin-bottom:14px;display:flex;gap:8px;flex-wrap:wrap">
+      <button class="btn bpa" onclick="adminNuevoUsuario()" style="font-size:11px"><i class="ti ti-plus"></i> Nuevo usuario</button>
+      <input id="adm-usuarios-buscar" type="text" placeholder="Buscar por nombre, RUT o rol…" style="flex:1;min-width:200px;padding:6px 10px;border:0.5px solid var(--border);border-radius:var(--radius);background:var(--surface-1);color:var(--text-primary);font-size:11px" oninput="adminRenderUsuarios(this.value)">
     </div>
     
-    <!-- PANEL EDITAR (derecha 40%) -->
-    <div id="adm-panel-editar" style="display:none;background:var(--surface-1);padding:16px;border-radius:8px;border:0.5px solid var(--border);max-height:600px;overflow-y:auto">
-      <h3 style="margin:0 0 14px;font-size:13px" id="adm-panel-titulo">Editar Usuario</h3>
-      
-      <div style="margin-bottom:10px">
-        <label style="font-size:11px;color:var(--text-muted);display:block;margin-bottom:3px">Nombre <span style="color:#ef4444">*</span></label>
-        <input type="text" id="modal-user-nombre" style="width:100%;padding:6px 8px;font-size:11px;border:0.5px solid var(--border);border-radius:4px;box-sizing:border-box;background:var(--surface-2);color:var(--text-primary)">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
+      <!-- TABLA USUARIOS (izquierda 60%) -->
+      <div style="overflow-x:auto">
+        <table style="width:100%;border-collapse:collapse;font-size:11px;min-width:500px">
+          <thead>
+            <tr style="border-bottom:0.5px solid var(--border);background:var(--surface-1)">
+              <th style="text-align:left;padding:10px">Nombre</th>
+              <th style="text-align:left;padding:10px">Apellido</th>
+              <th style="text-align:left;padding:10px">RUT</th>
+              <th style="text-align:left;padding:10px">WhatsApp</th>
+              <th style="text-align:left;padding:10px">Rol</th>
+              <th style="text-align:center;padding:10px">Estado</th>
+              <th style="text-align:center;padding:10px">Opciones</th>
+            </tr>
+          </thead>
+          <tbody id="admin-usuarios-tabla"></tbody>
+        </table>
       </div>
       
-      <div style="margin-bottom:10px">
-        <label style="font-size:11px;color:var(--text-muted);display:block;margin-bottom:3px">Apellido <span style="color:#ef4444">*</span></label>
-        <input type="text" id="modal-user-apellido" style="width:100%;padding:6px 8px;font-size:11px;border:0.5px solid var(--border);border-radius:4px;box-sizing:border-box;background:var(--surface-2);color:var(--text-primary)">
+      <!-- PANEL EDITAR (derecha 40%) -->
+      <div id="adm-panel-editar" style="display:none;background:var(--surface-1);padding:16px;border-radius:8px;border:0.5px solid var(--border);max-height:600px;overflow-y:auto">
+        <h3 style="margin:0 0 14px;font-size:13px" id="adm-panel-titulo">Editar Usuario</h3>
+        
+        <div style="margin-bottom:10px">
+          <label style="font-size:11px;color:var(--text-muted);display:block;margin-bottom:3px">Nombre <span style="color:#ef4444">*</span></label>
+          <input type="text" id="modal-user-nombre" style="width:100%;padding:6px 8px;font-size:11px;border:0.5px solid var(--border);border-radius:4px;box-sizing:border-box;background:var(--surface-2);color:var(--text-primary)">
+        </div>
+        
+        <div style="margin-bottom:10px">
+          <label style="font-size:11px;color:var(--text-muted);display:block;margin-bottom:3px">Apellido <span style="color:#ef4444">*</span></label>
+          <input type="text" id="modal-user-apellido" style="width:100%;padding:6px 8px;font-size:11px;border:0.5px solid var(--border);border-radius:4px;box-sizing:border-box;background:var(--surface-2);color:var(--text-primary)">
+        </div>
+        
+        <div style="margin-bottom:10px">
+          <label style="font-size:11px;color:var(--text-muted);display:block;margin-bottom:3px">RUT <span style="color:#ef4444">*</span></label>
+          <input type="text" id="modal-user-rut" style="width:100%;padding:6px 8px;font-size:11px;border:0.5px solid var(--border);border-radius:4px;box-sizing:border-box;background:var(--surface-2);color:var(--text-primary)">
+        </div>
+        
+        <div style="margin-bottom:10px">
+          <label style="font-size:11px;color:var(--text-muted);display:block;margin-bottom:3px">WhatsApp</label>
+          <input type="text" id="modal-user-whatsapp" style="width:100%;padding:6px 8px;font-size:11px;border:0.5px solid var(--border);border-radius:4px;box-sizing:border-box;background:var(--surface-2);color:var(--text-primary)">
+        </div>
+        
+        <div style="margin-bottom:10px">
+          <label style="font-size:11px;color:var(--text-muted);display:block;margin-bottom:3px">Rol <span style="color:#ef4444">*</span></label>
+          <select id="modal-user-rol" style="width:100%;padding:6px 8px;font-size:11px;border:0.5px solid var(--border);border-radius:4px;box-sizing:border-box;background:var(--surface-2);color:var(--text-primary)">
+            <option value="">— Selecciona rol —</option>
+            <option value="mecanico">Mecánico</option>
+            <option value="Administrador">Administrador</option>
+            <option value="Recepcionista">Recepcionista</option>
+            <option value="Contador">Contador</option>
+          </select>
+        </div>
+        
+        <div style="margin-bottom:14px">
+          <label style="font-size:11px;color:var(--text-muted);display:block;margin-bottom:3px">Estado</label>
+          <select id="modal-user-estado" style="width:100%;padding:6px 8px;font-size:11px;border:0.5px solid var(--border);border-radius:4px;box-sizing:border-box;background:var(--surface-2);color:var(--text-primary)">
+            <option value="activo">Activo</option>
+            <option value="inactivo">Inactivo</option>
+          </select>
+        </div>
+        
+        <div id="adm-panel-mensaje" style="display:none;padding:8px;background:var(--bg-success);border:0.5px solid var(--text-success);border-radius:4px;margin-bottom:10px;font-size:10px;color:var(--text-success);text-align:center">✓ Guardado correctamente</div>
+        
+        <div style="display:flex;gap:6px">
+          <button onclick="adminGuardarUsuario()" style="flex:1;padding:8px;font-size:11px;background:#16a34a;color:white;border:none;border-radius:4px;cursor:pointer;font-weight:500">💾 Guardar</button>
+          <button onclick="adminCerrarModalUsuario()" style="flex:1;padding:8px;font-size:11px;background:#6b7280;color:white;border:none;border-radius:4px;cursor:pointer">✕ Cerrar</button>
+        </div>
       </div>
-      
-      <div style="margin-bottom:10px">
-        <label style="font-size:11px;color:var(--text-muted);display:block;margin-bottom:3px">RUT <span style="color:#ef4444">*</span></label>
-        <input type="text" id="modal-user-rut" style="width:100%;padding:6px 8px;font-size:11px;border:0.5px solid var(--border);border-radius:4px;box-sizing:border-box;background:var(--surface-2);color:var(--text-primary)">
-      </div>
-      
-      <div style="margin-bottom:10px">
-        <label style="font-size:11px;color:var(--text-muted);display:block;margin-bottom:3px">WhatsApp</label>
-        <input type="text" id="modal-user-whatsapp" style="width:100%;padding:6px 8px;font-size:11px;border:0.5px solid var(--border);border-radius:4px;box-sizing:border-box;background:var(--surface-2);color:var(--text-primary)">
-      </div>
-      
-      <div style="margin-bottom:10px">
-        <label style="font-size:11px;color:var(--text-muted);display:block;margin-bottom:3px">Rol <span style="color:#ef4444">*</span></label>
-        <select id="modal-user-rol" style="width:100%;padding:6px 8px;font-size:11px;border:0.5px solid var(--border);border-radius:4px;box-sizing:border-box;background:var(--surface-2);color:var(--text-primary)">
-          <option value="">— Selecciona rol —</option>
-          <option value="mecanico">Mecánico</option>
-          <option value="Administrador">Administrador</option>
-          <option value="Recepcionista">Recepcionista</option>
-          <option value="Contador">Contador</option>
-        </select>
-      </div>
-      
-      <div style="margin-bottom:14px">
-        <label style="font-size:11px;color:var(--text-muted);display:block;margin-bottom:3px">Estado</label>
-        <select id="modal-user-estado" style="width:100%;padding:6px 8px;font-size:11px;border:0.5px solid var(--border);border-radius:4px;box-sizing:border-box;background:var(--surface-2);color:var(--text-primary)">
-          <option value="activo">Activo</option>
-          <option value="inactivo">Inactivo</option>
-        </select>
-      </div>
-      
-      <div id="adm-panel-mensaje" style="display:none;padding:8px;background:var(--bg-success);border:0.5px solid var(--text-success);border-radius:4px;margin-bottom:10px;font-size:10px;color:var(--text-success);text-align:center">✓ Guardado correctamente</div>
-      
-      <div style="display:flex;gap:6px">
-        <button onclick="adminGuardarUsuario()" style="flex:1;padding:8px;font-size:11px;background:#16a34a;color:white;border:none;border-radius:4px;cursor:pointer;font-weight:500">💾 Guardar</button>
-        <button onclick="adminCerrarModalUsuario()" style="flex:1;padding:8px;font-size:11px;background:#6b7280;color:white;border:none;border-radius:4px;cursor:pointer">✕ Cerrar</button>
-      </div>
+    </div>
+  </div>
+
+  <div id="adm-roles-content" style="display:none">
+    <div style="overflow-x:auto">
+      <table style="width:100%;border-collapse:collapse;font-size:11px;min-width:700px">
+        <thead>
+          <tr style="border-bottom:0.5px solid var(--border);background:var(--surface-1)">
+            <th style="text-align:left;padding:10px;font-weight:600">Rol</th>
+            <th style="text-align:center;padding:10px;font-weight:600">Dashboard</th>
+            <th style="text-align:center;padding:10px;font-weight:600">OT</th>
+            <th style="text-align:center;padding:10px;font-weight:600">Agenda</th>
+            <th style="text-align:center;padding:10px;font-weight:600">Clientes</th>
+            <th style="text-align:center;padding:10px;font-weight:600">Servicios</th>
+            <th style="text-align:center;padding:10px;font-weight:600">Inventario</th>
+            <th style="text-align:center;padding:10px;font-weight:600">Finanzas</th>
+            <th style="text-align:center;padding:10px;font-weight:600">Admin</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr style="border-bottom:0.5px solid var(--border)">
+            <td style="padding:10px;font-weight:500">Administrador</td>
+            <td style="text-align:center;padding:10px">✓</td>
+            <td style="text-align:center;padding:10px">✓</td>
+            <td style="text-align:center;padding:10px">✓</td>
+            <td style="text-align:center;padding:10px">✓</td>
+            <td style="text-align:center;padding:10px">✓</td>
+            <td style="text-align:center;padding:10px">✓</td>
+            <td style="text-align:center;padding:10px">✓</td>
+            <td style="text-align:center;padding:10px">✓</td>
+          </tr>
+          <tr style="border-bottom:0.5px solid var(--border)">
+            <td style="padding:10px;font-weight:500">Recepcionista</td>
+            <td style="text-align:center;padding:10px">✓</td>
+            <td style="text-align:center;padding:10px">✓</td>
+            <td style="text-align:center;padding:10px">✓</td>
+            <td style="text-align:center;padding:10px">✓</td>
+            <td style="text-align:center;padding:10px">✗</td>
+            <td style="text-align:center;padding:10px">✗</td>
+            <td style="text-align:center;padding:10px">✗</td>
+            <td style="text-align:center;padding:10px">✗</td>
+          </tr>
+          <tr style="border-bottom:0.5px solid var(--border)">
+            <td style="padding:10px;font-weight:500">Mecánico</td>
+            <td style="text-align:center;padding:10px">✓</td>
+            <td style="text-align:center;padding:10px">✓</td>
+            <td style="text-align:center;padding:10px">✓</td>
+            <td style="text-align:center;padding:10px">✗</td>
+            <td style="text-align:center;padding:10px">✗</td>
+            <td style="text-align:center;padding:10px">✗</td>
+            <td style="text-align:center;padding:10px">✗</td>
+            <td style="text-align:center;padding:10px">✗</td>
+          </tr>
+          <tr style="border-bottom:0.5px solid var(--border)">
+            <td style="padding:10px;font-weight:500">Contador</td>
+            <td style="text-align:center;padding:10px">✓</td>
+            <td style="text-align:center;padding:10px">✗</td>
+            <td style="text-align:center;padding:10px">✗</td>
+            <td style="text-align:center;padding:10px">✗</td>
+            <td style="text-align:center;padding:10px">✗</td>
+            <td style="text-align:center;padding:10px">✗</td>
+            <td style="text-align:center;padding:10px">✓</td>
+            <td style="text-align:center;padding:10px">✗</td>
+          </tr>
+        </tbody>
+      </table>
     </div>
   </div>
 </div>

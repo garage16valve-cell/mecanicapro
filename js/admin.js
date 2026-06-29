@@ -1042,3 +1042,15 @@ function adminRenderReportes() {
   // También intentar usar el motor existente con datos legacy
   if (typeof _admKPIs === 'function') _admKPIs();
 }
+
+// ===== USUARIOS TABS =====
+function admSetUsersTab(tabName) {
+  document.getElementById('adm-usuarios-content').style.display = tabName === 'usuarios' ? 'block' : 'none';
+  document.getElementById('adm-roles-content').style.display = tabName === 'roles' ? 'block' : 'none';
+  
+  document.getElementById('adm-users-tab-btn').style.borderBottomColor = tabName === 'usuarios' ? 'var(--fill-accent)' : 'transparent';
+  document.getElementById('adm-users-tab-btn').style.color = tabName === 'usuarios' ? 'var(--text-accent)' : 'var(--text-secondary)';
+  
+  document.getElementById('adm-roles-tab-btn').style.borderBottomColor = tabName === 'roles' ? 'var(--fill-accent)' : 'transparent';
+  document.getElementById('adm-roles-tab-btn').style.color = tabName === 'roles' ? 'var(--text-accent)' : 'var(--text-secondary)';
+}
