@@ -993,6 +993,7 @@ function crearOT() {
   renderListaOTs();
   APP.toast.show('✓ OT ' + id + ' creada correctamente', 'success');
   abrirDetalleOT(id);
+  if (typeof updateAllBadges === 'function') updateAllBadges();
 }
 
 function _resetFormOT() {
@@ -1382,6 +1383,7 @@ function guardarCambiosOT() {
   _otEditando = false;
   APP.toast.show('✓ Cambios guardados', 'success');
   abrirDetalleOT(_otDetalleId);
+  if (typeof updateAllBadges === 'function') updateAllBadges();
 }
 
 // --- Dropdown estado en detalle ---
@@ -1489,6 +1491,7 @@ function _aplicarEstadoOTDet(codigo, extra = {}) {
     _renderHistorialDet(otsOld[idxO].historial);
     _actualizarPanelesDet(otsOld[idxO]);
   }
+  if (typeof updateAllBadges === 'function') updateAllBadges();
 }
 
 function _renderHistorialDet(historial) {

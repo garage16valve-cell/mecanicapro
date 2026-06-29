@@ -888,6 +888,7 @@ function nfGuardarOT() {
   if (typeof renderKanban === 'function') renderKanban();
   else if (typeof renderListaOTs === 'function') renderListaOTs();
   showToast('✓ OT #' + otId + ' creada correctamente');
+  if (typeof updateAllBadges === 'function') updateAllBadges();
 }
 
 // ─── Helpers ────────────────────────────────────────────────────────────────

@@ -267,10 +267,11 @@ function finLibrosSetTab(tabName) {
   document.getElementById('fin-libros-' + tabName).style.display = 'block';
   const btns = document.querySelectorAll('#pg-finanzas .tab-btn');
   btns.forEach(b => b.classList.remove('active'));
-  const idx = ['compras','ventas','resumen'].indexOf(tabName);
+  const idx = ['compras','ventas','notas','resumen'].indexOf(tabName);
   if (idx >= 0 && btns[idx]) btns[idx].classList.add('active');
   if (tabName === 'compras') finRenderLibroCompras();
   if (tabName === 'ventas') finRenderLibroVentas();
+  if (tabName === 'notas') finRenderNotasCredito();
   if (tabName === 'resumen') finRenderResumenIVA();
 }
 
@@ -608,4 +609,74 @@ function finMarcarPagadoProveedor(id) {
     APP.lsSet('finanzas_proveedores', lista);
     finRenderProveedores();
   }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// NOTAS DE CRÉDITO
+// ═══════════════════════════════════════════════════════════════════
+
+function finRenderNotasCredito() {
+  const notas = APP.lsGet('finanzas_notas_credito') || [];
+  const tabla = document.getElementById('fin-notas-tabla');
+  if (!tabla) return;
+  tabla.innerHTML = '';
+
+  if (!notas.length) {
+    tabla.innerHTML = '<tr><td colspan="9" style="padding:20px;text-align:center;color:var(--text-muted)">Sin notas de crédito registradas.</td></tr>';
+    return;
+  }
+
+  notas.forEach(nota => {
+    const tipoBadge = nota.tipo === 'Compra' ? '<span style="color:var(--text-danger)">🔴 Compra</span>' : '<span style="color:var(--text-success)">🟢 Venta</span>';
+    tabla.innerHTML +=
+      '<tr style="border-bottom:1px solid var(--border)">' +
+        '<td style="padding:8px">' + nota.fecha + '</td>' +
+        '<td style="padding:8px">' + nota.numero_nota + '</td>' +
+        '<td style="padding:8px">' + nota.entidad + '</td>' +
+        '<td style="padding:8px">' + nota.documento_referencia + '</td>' +
+        '<td style="padding:8px;text-align:right">$' + nota.neto.toLocaleString('es-CL') + ' CLP</td>' +
+        '<td style="padding:8px;text-align:right">$' + nota.iva.toLocaleString('es-CL') + ' CLP</td>' +
+        '<td style="padding:8px;text-align:right">$' + (nota.neto + nota.iva).toLocaleString('es-CL') + ' CLP</td>' +
+        '<td style="padding:8px;text-align:center">' + tipoBadge + '</td>' +
+        '<td style="padding:8px;text-align:center"><button onclick="finEliminarNotaCredito(\'' + nota.id + '\')" style="background:none;border:none;color:var(--text-danger);cursor:pointer;font-size:14px">✕</button></td>' +
+      '</tr>';
+  });
+}
+
+function finAbrirModalNotaCredito() {
+  APP.modal.custom(
+    'Crear nota de crédito',
+    '<div class="fg"><label>Tipo</label><select id="fin-nc-tipo" style="width:100%"><option value="Compra">Compra (proveedor)</option><option value="Venta">Venta (cliente)</option></select></div>' +
+    '<div class="g2"><div class="fg"><label>Fecha</label><input id="fin-nc-fecha" type="date"></div>' +
+    '<div class="fg"><label>N° Nota</label><input id="fin-nc-numero" placeholder="NC-"></div></div>' +
+    '<div class="fg"><label>Cliente / Proveedor</label><input id="fin-nc-entidad" placeholder="Nombre"></div>' +
+    '<div class="fg"><label>Documento de referencia</label><input id="fin-nc-ref" placeholder="N° factura u OT"></div>' +
+    '<div class="g2"><div class="fg"><label>Neto CLP</label><input id="fin-nc-neto" type="number" placeholder="0" style="font-family:var(--font-mono)"></div>' +
+    '<div class="fg"><label>IVA CLP</label><input id="fin-nc-iva" type="number" placeholder="0" style="font-family:var(--font-mono)"></div></div>',
+    function() {
+      const tipo = document.getElementById('fin-nc-tipo')?.value;
+      const fecha = document.getElementById('fin-nc-fecha')?.value;
+      const numero = document.getElementById('fin-nc-numero')?.value?.trim();
+      const entidad = document.getElementById('fin-nc-entidad')?.value?.trim();
+      const ref = document.getElementById('fin-nc-ref')?.value?.trim();
+      const neto = parseFloat(document.getElementById('fin-nc-neto')?.value) || 0;
+      const iva = parseFloat(document.getElementById('fin-nc-iva')?.value) || 0;
+      if (!fecha || !numero || !entidad || !ref || !neto) { APP.toast.show('Completa todos los campos obligatorios.', 'warning'); return; }
+      const lista = APP.lsGet('finanzas_notas_credito') || [];
+      lista.push({ id: 'nota_' + Date.now(), fecha, numero_nota: numero, entidad, documento_referencia: ref, neto, iva, tipo });
+      APP.lsSet('finanzas_notas_credito', lista);
+      finRenderNotasCredito();
+      APP.toast.show('Nota de crédito registrada.');
+    },
+    'Guardar', 'Cancelar'
+  );
+}
+
+function finEliminarNotaCredito(id) {
+  APP.modal.confirmar('¿Eliminar esta nota de crédito?', () => {
+    let lista = APP.lsGet('finanzas_notas_credito') || [];
+    lista = lista.filter(n => n.id !== id);
+    APP.lsSet('finanzas_notas_credito', lista);
+    finRenderNotasCredito();
+  }, 'Eliminar', 'Cancelar');
 }

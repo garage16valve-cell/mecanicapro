@@ -274,6 +274,7 @@ function eliminarOT(id) {
   APP.lsSet('ots', _getOTs().filter(o => o.id !== id));
   renderKanban();
   showToast('OT eliminada');
+  if (typeof updateAllBadges === 'function') updateAllBadges();
 }
 
 // ─── Editar / Vista cliente ────────────────────────────────────────────────────

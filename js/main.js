@@ -85,6 +85,7 @@ function nav(page, el) {
   }
 
   currentPage = page;
+  if (typeof updateAllBadges === 'function') updateAllBadges();
 }
 
 // ===== DATOS COMPARTIDOS (disponibles para todos los módulos) =====
@@ -275,6 +276,218 @@ window.APP = {
   },
 };
 
+// ═══════════════════════════════════════════════════════════════════
+// DATOS DE EJEMPLO — Inicialización completa
+// ═══════════════════════════════════════════════════════════════════
+
+function initExampleData() {
+  // SOLO si la app está vacía (primera vez)
+
+  // Usuarios/Operarios
+  if (!APP.lsGet('usuarios') || APP.lsGet('usuarios').length === 0) {
+    APP.lsSet('usuarios', [
+      { id: 'op_001', nombre: 'Camilo', apellido: 'Yañez', rut: '18.915.883-0', whatsapp: '+56951655331', rol: 'mecanico', formacion: { nivel: 'profesional', especialidad: 'Mecánica automotriz', institucion: 'Universidad Técnica', año_egreso: 2015, titulo_validado: true }, experiencia: { años: 8, especialidades: 'Motor, frenos, suspensión' } },
+      { id: 'op_002', nombre: 'Cecilia', apellido: 'Puente', rut: '15.123.456-8', whatsapp: '+56923145698', rol: 'mecanico', formacion: { nivel: 'tecnico', especialidad: 'Electricidad automotriz', institucion: 'INACAP', año_egreso: 2018 }, experiencia: { años: 5, especialidades: 'Sistemas eléctricos, diagnóstico' } },
+      { id: 'admin_001', nombre: 'Admin', apellido: 'Sistema', rut: '00.000.000-0', whatsapp: '+56951234567', rol: 'Administrador' }
+    ]);
+  }
+
+  // Clientes
+  if (!APP.lsGet('clientes') || APP.lsGet('clientes').length === 0) {
+    APP.lsSet('clientes', [
+      { id: 'cli_001', nombre: 'Juan', apellido: 'Pérez García', rut: '12.345.678-9', whatsapp: '+56912345678', email: 'juan.perez@example.com', direccion: 'Av. Brasil 2543, Valparaíso', ciudad: 'Valparaíso' },
+      { id: 'cli_002', nombre: 'Carlos', apellido: 'López Rodríguez', rut: '13.456.789-0', whatsapp: '+56923456789', email: 'carlos.lopez@example.com', direccion: 'Paseo Gervasoni 567, Viña del Mar', ciudad: 'Viña del Mar' },
+      { id: 'cli_003', nombre: 'María', apellido: 'Sánchez Martínez', rut: '14.567.890-1', whatsapp: '+56934567890', email: '', direccion: 'Calle Cochrane 123, Quilpué', ciudad: 'Quilpué' }
+    ]);
+  }
+
+  // Vehículos
+  if (!APP.lsGet('vehiculos') || APP.lsGet('vehiculos').length === 0) {
+    APP.lsSet('vehiculos', [
+      { id: 'veh_001', patente: 'JKLL13', marca: 'Nissan', modelo: 'Versa', año: 2016, color: 'Blanco', cliente_id: 'cli_001', cliente_nombre: 'Juan Pérez', km: 150000, motor: 'asdsfdasfvsxcs', chasis: 'asdsdfsdfsdasdsdas' },
+      { id: 'veh_002', patente: 'XYZW98', marca: 'Toyota', modelo: 'Corolla', año: 2018, color: 'Gris', cliente_id: 'cli_002', cliente_nombre: 'Carlos López', km: 85000, motor: 'asdasd123', chasis: 'asdasd456' },
+      { id: 'veh_003', patente: 'QWER45', marca: 'Hyundai', modelo: 'i30', año: 2019, color: 'Rojo', cliente_id: 'cli_003', cliente_nombre: 'María Sánchez', km: 62000, motor: 'hyundai789', chasis: 'hyundai012' }
+    ]);
+  }
+
+  // Categorías de servicios
+  if (!APP.lsGet('svc_categorias') || APP.lsGet('svc_categorias').length === 0) {
+    APP.lsSet('svc_categorias', [
+      { id: 'cat_001', nombre: 'Frenos', color_hex: '#FF6B6B' },
+      { id: 'cat_002', nombre: 'Motor', color_hex: '#4ECDC4' },
+      { id: 'cat_003', nombre: 'Suspensión', color_hex: '#45B7D1' },
+      { id: 'cat_004', nombre: 'Eléctrico', color_hex: '#FFA07A' },
+      { id: 'cat_005', nombre: 'Mantenimiento', color_hex: '#98D8C8' }
+    ]);
+  }
+
+  // Servicios
+  if (!APP.lsGet('servicios') || APP.lsGet('servicios').length === 0) {
+    APP.lsSet('servicios', [
+      { id: 'svc_001', nombre: 'Cambio de pastillas de freno delanteras', categoria: 'Frenos', precio_venta: 50000, precio_costo: 25000, horas_estimadas: 1.5, margen: 30 },
+      { id: 'svc_002', nombre: 'Alineación y balanceo', categoria: 'Suspensión', precio_venta: 80000, precio_costo: 40000, horas_estimadas: 2, margen: 30 },
+      { id: 'svc_003', nombre: 'Cambio de aceite y filtro', categoria: 'Mantenimiento', precio_venta: 35000, precio_costo: 15000, horas_estimadas: 1, margen: 40 },
+      { id: 'svc_004', nombre: 'Diagnóstico de motor', categoria: 'Motor', precio_venta: 45000, precio_costo: 20000, horas_estimadas: 1.5, margen: 35 },
+      { id: 'svc_005', nombre: 'Reparación de alternador', categoria: 'Eléctrico', precio_venta: 120000, precio_costo: 60000, horas_estimadas: 2.5, margen: 30 }
+    ]);
+  }
+
+  // Repuestos
+  if (!APP.lsGet('repuestos') || APP.lsGet('repuestos').length === 0) {
+    APP.lsSet('repuestos', [
+      { id: 'rep_001', codigo: 'FREN-001', nombre: 'Juego de pastillas de freno delanteras', marca: 'Bosch', categoria: 'Frenos', precio_compra: 25000, precio_venta: 40000, stock: 15, stock_minimo: 5, margen: 25, ubicacion: 'Estante A1' },
+      { id: 'rep_002', codigo: 'FILT-001', nombre: 'Filtro de aceite motor', marca: 'Mobil', categoria: 'Mantenimiento', precio_compra: 8000, precio_venta: 12000, stock: 50, stock_minimo: 20, margen: 30, ubicacion: 'Estante B2' },
+      { id: 'rep_003', codigo: 'COMB-001', nombre: 'Bomba de combustible', marca: 'Delphi', categoria: 'Motor', precio_compra: 75000, precio_venta: 120000, stock: 3, stock_minimo: 2, margen: 35, ubicacion: 'Estante C3' },
+      { id: 'rep_004', codigo: 'AMORT-001', nombre: 'Amortiguador trasero', marca: 'KYB', categoria: 'Suspensión', precio_compra: 45000, precio_venta: 70000, stock: 2, stock_minimo: 3, margen: 25, ubicacion: 'Estante D1' }
+    ]);
+  }
+
+  // Proveedores
+  if (!APP.lsGet('proveedores') || APP.lsGet('proveedores').length === 0) {
+    APP.lsSet('proveedores', [
+      { id: 'prov_001', nombre: 'Repuestos Chile Ltda', rut: '76.543.210-8', whatsapp: '+56912765432', email: 'ventas@repuestoschile.cl', especialidad: 'Repuestos y servicios', marcas: ['Toyota', 'Nissan', 'Hyundai'], notas: 'Descuento en compras mayores a $500.000' },
+      { id: 'prov_002', nombre: 'AutoPartes SUR', rut: '78.901.234-5', whatsapp: '+56923456789', email: 'info@autopartessur.cl', especialidad: 'Frenos y suspensión', marcas: ['Bosch', 'KYB', 'Monroe'], notas: 'Entrega rápida' },
+      { id: 'prov_003', nombre: 'BREMBO Chile', rut: '80.123.456-7', whatsapp: '+56934567890', email: 'contacto@brembo.cl', especialidad: 'Sistemas de frenado', marcas: ['BREMBO'], notas: 'Proveedor oficial' }
+    ]);
+  }
+
+  // OTs (Órdenes de Trabajo)
+  if (!APP.lsGet('ots') || APP.lsGet('ots').length === 0) {
+    APP.lsSet('ots', [
+      {
+        id: 'OT-001', numero: '20260628001', fecha_creacion: '2026-06-28', fecha_cita: '2026-06-28', hora_cita: '09:00',
+        cliente_nombre: 'Juan', cliente_apellido: 'Pérez', cliente_rut: '12.345.678-9', cliente_whatsapp: '+56912345678',
+        patente: 'JKLL13', marca: 'Nissan', modelo: 'Versa', año: 2016, color: 'Blanco', km_entrada: 150000, motor: 'asdsfdasfvsxcs', chasis: 'asdsdfsdfsdasdsdas',
+        motivo_ingreso: 'Ruido en las ruedas delanteras al frenar', id_tecnico_asignado: 'op_001', tecnico_nombre: 'Camilo Yañez',
+        servicios: [{ id: 'svc_001', nombre: 'Cambio de pastillas de freno delanteras', categoria: 'Frenos', precio_venta: 50000, horas: 1.5, mano_obra: 50000 }],
+        repuestos: [{ id: 'rep_001', nombre: 'Juego de pastillas de freno', cantidad: 1, precio_unitario: 40000, subtotal: 40000 }],
+        estado: 'en_proceso', subtotal_servicios: 50000, subtotal_repuestos: 40000, total_sin_iva: 90000, iva: 17100, total_con_iva: 107100
+      },
+      {
+        id: 'OT-002', numero: '20260627002', fecha_creacion: '2026-06-27', fecha_cita: '2026-06-27', hora_cita: '14:00',
+        cliente_nombre: 'Carlos', cliente_apellido: 'López', cliente_rut: '13.456.789-0', cliente_whatsapp: '+56923456789',
+        patente: 'XYZW98', marca: 'Toyota', modelo: 'Corolla', año: 2018, color: 'Gris', km_entrada: 85000, motor: 'asdasd123', chasis: 'asdasd456',
+        motivo_ingreso: 'Cambio de aceite y revisión general', id_tecnico_asignado: 'op_002', tecnico_nombre: 'Cecilia Puente',
+        servicios: [{ id: 'svc_003', nombre: 'Cambio de aceite y filtro', categoria: 'Mantenimiento', precio_venta: 35000, horas: 1, mano_obra: 35000 }],
+        repuestos: [{ id: 'rep_002', nombre: 'Filtro de aceite motor', cantidad: 1, precio_unitario: 12000, subtotal: 12000 }],
+        estado: 'completada', subtotal_servicios: 35000, subtotal_repuestos: 12000, total_sin_iva: 47000, iva: 8930, total_con_iva: 55930,
+        fecha_cierre: '2026-06-27', hora_cierre: '15:30', metodo_pago: 'Transferencia'
+      }
+    ]);
+  }
+
+  // Finanzas - Flujo de caja
+  if (!APP.lsGet('finanzas_flujo_caja') || APP.lsGet('finanzas_flujo_caja').length === 0) {
+    APP.lsSet('finanzas_flujo_caja', [
+      { id: 'mov_001', fecha: '2026-06-27', descripcion: 'Utilidad líquida dueño — OT #002', categoria: 'Utilidad líquida dueño', tipo: 'ingreso', monto: 35000, ot_id: 'OT-002' },
+      { id: 'mov_002', fecha: '2026-06-27', descripcion: 'IVA cobrado — OT #002', categoria: 'IVA débito fiscal', tipo: 'ingreso', monto: 8930, ot_id: 'OT-002' },
+      { id: 'mov_003', fecha: '2026-06-05', descripcion: 'Arriendo oficina junio', categoria: 'Arriendo', tipo: 'egreso', monto: 800000 }
+    ]);
+  }
+
+  // Finanzas - Libro de compras
+  if (!APP.lsGet('finanzas_libro_compras') || APP.lsGet('finanzas_libro_compras').length === 0) {
+    APP.lsSet('finanzas_libro_compras', [
+      { id: 'comp_001', fecha: '2026-06-20', proveedor: 'Repuestos Chile Ltda', rut: '76.543.210-8', numero_factura: 'FAC-001234', neto: 500000, iva: 95000, estado: 'Pagado' }
+    ]);
+  }
+
+  // Finanzas - Notas de crédito
+  if (!APP.lsGet('finanzas_notas_credito') || APP.lsGet('finanzas_notas_credito').length === 0) {
+    APP.lsSet('finanzas_notas_credito', [
+      { id: 'nota_001', fecha: '2026-06-12', numero_nota: 'NC-001', entidad: 'Repuestos Chile Ltda', documento_referencia: 'FAC-001234', neto: 100000, iva: 19000, tipo: 'Compra' },
+      { id: 'nota_002', fecha: '2026-06-15', numero_nota: 'NC-002', entidad: 'Juan Pérez', documento_referencia: 'OT-001', neto: 50000, iva: 9500, tipo: 'Venta' }
+    ]);
+  }
+
+  // Finanzas - Remuneraciones
+  if (!APP.lsGet('finanzas_remuneraciones') || APP.lsGet('finanzas_remuneraciones').length === 0) {
+    APP.lsSet('finanzas_remuneraciones', [
+      { id: 'renum_001', id_operario: 'op_001', nombre_operario: 'Camilo Yañez', modalidad: 'Contrato', bruto: 1500000, descuentos: 225000, a_pagar: 1275000, estado: 'Pendiente', mes: 6, año: 2026 }
+    ]);
+  }
+
+  // Finanzas - Proveedores (cuentas por pagar)
+  if (!APP.lsGet('finanzas_proveedores') || APP.lsGet('finanzas_proveedores').length === 0) {
+    APP.lsSet('finanzas_proveedores', [
+      { id: 'prov_cxp_001', fecha: '2026-06-10', proveedor: 'AutoPartes SUR', rut: '78.901.234-5', numero_factura: 'FAC-5678', neto: 350000, iva: 66500, fecha_vencimiento: '2026-07-10', estado: 'Pendiente' }
+    ]);
+  }
+
+  // Motor contable config
+  if (!APP.lsGet('motor_contable_config')) {
+    APP.lsSet('motor_contable_config', {
+      cuentas: [
+        { nombre: 'Gastos fijos', descripcion: 'Arriendo, luz, agua, etc.', porcentaje: 30, color: '#FF6B6B' },
+        { nombre: 'Técnico asignado', descripcion: 'Comisión del mecánico', porcentaje: 35, color: '#4ECDC4' },
+        { nombre: 'Fondo reinversión', descripcion: 'Herramientas y mejoras', porcentaje: 15, color: '#45B7D1' },
+        { nombre: 'Utilidad líquida dueño', descripcion: 'Retiro directo', porcentaje: 20, color: '#FFD93D' }
+      ]
+    });
+  }
+
+  console.log('✅ Datos de ejemplo inicializados correctamente');
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// SISTEMA DE BADGES DINÁMICOS
+// ═══════════════════════════════════════════════════════════════════
+
+function updateAllBadges() {
+  updateBadgeAgenda();
+  updateBadgeOT();
+  updateBadgeRepuestos();
+  updateBadgeClientes();
+}
+
+function updateBadgeAgenda() {
+  const ots = APP.lsGet('ots') || [];
+  const hoy = new Date(); hoy.setHours(0,0,0,0);
+  const dentro7dias = new Date(hoy); dentro7dias.setDate(dentro7dias.getDate() + 7);
+  const badge = document.getElementById('badge-agenda');
+  if (!badge) return;
+  const count = ots.filter(ot => {
+    if (!ot.fecha_cita) return false;
+    const f = new Date(ot.fecha_cita);
+    return f >= hoy && f <= dentro7dias;
+  }).length;
+  if (count > 0) { badge.textContent = count; badge.style.display = 'inline-block'; }
+  else { badge.style.display = 'none'; }
+}
+
+function updateBadgeOT() {
+  const ots = APP.lsGet('ots') || [];
+  const badge = document.getElementById('badge-ot');
+  if (!badge) return;
+  const count = ots.filter(ot => ot.estado === 'en_proceso').length;
+  if (count > 0) { badge.textContent = count; badge.style.display = 'inline-block'; }
+  else { badge.style.display = 'none'; }
+}
+
+function updateBadgeRepuestos() {
+  const repuestos = APP.lsGet('repuestos') || [];
+  const badge = document.getElementById('badge-repuestos');
+  if (!badge) return;
+  const count = repuestos.filter(rep => rep.stock < (rep.stock_minimo || 5)).length;
+  if (count > 0) { badge.textContent = count; badge.style.display = 'inline-block'; }
+  else { badge.style.display = 'none'; }
+}
+
+function updateBadgeClientes() {
+  const clientes = APP.lsGet('clientes') || [];
+  const vehiculos = APP.lsGet('vehiculos') || [];
+  const ots = APP.lsGet('ots') || [];
+  const badge = document.getElementById('badge-clientes');
+  if (!badge) return;
+  const sinContacto = clientes.filter(c => !c.whatsapp && !c.email).length;
+  const sinOTs = vehiculos.filter(v => !ots.some(ot => ot.id_vehiculo === v.id || ot.patente === v.patente)).length;
+  const total = sinContacto + sinOTs;
+  if (total > 0) { badge.textContent = total; badge.style.display = 'inline-block'; }
+  else { badge.style.display = 'none'; }
+}
+
 // ===== INICIO =====
+initExampleData();
 nav('dashboard', document.querySelector('.ni.active'));
 APP.modoTaller.init();
+updateAllBadges();
