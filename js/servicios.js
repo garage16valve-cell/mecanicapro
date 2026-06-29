@@ -132,51 +132,59 @@ function svcLoadOperarios() {
 }
 
 function svcPermCargar(idOperario) {
-  const tabla = document.getElementById('svc-perm-tabla');
+  const wrap = document.getElementById('svc-perm-cat-wrap');
+  const lista = document.getElementById('svc-perm-cat-lista');
   const info  = document.getElementById('svc-perm-info');
   if (!idOperario) {
-    tabla.style.display = 'none'; info.style.display = 'none';
+    wrap.style.display = 'none'; info.style.display = 'none';
     return;
   }
-  const todos     = APP.lsGet('mp_servicios', []);
-  const permisos  = APP.lsGet('operarios_servicios', []);
-  const operPerms = permisos.filter(p => String(p.id_operario) === String(idOperario)).map(p => p.id_servicio);
+  const categorias = APP.lsGet('svc_categorias', []);
+  const permisos   = APP.lsGet('operarios_servicios', []);
+  const operPerms  = permisos.filter(p => String(p.id_operario) === String(idOperario)).map(p => p.id_cat);
 
-  tabla.style.display = 'block';
+  wrap.style.display = 'block';
   if (!operPerms.length) {
     info.style.display = 'block';
-    info.innerHTML = '<i class="ti ti-checkbox"></i> Sin restricciones — este operario puede hacer todos los servicios. Desmarca servicios para restringir.';
+    info.innerHTML = '<i class="ti ti-checkbox"></i> Sin restricciones — este operario puede hacer todas las categorías. Marca categorías para restringir.';
   } else {
     info.style.display = 'none';
   }
 
-  tabla.innerHTML = '<div style="font-size:10px;color:var(--text-muted);margin-bottom:8px;text-transform:uppercase;letter-spacing:.03em">Servicios' +
-    (operPerms.length ? ' — <span style="color:var(--text-danger)">restringido</span>' : '') + '</div>' +
-    todos.map(s => {
-      const checked = operPerms.includes(s.id);
-      return '<label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:5px 0;border-bottom:0.5px solid var(--border-light);font-size:12px">' +
-        '<input type="checkbox" id="perm-svc-' + _esc(s.id) + '" value="' + _esc(s.id) + '" ' + (checked ? 'checked' : '') +
-        ' onchange="svcUpdatePermiso(\'' + _esc(idOperario) + '\',\'' + _esc(s.id) + '\',this.checked)"> ' +
-        _esc(s.nombre) + '</label>';
-    }).join('');
+  if (!categorias.length) {
+    lista.innerHTML = '<div style="font-size:11px;color:var(--text-muted);padding:8px 0"><i class="ti ti-tags"></i> No hay categorías definidas. Ve a la pestaña Categorías para crear una.</div>';
+    return;
+  }
+
+  lista.innerHTML = categorias.map(c => {
+    const checked = operPerms.includes(c.id);
+    return '<label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:6px 0;border-bottom:0.5px solid var(--border-light);font-size:12px">' +
+      '<span style="width:10px;height:10px;border-radius:2px;background:' + (c.color_hex || '#3b82f6') + ';display:inline-block"></span>' +
+      '<input type="checkbox" id="perm-cat-' + _esc(c.id) + '" value="' + _esc(c.id) + '" ' + (checked ? 'checked' : '') +
+      ' onchange="svcUpdatePermiso(\'' + _esc(idOperario) + '\',\'' + _esc(c.id) + '\',this.checked)"> ' +
+      _esc(c.nombre) + '</label>';
+  }).join('');
 }
 
-function svcUpdatePermiso(idOp, idSvc, permitido) {
+function svcUpdatePermiso(idOp, idCat, permitido) {
   let permisos = APP.lsGet('operarios_servicios', []);
   if (permitido) {
-    permisos.push({ id_operario: idOp, id_servicio: idSvc });
+    permisos.push({ id_operario: idOp, id_cat: idCat });
   } else {
-    permisos = permisos.filter(p => !(String(p.id_operario) === String(idOp) && String(p.id_servicio) === String(idSvc)));
+    permisos = permisos.filter(p => !(String(p.id_operario) === String(idOp) && String(p.id_cat) === String(idCat)));
   }
   APP.lsSet('operarios_servicios', permisos);
+  svcPermCargar(idOp);
 }
 
 function svcGetPermitidosPara(idOperario) {
   if (!idOperario) return APP.lsGet('mp_servicios', []);
-  const permisos  = APP.lsGet('operarios_servicios', []);
-  const operPerms = permisos.filter(p => String(p.id_operario) === String(idOperario)).map(p => p.id_servicio);
+  const permisos   = APP.lsGet('operarios_servicios', []);
+  const operPerms  = permisos.filter(p => String(p.id_operario) === String(idOperario)).map(p => p.id_cat);
   if (!operPerms.length) return APP.lsGet('mp_servicios', []);
-  return APP.lsGet('mp_servicios', []).filter(s => operPerms.includes(s.id));
+  const categorias = APP.lsGet('svc_categorias', []);
+  const catsAfect = categorias.filter(c => operPerms.includes(c.id)).map(c => c.nombre);
+  return APP.lsGet('mp_servicios', []).filter(s => catsAfect.includes(s.categoria));
 }
 
 // ===== OPERARIOS CRUD =====
