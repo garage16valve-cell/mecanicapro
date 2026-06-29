@@ -2,7 +2,7 @@
 
 // RECEPCIÓN
 function otAbrirRecepcion(ot_id) {
-  const ots = APP.lsGet('ots', []);
+  const ots = APP.lsGet('mp_ots', []);
   const ot = ots.find(o => o.id === ot_id);
   if (!ot) return;
 
@@ -26,7 +26,7 @@ function otGuardarSintomas(ot_id, sintomas) {
     return;
   }
 
-  const ots = APP.lsGet('ots', []);
+  const ots = APP.lsGet('mp_ots', []);
   const ot = ots.find(o => o.id === ot_id);
   if (!ot) return;
 
@@ -39,14 +39,14 @@ function otGuardarSintomas(ot_id, sintomas) {
     fecha: new Date().toISOString()
   });
 
-  APP.lsSet('ots', ots);
+  APP.lsSet('mp_ots', ots);
   otAbrirDiagnostico(ot_id);
   APP.toast.show('✅ Síntomas guardados. Ir a diagnóstico', 'success');
 }
 
 // DIAGNÓSTICO
 function otAbrirDiagnostico(ot_id) {
-  const ots = APP.lsGet('ots', []);
+  const ots = APP.lsGet('mp_ots', []);
   const ot = ots.find(o => o.id === ot_id);
   if (!ot) return;
 
@@ -78,7 +78,7 @@ function otCargarServicios(ot_id) {
   ];
 
   const servicios = APP.lsGet('mp_servicios', servicios_default);
-  const ots = APP.lsGet('ots', []);
+  const ots = APP.lsGet('mp_ots', []);
   const ot = ots.find(o => o.id === ot_id);
   if (!ot) return;
 
@@ -97,7 +97,7 @@ function otCargarServicios(ot_id) {
 }
 
 function otSeleccionarServicio(ot_id, servicio_id) {
-  const ots = APP.lsGet('ots', []);
+  const ots = APP.lsGet('mp_ots', []);
   const ot = ots.find(o => o.id === ot_id);
   if (!ot.servicios_diagnostico) ot.servicios_diagnostico = [];
 
@@ -107,7 +107,7 @@ function otSeleccionarServicio(ot_id, servicio_id) {
     ot.servicios_diagnostico.push(servicio_id);
   }
 
-  APP.lsSet('ots', ots);
+  APP.lsSet('mp_ots', ots);
   otCargarRepuetosSugeridos(ot_id, ot.servicios_diagnostico);
 }
 
@@ -140,7 +140,7 @@ function otGuardarDiagnostico(ot_id, diagnostico, servicios_ids) {
     return;
   }
 
-  const ots = APP.lsGet('ots', []);
+  const ots = APP.lsGet('mp_ots', []);
   const ot = ots.find(o => o.id === ot_id);
   if (!ot) return;
 
@@ -154,14 +154,14 @@ function otGuardarDiagnostico(ot_id, diagnostico, servicios_ids) {
     fecha: new Date().toISOString()
   });
 
-  APP.lsSet('ots', ots);
+  APP.lsSet('mp_ots', ots);
   otAbrirCotizacion(ot_id);
   APP.toast.show('✅ Diagnóstico guardado. Armar cotización', 'success');
 }
 
 // COTIZACIÓN
 function otAbrirCotizacion(ot_id) {
-  const ots = APP.lsGet('ots', []);
+  const ots = APP.lsGet('mp_ots', []);
   const ot = ots.find(o => o.id === ot_id);
   if (!ot) return;
 
@@ -184,7 +184,7 @@ function otAbrirCotizacion(ot_id) {
 }
 
 function otRenderTablaCotizacion(ot_id) {
-  const ots = APP.lsGet('ots', []);
+  const ots = APP.lsGet('mp_ots', []);
   const ot = ots.find(o => o.id === ot_id);
   if (!ot.cotizacion) ot.cotizacion = { repuestos: [], mano_obra: 0 };
 
@@ -280,12 +280,12 @@ function otGuardarRepuesto() {
     return;
   }
 
-  const ots = APP.lsGet('ots', []);
+  const ots = APP.lsGet('mp_ots', []);
   const ot = ots.find(o => o.id === ot_id);
   if (!ot.cotizacion) ot.cotizacion = { repuestos: [] };
 
   ot.cotizacion.repuestos.push({ nombre, cantidad, precio_unitario: precio });
-  APP.lsSet('ots', ots);
+  APP.lsSet('mp_ots', ots);
 
   otCerrarModalRepuesto();
   otRenderTablaCotizacion(ot_id);
@@ -294,7 +294,7 @@ function otGuardarRepuesto() {
 }
 
 function otActualizarRepuesto(ot_id, index, campo, valor) {
-  const ots = APP.lsGet('ots', []);
+  const ots = APP.lsGet('mp_ots', []);
   const ot = ots.find(o => o.id === ot_id);
   if (!ot.cotizacion.repuestos[index]) return;
 
@@ -304,21 +304,21 @@ function otActualizarRepuesto(ot_id, index, campo, valor) {
     ot.cotizacion.repuestos[index].precio_unitario = parseFloat(valor) || 0;
   }
 
-  APP.lsSet('ots', ots);
+  APP.lsSet('mp_ots', ots);
   otActualizarTotales(ot_id);
 }
 
 function otEliminarRepuesto(ot_id, index) {
-  const ots = APP.lsGet('ots', []);
+  const ots = APP.lsGet('mp_ots', []);
   const ot = ots.find(o => o.id === ot_id);
   ot.cotizacion.repuestos.splice(index, 1);
-  APP.lsSet('ots', ots);
+  APP.lsSet('mp_ots', ots);
   otRenderTablaCotizacion(ot_id);
   otActualizarTotales(ot_id);
 }
 
 function otActualizarTotales(ot_id) {
-  const ots = APP.lsGet('ots', []);
+  const ots = APP.lsGet('mp_ots', []);
   const ot = ots.find(o => o.id === ot_id);
   const config = APP.lsGet('taller_config', {});
 
@@ -384,13 +384,13 @@ function otActualizarTotales(ot_id) {
     panel_derecha.innerHTML = totalesHTML;
   }
 
-  APP.lsSet('ots', ots);
+  APP.lsSet('mp_ots', ots);
 }
 
 // Exportar
 // ===== NAVEGACIÓN ENTRE FASES =====
 function otAbrirDetalleOT(ot_id) {
-  const ots = APP.lsGet('ots', []);
+  const ots = APP.lsGet('mp_ots', []);
   const ot = ots.find(o => o.id === ot_id);
   if (!ot) return;
 
@@ -413,7 +413,7 @@ function otAbrirDetalleOT(ot_id) {
 }
 
 function otMostrarTabRecepcion(ot_id) {
-  const ots = APP.lsGet('ots', []);
+  const ots = APP.lsGet('mp_ots', []);
   const ot = ots.find(o => o.id === ot_id);
   if (!ot) return;
 
@@ -436,7 +436,7 @@ function otMostrarTabRecepcion(ot_id) {
 }
 
 function otMostrarTabDiagnostico(ot_id) {
-  const ots = APP.lsGet('ots', []);
+  const ots = APP.lsGet('mp_ots', []);
   const ot = ots.find(o => o.id === ot_id);
   if (!ot) {
     console.error('DEBUG: OT no encontrada', ot_id);
@@ -467,7 +467,7 @@ function otMostrarTabDiagnostico(ot_id) {
 }
 
 function otMostrarTabCotizacion(ot_id) {
-  const ots = APP.lsGet('ots', []);
+  const ots = APP.lsGet('mp_ots', []);
   const ot = ots.find(o => o.id === ot_id);
   if (!ot) return;
 
@@ -498,7 +498,7 @@ function otGuardarSintomas() {
     return;
   }
 
-  const ots = APP.lsGet('ots', []);
+  const ots = APP.lsGet('mp_ots', []);
   const ot = ots.find(o => o.id === ot_id);
   if (!ot) return;
 
@@ -506,7 +506,7 @@ function otGuardarSintomas() {
   ot.estado = 'en_diagnostico';
   ot.fecha_modificacion = new Date().toISOString();
 
-  APP.lsSet('ots', ots);
+  APP.lsSet('mp_ots', ots);
   otMostrarTabDiagnostico(ot_id);
   APP.toast.show('✅ Síntomas guardados. Avanzando a diagnóstico...', 'success');
 }
@@ -525,7 +525,7 @@ function otGuardarDiagnosticoNuevo() {
     return;
   }
 
-  const ots = APP.lsGet('ots', []);
+  const ots = APP.lsGet('mp_ots', []);
   const ot = ots.find(o => o.id === ot_id);
   if (!ot) return;
 
@@ -539,7 +539,7 @@ function otGuardarDiagnosticoNuevo() {
   ot.estado = 'armar_cotizacion';
   ot.fecha_modificacion = new Date().toISOString();
 
-  APP.lsSet('ots', ots);
+  APP.lsSet('mp_ots', ots);
   otMostrarTabCotizacion(ot_id);
   APP.toast.show('✅ Diagnóstico guardado. Avanzando a cotización...', 'success');
 }
@@ -554,14 +554,14 @@ function otVolverDiagnostico(ot_id) {
 
 function otGuardarCotizacion() {
   const ot_id = document.getElementById('ot-cotizacion-ot-id').value;
-  const ots = APP.lsGet('ots', []);
+  const ots = APP.lsGet('mp_ots', []);
   const ot = ots.find(o => o.id === ot_id);
   if (!ot) return;
 
   ot.estado = 'esperando_aprobacion';
   ot.fecha_modificacion = new Date().toISOString();
 
-  APP.lsSet('ots', ots);
+  APP.lsSet('mp_ots', ots);
   APP.toast.show('✅ Cotización guardada', 'success');
   tallerMostrarPanelAcciones(ot_id);
 }
