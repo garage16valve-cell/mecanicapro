@@ -13,11 +13,13 @@ function finSetTab(tabName) {
 }
 
 function finCargar() {
+  console.log('finanzas: usuario_sesion =', APP.lsGet('usuario_sesion'));
   finRenderDashboard();
 }
 
 function finRenderDashboard() {
-  if (APP.lsGet('usuario_rol') !== 'Administrador') {
+  const usuario = APP.lsGet('usuario_sesion') || {};
+  if (usuario.rol !== 'Administrador' && usuario.rol !== 'admin') {
     document.getElementById('fin-tab-dashboard').innerHTML = '<p style="padding:24px;color:var(--text-danger);font-size:13px">⛔ Acceso denegado. Solo usuarios con perfil Administrador pueden ver este panel.</p>';
     return;
   }
