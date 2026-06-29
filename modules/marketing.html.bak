@@ -1,4 +1,3 @@
-      <div class="module-wrap" id="module-marketing">
 <!-- FIDELIZACIÓN -->
 <div class="page active" id="pg-fidelizacion">
   <div class="al al-a" style="margin-bottom:14px"><i class="ti ti-robot"></i><div class="al-text"><strong>Algoritmo predictivo de kilometraje:</strong> Lógica A para clientes frecuentes (km/día real). Lógica B para nuevos clientes: regla de 180 días.</div></div>
@@ -90,8 +89,8 @@
           </div>
         </div>
         <div style="display:flex;gap:8px;flex-wrap:wrap">
-          <button class="btn bpw" onclick="mktEnviarResumenManual()" style="color:#fff"><i class="ti ti-brand-whatsapp"></i> Enviar resumen ahora</button>
-          <button class="btn bpw" onclick="mktEnviarPostServicio()" style="color:#fff"><i class="ti ti-star"></i> Enviar seguimientos post-servicio</button>
+      <button class="btn bpw" onclick="mktEnviarResumenManual()" style="color:#fff"><i class="ti ti-brand-whatsapp"></i> Enviar resumen ahora</button>
+      <button class="btn bpw" onclick="mktEnviarPostServicio()" style="color:#fff"><i class="ti ti-star"></i> Enviar seguimientos post-servicio</button>
         </div>
         <div id="alerta-status" style="font-size:11px;color:var(--text-muted);margin-top:8px;min-height:16px"></div>
         <div style="margin-top:12px;padding:10px;background:var(--surface-1);border-radius:var(--radius)">
@@ -131,6 +130,3 @@
   </div>
 
 </div>
-
-</div>
-

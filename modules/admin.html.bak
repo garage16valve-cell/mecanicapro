@@ -1,4 +1,5 @@
-      <div id="module-admin" class="module-wrap">
+<!-- ===== MÓDULO: ADMIN ===== -->
+<div id="module-admin" class="module-wrap">
 
   <!-- ════════════════════════════════════════ -->
   <!-- PAGE: REPORTES                          -->
@@ -129,41 +130,6 @@
   <div id="adm-tab-config" style="display:none">
 
     <h2 style="margin-bottom:20px">Configuración</h2>
-
-    <!-- ⚖️ DATOS LEGALES PARA DOCUMENTOS -->
-    <div style="background:var(--surface-1);padding:20px;border-radius:8px;margin-bottom:20px;border:0.5px solid #d97706">
-      <h3 style="margin-bottom:14px;display:flex;align-items:center;gap:8px"><i class="ti ti-scale"></i> Datos Legales Para Documentos</h3>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
-        <div>
-          <label style="display:block;font-size:12px;color:var(--text-muted);margin-bottom:4px">Nombre legal de empresa <span style="color:#ef4444">*</span></label>
-          <input type="text" id="datos-legales-nombre" placeholder="Razón social" style="width:100%;padding:10px;border:0.5px solid var(--border);border-radius:4px;box-sizing:border-box;background:var(--surface-2);color:var(--text-primary)">
-        </div>
-        <div>
-          <label style="display:block;font-size:12px;color:var(--text-muted);margin-bottom:4px">RUT <span style="color:#ef4444">*</span></label>
-          <input type="text" id="datos-legales-rut" placeholder="XX.XXX.XXX-X" style="width:100%;padding:10px;border:0.5px solid var(--border);border-radius:4px;box-sizing:border-box;background:var(--surface-2);color:var(--text-primary)">
-        </div>
-        <div>
-          <label style="display:block;font-size:12px;color:var(--text-muted);margin-bottom:4px">Dirección legal <span style="color:#ef4444">*</span></label>
-          <input type="text" id="datos-legales-direccion" placeholder="Calle, número" style="width:100%;padding:10px;border:0.5px solid var(--border);border-radius:4px;box-sizing:border-box;background:var(--surface-2);color:var(--text-primary)">
-        </div>
-        <div>
-          <label style="display:block;font-size:12px;color:var(--text-muted);margin-bottom:4px">Comuna <span style="color:#ef4444">*</span></label>
-          <input type="text" id="datos-legales-comuna" placeholder="Comuna" style="width:100%;padding:10px;border:0.5px solid var(--border);border-radius:4px;box-sizing:border-box;background:var(--surface-2);color:var(--text-primary)">
-        </div>
-        <div>
-          <label style="display:block;font-size:12px;color:var(--text-muted);margin-bottom:4px">Email (opcional)</label>
-          <input type="email" id="datos-legales-email" placeholder="contacto@empresa.cl" style="width:100%;padding:10px;border:0.5px solid var(--border);border-radius:4px;box-sizing:border-box;background:var(--surface-2);color:var(--text-primary)">
-        </div>
-        <div>
-          <label style="display:block;font-size:12px;color:var(--text-muted);margin-bottom:4px">Teléfono (opcional)</label>
-          <input type="text" id="datos-legales-telefono" placeholder="+56 9 XXXX XXXX" style="width:100%;padding:10px;border:0.5px solid var(--border);border-radius:4px;box-sizing:border-box;background:var(--surface-2);color:var(--text-primary)">
-        </div>
-      </div>
-      <div style="margin-top:14px">
-        <button class="btn bpa" onclick="adminGuardarDatosLegales()" style="padding:8px 16px;font-size:11px"><i class="ti ti-device-floppy"></i> Guardar datos legales</button>
-      </div>
-    </div>
-
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
 
       <!-- Columna izquierda: Datos del Taller -->
@@ -303,6 +269,71 @@
     
 
 
+  <h3 style="margin:24px 0 12px;font-size:13px">Roles y Permisos</h3>
+  <div style="overflow-x:auto">
+    <table style="width:100%;border-collapse:collapse;font-size:11px;min-width:700px">
+      <thead>
+        <tr style="border-bottom:0.5px solid var(--border);background:var(--surface-1)">
+          <th style="text-align:left;padding:10px;font-weight:600">Rol</th>
+          <th style="text-align:center;padding:10px;font-weight:600">Dashboard</th>
+          <th style="text-align:center;padding:10px;font-weight:600">OT</th>
+          <th style="text-align:center;padding:10px;font-weight:600">Agenda</th>
+          <th style="text-align:center;padding:10px;font-weight:600">Clientes</th>
+          <th style="text-align:center;padding:10px;font-weight:600">Servicios</th>
+          <th style="text-align:center;padding:10px;font-weight:600">Inventario</th>
+          <th style="text-align:center;padding:10px;font-weight:600">Finanzas</th>
+          <th style="text-align:center;padding:10px;font-weight:600">Admin</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr style="border-bottom:0.5px solid var(--border)">
+          <td style="padding:10px;font-weight:500">Administrador</td>
+          <td style="text-align:center;padding:10px">✓</td>
+          <td style="text-align:center;padding:10px">✓</td>
+          <td style="text-align:center;padding:10px">✓</td>
+          <td style="text-align:center;padding:10px">✓</td>
+          <td style="text-align:center;padding:10px">✓</td>
+          <td style="text-align:center;padding:10px">✓</td>
+          <td style="text-align:center;padding:10px">✓</td>
+          <td style="text-align:center;padding:10px">✓</td>
+        </tr>
+        <tr style="border-bottom:0.5px solid var(--border)">
+          <td style="padding:10px;font-weight:500">Recepcionista</td>
+          <td style="text-align:center;padding:10px">✓</td>
+          <td style="text-align:center;padding:10px">✓</td>
+          <td style="text-align:center;padding:10px">✓</td>
+          <td style="text-align:center;padding:10px">✓</td>
+          <td style="text-align:center;padding:10px">✗</td>
+          <td style="text-align:center;padding:10px">✗</td>
+          <td style="text-align:center;padding:10px">✗</td>
+          <td style="text-align:center;padding:10px">✗</td>
+        </tr>
+        <tr style="border-bottom:0.5px solid var(--border)">
+          <td style="padding:10px;font-weight:500">Mecánico</td>
+          <td style="text-align:center;padding:10px">✓</td>
+          <td style="text-align:center;padding:10px">✓</td>
+          <td style="text-align:center;padding:10px">✓</td>
+          <td style="text-align:center;padding:10px">✗</td>
+          <td style="text-align:center;padding:10px">✗</td>
+          <td style="text-align:center;padding:10px">✗</td>
+          <td style="text-align:center;padding:10px">✗</td>
+          <td style="text-align:center;padding:10px">✗</td>
+        </tr>
+        <tr style="border-bottom:0.5px solid var(--border)">
+          <td style="padding:10px;font-weight:500">Contador</td>
+          <td style="text-align:center;padding:10px">✓</td>
+          <td style="text-align:center;padding:10px">✗</td>
+          <td style="text-align:center;padding:10px">✗</td>
+          <td style="text-align:center;padding:10px">✗</td>
+          <td style="text-align:center;padding:10px">✗</td>
+          <td style="text-align:center;padding:10px">✗</td>
+          <td style="text-align:center;padding:10px">✓</td>
+          <td style="text-align:center;padding:10px">✗</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
 <div id="adm-panel-editar" class="modal-overlay" style="display:none">
   <div class="modal-grande">
     <div class="modal-header">
@@ -416,111 +447,4 @@
     </div>
   </div>
 </div>
-
-  <h3 style="margin:24px 0 12px;font-size:13px">Roles y Permisos</h3>
-  <div style="overflow-x:auto">
-    <table style="width:100%;border-collapse:collapse;font-size:11px;min-width:700px">
-      <thead>
-        <tr style="border-bottom:0.5px solid var(--border);background:var(--surface-1)">
-          <th style="text-align:left;padding:10px;font-weight:600">Rol</th>
-          <th style="text-align:center;padding:10px;font-weight:600">Dashboard</th>
-          <th style="text-align:center;padding:10px;font-weight:600">OT</th>
-          <th style="text-align:center;padding:10px;font-weight:600">Agenda</th>
-          <th style="text-align:center;padding:10px;font-weight:600">Clientes</th>
-          <th style="text-align:center;padding:10px;font-weight:600">Servicios</th>
-          <th style="text-align:center;padding:10px;font-weight:600">Inventario</th>
-          <th style="text-align:center;padding:10px;font-weight:600">Finanzas</th>
-          <th style="text-align:center;padding:10px;font-weight:600">Admin</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr style="border-bottom:0.5px solid var(--border)">
-          <td style="padding:10px;font-weight:500">Administrador</td>
-          <td style="text-align:center;padding:10px">✓</td>
-          <td style="text-align:center;padding:10px">✓</td>
-          <td style="text-align:center;padding:10px">✓</td>
-          <td style="text-align:center;padding:10px">✓</td>
-          <td style="text-align:center;padding:10px">✓</td>
-          <td style="text-align:center;padding:10px">✓</td>
-          <td style="text-align:center;padding:10px">✓</td>
-          <td style="text-align:center;padding:10px">✓</td>
-        </tr>
-        <tr style="border-bottom:0.5px solid var(--border)">
-          <td style="padding:10px;font-weight:500">Recepcionista</td>
-          <td style="text-align:center;padding:10px">✓</td>
-          <td style="text-align:center;padding:10px">✓</td>
-          <td style="text-align:center;padding:10px">✓</td>
-          <td style="text-align:center;padding:10px">✓</td>
-          <td style="text-align:center;padding:10px">✗</td>
-          <td style="text-align:center;padding:10px">✗</td>
-          <td style="text-align:center;padding:10px">✗</td>
-          <td style="text-align:center;padding:10px">✗</td>
-        </tr>
-        <tr style="border-bottom:0.5px solid var(--border)">
-          <td style="padding:10px;font-weight:500">Mecánico</td>
-          <td style="text-align:center;padding:10px">✓</td>
-          <td style="text-align:center;padding:10px">✓</td>
-          <td style="text-align:center;padding:10px">✓</td>
-          <td style="text-align:center;padding:10px">✗</td>
-          <td style="text-align:center;padding:10px">✗</td>
-          <td style="text-align:center;padding:10px">✗</td>
-          <td style="text-align:center;padding:10px">✗</td>
-          <td style="text-align:center;padding:10px">✗</td>
-        </tr>
-        <tr style="border-bottom:0.5px solid var(--border)">
-          <td style="padding:10px;font-weight:500">Contador</td>
-          <td style="text-align:center;padding:10px">✓</td>
-          <td style="text-align:center;padding:10px">✗</td>
-          <td style="text-align:center;padding:10px">✗</td>
-          <td style="text-align:center;padding:10px">✗</td>
-          <td style="text-align:center;padding:10px">✗</td>
-          <td style="text-align:center;padding:10px">✗</td>
-          <td style="text-align:center;padding:10px">✓</td>
-          <td style="text-align:center;padding:10px">✗</td>
-        </tr>
-      </tbody>
-    </table>
-  </div>
-
 </div>
-    </div><!-- /#content-area -->
-  </div>
-</div>
-
-<script src="js/main.js"></script>
-<script src="js/main-selectores.js"></script>
-<script src="js/taller.js"></script>
-<script src="js/taller-lista.js"></script>
-<script src="js/taller-formulario.js"></script>
-<script src="js/taller-detalle.js"></script>
-<script src="js/taller-repuestos.js"></script>
-<script src="js/taller-pago.js"></script>
-<script src="js/admin.js"></script>
-<script src="js/admin-usuarios.js"></script>
-
-<script src="js/dashboard.js"></script>
-<script src="js/finanzas.js"></script>
-<script src="js/servicios.js"></script>
-<script src="js/agenda.js"></script>
-<script src="js/inventario.js"></script>
-<script src="js/marketing.js"></script>
-
-<!-- Wiki, OT Flujo, Cotización y PDF -->
-<script src="js/wiki.js"></script>
-<script src="js/ot-flujo.js"></script>
-<script src="js/cotizacion-proveedores.js"></script>
-<script src="js/panel-acciones-cotizacion.js"></script>
-<script src="js/pdf-cotizacion.js"></script>
-
-<!-- jsPDF para generación de PDF -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-
-<script>
-if (typeof init_dashboard === 'function') init_dashboard();
-// Inicializar Wiki Técnica
-if (typeof wikiInicializar === 'function') wikiInicializar();
-// Cargar datos legales al entrar a configuración
-if (typeof adminCargarDatosLegales === 'function') adminCargarDatosLegales();
-</script>
-</body>
-</html>
