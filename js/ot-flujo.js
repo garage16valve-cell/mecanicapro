@@ -1019,28 +1019,32 @@ function otBuscadorServicios(texto, suffix = '') {
   if (!dropdown) return;
   if (!texto || texto.length < 1) { dropdown.style.display = 'none'; return; }
   const t = texto.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-  const servDefault = [{id:'serv-1',nombre:'Cambio aceite',horas:0.5,precio_venta:25000},{id:'serv-2',nombre:'Cambio filtro',horas:0.25,precio_venta:12000},{id:'serv-3',nombre:'Cambio de frenos',horas:1.5,precio_venta:45000},{id:'serv-4',nombre:'Alineación',horas:1,precio_venta:22000},{id:'serv-5',nombre:'Balanceo de ruedas',horas:0.75,precio_venta:18000}];
+  const servDefault = [{id:'serv-1',nombre:'Cambio aceite',horasEst:0.5,precioFijo:25000,repuestosSugeridos:[]},{id:'serv-2',nombre:'Cambio filtro',horasEst:0.25,precioFijo:12000,repuestosSugeridos:[]},{id:'serv-3',nombre:'Cambio de frenos',horasEst:1.5,precioFijo:45000,repuestosSugeridos:[{nombre:'Pastillas de freno delanteras (Jgo)',cantidad:1,unidad:'juego'}]},{id:'serv-4',nombre:'Alineación',horasEst:1,precioFijo:22000,repuestosSugeridos:[]},{id:'serv-5',nombre:'Balanceo de ruedas',horasEst:0.75,precioFijo:18000,repuestosSugeridos:[]}];
   const servicios = APP.lsGet('mp_servicios', servDefault);
   const filtrados = servicios.filter(s => s.nombre.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').includes(t));
   if (filtrados.length === 0) { dropdown.style.display = 'none'; return; }
-  dropdown.innerHTML = filtrados.map(s => `<div class="ot-sug-item" onclick="otRellenarServicioSeleccionado('${s.id}','${suffix}')">${s.nombre} <span style="color:var(--text-muted);font-size:10px">${s.horas_estimadas||s.horas||0}h · $${(s.precio_venta||0).toLocaleString('es-CL')}</span></div>`).join('');
+  dropdown.innerHTML = filtrados.map(s => {
+    const h = s.horasEst != null ? s.horasEst : (s.horas || s.horas_estimadas || 0);
+    const v = s.precioFijo != null ? s.precioFijo : (s.valor || s.precio_venta || s.precioMinVenta || 0);
+    return `<div class="ot-sug-item" onclick="otRellenarServicioSeleccionado('${s.id}','${suffix}')">${s.nombre} <span style="color:var(--text-muted);font-size:10px">${h}h · $${v.toLocaleString('es-CL')}</span></div>`;
+  }).join('');
   dropdown.style.display = 'block';
 }
 
 function otRellenarServicioSeleccionado(servicio_id, suffix = '') {
-  const servDefault = [{id:'serv-1',nombre:'Cambio aceite',horas:0.5,precio_venta:25000,repuestos:[]},{id:'serv-2',nombre:'Cambio filtro',horas:0.25,precio_venta:12000,repuestos:[]},{id:'serv-3',nombre:'Cambio de frenos',horas:1.5,precio_venta:45000,repuestos:[{nombre:'Pastillas freno',cantidad:1,precio:15000,proveedor:'Bosch'},{nombre:'Discos freno',cantidad:2,precio:25000,proveedor:'Bosch'}]},{id:'serv-4',nombre:'Alineación',horas:1,precio_venta:22000,repuestos:[]},{id:'serv-5',nombre:'Balanceo de ruedas',horas:0.75,precio_venta:18000,repuestos:[]}];
+  const servDefault = [{id:'serv-1',nombre:'Cambio aceite',horasEst:0.5,precioFijo:25000,repuestosSugeridos:[]},{id:'serv-2',nombre:'Cambio filtro',horasEst:0.25,precioFijo:12000,repuestosSugeridos:[]},{id:'serv-3',nombre:'Cambio de frenos',horasEst:1.5,precioFijo:45000,repuestosSugeridos:[{nombre:'Pastillas de freno delanteras (Jgo)',cantidad:1,unidad:'juego'}]},{id:'serv-4',nombre:'Alineación',horasEst:1,precioFijo:22000,repuestosSugeridos:[]},{id:'serv-5',nombre:'Balanceo de ruedas',horasEst:0.75,precioFijo:18000,repuestosSugeridos:[]}];
   const servicios = APP.lsGet('mp_servicios', servDefault);
   const servicio = servicios.find(s => s.id === servicio_id);
   if (!servicio) return;
   const sf = suffix;
   document.getElementById('ot-servicio-nombre' + sf).value = servicio.nombre;
-  document.getElementById('ot-servicio-horas' + sf).value = servicio.horas_estimadas || servicio.horas || 0;
-  document.getElementById('ot-servicio-valor' + sf).value = servicio.precio_venta || 0;
+  document.getElementById('ot-servicio-horas' + sf).value = servicio.horasEst != null ? servicio.horasEst : (servicio.horas || servicio.horas_estimadas || 0);
+  document.getElementById('ot-servicio-valor' + sf).value = servicio.precioFijo != null ? servicio.precioFijo : (servicio.valor || servicio.precio_venta || servicio.precioMinVenta || 0);
   document.getElementById('ot-servicio-seleccionado-id' + sf).value = servicio_id;
   document.getElementById('ot-panel-datos-servicio' + sf).style.display = 'block';
   const dropdown = document.getElementById('ot-sugerencias-servicios' + sf);
   if (dropdown) dropdown.style.display = 'none';
-  const repuestos = servicio.repuestos || [];
+  const repuestos = servicio.repuestosSugeridos || servicio.repuestos || [];
   if (repuestos.length > 0) {
     otCargarRepuestosTabla(repuestos, sf);
   } else {
@@ -1120,15 +1124,22 @@ function otCargarRepuestosTabla(repuestos, suffix = '') {
     return;
   }
   if (vacio) vacio.style.display = 'none';
-  tbody.innerHTML = repuestos.map((r, i) => `
+  const invHelper = typeof _findRepuestoEnInventario === 'function' ? _findRepuestoEnInventario : null;
+  tbody.innerHTML = repuestos.map((r, i) => {
+    const inv = invHelper ? invHelper(r.nombre || '') : null;
+    const badge = inv ? (inv.stock > 0
+      ? `<span style="background:#059669;color:#fff;font-size:9px;padding:1px 5px;border-radius:8px;white-space:nowrap">✓ stock:${inv.stock}</span>`
+      : `<span style="background:#d97706;color:#fff;font-size:9px;padding:1px 5px;border-radius:8px;white-space:nowrap">Cotizar</span>`)
+      : '';
+    return `
     <tr style="border-bottom:0.5px solid var(--border)">
-      <td style="padding:6px"><input type="text" value="${r.nombre||''}" placeholder="Nombre repuesto" id="ot-rep-nombre${sf}-${i}" style="width:100%;padding:6px;border:0.5px solid var(--border);border-radius:var(--radius);background:var(--surface-2);color:var(--text-primary);font-size:11px;box-sizing:border-box"></td>
+      <td style="padding:6px"><div style="display:flex;align-items:center;gap:6px"><input type="text" value="${r.nombre||''}" placeholder="Nombre repuesto" id="ot-rep-nombre${sf}-${i}" style="flex:1;padding:6px;border:0.5px solid var(--border);border-radius:var(--radius);background:var(--surface-2);color:var(--text-primary);font-size:11px;box-sizing:border-box;min-width:0">${badge}</div></td>
       <td style="padding:6px;text-align:center"><input type="number" min="1" value="${r.cantidad||1}" id="ot-rep-cant${sf}-${i}" style="width:60px;padding:6px;border:0.5px solid var(--border);border-radius:var(--radius);background:var(--surface-2);color:var(--text-primary);font-size:11px;text-align:center;box-sizing:border-box"></td>
       <td style="padding:6px;text-align:right"><input type="number" min="0" value="${r.precio||r.precio_unitario||0}" id="ot-rep-precio${sf}-${i}" style="width:100px;padding:6px;border:0.5px solid var(--border);border-radius:var(--radius);background:var(--surface-2);color:var(--text-primary);font-size:11px;text-align:right;box-sizing:border-box"></td>
       <td style="padding:6px"><input type="text" value="${r.proveedor||''}" placeholder="Proveedor" id="ot-rep-prov${sf}-${i}" style="width:100%;padding:6px;border:0.5px solid var(--border);border-radius:var(--radius);background:var(--surface-2);color:var(--text-primary);font-size:11px;box-sizing:border-box"></td>
       <td style="padding:6px;text-align:center"><button onclick="otEliminarFilaRepuesto(${i},'${sf}')" style="background:none;border:none;cursor:pointer;color:#ef4444;font-size:14px;padding:4px"><i class="ti ti-trash"></i></button></td>
-    </tr>
-  `).join('');
+    </tr>`;
+  }).join('');
 }
 
 function otAgregarRepuestoManual(suffix = '') {
