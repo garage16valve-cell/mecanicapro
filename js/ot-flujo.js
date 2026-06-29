@@ -972,6 +972,7 @@ function otGuardarPanelRecepcion(ot_id) {
 
 // ===== PANEL 2: DIAGNÓSTICO =====
 function otAbrirPanelDiagnostico(ot_id) {
+  window._otActualId = ot_id;
   const ots = APP.lsGet('ots', []);
   const ot = ots.find(o => o.id === ot_id);
   if (!ot) return;
@@ -1040,6 +1041,7 @@ function otAbrirPanelDiagnostico(ot_id) {
           </table>
         </div>
         <button class="btn bpa" onclick="otAgregarRepuestoManual('${sf}')" style="width:100%;justify-content:center;font-size:11px"><i class="ti ti-plus"></i> Agregar repuesto manual</button>
+        <button class="btn" onclick="otGuardarRepuestosEnCatalogo('${sf}')" style="width:100%;justify-content:center;font-size:11px;margin-top:6px"><i class="ti ti-device-floppy"></i> Guardar repuestos en el catálogo</button>
       </div>
     `)}
     ${_otFooter(`
@@ -1132,6 +1134,16 @@ function otCargarRepuestosSugeridos(servicio_id, suffix = '') {
   const config = APP.lsGet('taller_config', {});
   const defProvId = config.proveedor_predeterminado || '';
   const sugeridos = [];
+
+  // Obtener vehículo desde la OT actual
+  let vehiculoMarca = '';
+  if (window._otActualId) {
+    const ots = APP.lsGet('ots', []);
+    const ot = ots.find(o => o.id === window._otActualId);
+    if (ot) vehiculoMarca = (ot.vehiculo_marca || ot.marca || '').toLowerCase();
+  }
+
+  // 1. Buscar en wiki_tecnica por servicio_relacionado
   (wiki.especificaciones || []).forEach(spec => {
     if (spec.tipo === 'repuestos' && spec.servicio_relacionado === servicio_id) {
       const repDB = repuestosDB.find(r => r.nombre?.toLowerCase() === (spec.nombre || '').toLowerCase());
@@ -1145,21 +1157,44 @@ function otCargarRepuestosSugeridos(servicio_id, suffix = '') {
       });
     }
   });
+
+  // 2. Si no hay wiki, usar repuestosSugeridos del servicio mismo
+  if (sugeridos.length === 0) {
+    const servicio = (APP.lsGet('mp_servicios', [])).find(s => s.id === servicio_id);
+    if (servicio && Array.isArray(servicio.repuestosSugeridos)) {
+      servicio.repuestosSugeridos.forEach(r => {
+        sugeridos.push({
+          nombre: r.nombre || '—',
+          cantidad: r.cantidad || 1,
+          precio: r.precio_unitario || r.precio || 0,
+          proveedor: r.proveedor || '—'
+        });
+      });
+    }
+  }
+
+  // 3. Si no hay wiki ni propios, buscar nombre del servicio en inventario de repuestos
+  if (sugeridos.length === 0) {
+    const servicio = (APP.lsGet('mp_servicios', [])).find(s => s.id === servicio_id);
+    const servNombre = (servicio?.nombre || '').toLowerCase();
+    const tokens = servNombre.split(/\s+/).filter(t => t.length > 3);
+    const matching = repuestosDB.filter(r => {
+      const rn = (r.nombre || '').toLowerCase();
+      return tokens.some(t => rn.includes(t)) || servNombre.includes((r.categoria || '').toLowerCase());
+    });
+    // Filtrar por marca de vehículo si existe
+    const porMarca = vehiculoMarca ? matching.filter(r => (r.marca_vehiculo || '').toLowerCase() === vehiculoMarca) : [];
+    const finalList = porMarca.length > 0 ? porMarca : matching;
+    finalList.slice(0, 5).forEach(r => {
+      const prov = proveedores.find(p => p.id === (r.proveedor_id || defProvId));
+      sugeridos.push({ nombre: r.nombre, cantidad: 1, precio: r.precio_venta || 0, proveedor: prov?.nombre || '—' });
+    });
+  }
+
   if (sugeridos.length > 0) {
     otCargarRepuestosTabla(sugeridos, sf);
   } else {
-    const repuestosBase = APP.lsGet('repuestos', []);
-    const servicio = (APP.lsGet('mp_servicios', [])).find(s => s.id === servicio_id);
-    const servNombre = servicio?.nombre || '';
-    const filtrados = repuestosBase.filter(r => servNombre.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').includes((r.categoria || '').toLowerCase()));
-    if (filtrados.length > 0) {
-      otCargarRepuestosTabla(filtrados.slice(0, 5).map(r => {
-        const prov = proveedores.find(p => p.id === (r.proveedor_id || defProvId));
-        return { nombre: r.nombre, cantidad: 1, precio: r.precio_venta || 0, proveedor: prov?.nombre || '—' };
-      }), sf);
-    } else {
-      otCargarRepuestosTabla([], sf);
-    }
+    otCargarRepuestosTabla([], sf);
   }
 }
 
@@ -1170,7 +1205,7 @@ function otCargarRepuestosTabla(repuestos, suffix = '') {
   if (!tbody) return;
   if (!repuestos || repuestos.length === 0) {
     if (vacio) vacio.style.display = '';
-    tbody.innerHTML = vacio ? vacio.outerHTML : '<tr><td colspan="5" style="text-align:center;padding:20px;color:var(--text-muted);font-size:11px">Sin repuestos</td></tr>';
+    tbody.innerHTML = (vacio ? vacio.outerHTML : '<tr id="ot-panel-repuestos-vacio' + sf + '"><td colspan="5" style="text-align:center;padding:20px;color:var(--text-muted);font-size:11px">Sin repuestos sugeridos para este servicio. Agrega uno manualmente.</td></tr>');
     return;
   }
   if (vacio) vacio.style.display = 'none';
@@ -1194,6 +1229,33 @@ function otCargarRepuestosTabla(repuestos, suffix = '') {
       <td style="padding:6px;text-align:center"><button onclick="otEliminarFilaRepuesto(${i},'${sf}')" style="background:none;border:none;cursor:pointer;color:#ef4444;font-size:14px;padding:4px"><i class="ti ti-trash"></i></button></td>
     </tr>`;
   }).join('');
+}
+
+function otGuardarRepuestosEnCatalogo(suffix = '') {
+  const sf = suffix;
+  const servicioId = document.getElementById('ot-servicio-seleccionado-id' + sf)?.value;
+  if (!servicioId || servicioId.startsWith('manual-')) {
+    APP.toast.show('⚠️ Selecciona un servicio del catálogo para guardar', 'warning');
+    return;
+  }
+  const tbody = document.getElementById('ot-panel-repuestos-tbody' + sf);
+  if (!tbody) return;
+  const repuestos = [];
+  tbody.querySelectorAll('tr').forEach((tr, i) => {
+    const nombre = document.getElementById('ot-rep-nombre' + sf + '-' + i)?.value?.trim();
+    if (!nombre) return;
+    const cantidad = parseInt(document.getElementById('ot-rep-cant' + sf + '-' + i)?.value) || 1;
+    const precio = parseInt(document.getElementById('ot-rep-precio' + sf + '-' + i)?.value) || 0;
+    const proveedor = document.getElementById('ot-rep-prov' + sf + '-' + i)?.value?.trim() || '';
+    repuestos.push({ nombre, cantidad, precio_unitario: precio, proveedor });
+  });
+  if (repuestos.length === 0) { APP.toast.show('⚠️ No hay repuestos para guardar', 'warning'); return; }
+  const servicios = APP.lsGet('mp_servicios', []);
+  const servicio = servicios.find(s => s.id === servicioId);
+  if (!servicio) { APP.toast.show('⚠️ Servicio no encontrado', 'error'); return; }
+  servicio.repuestosSugeridos = repuestos;
+  APP.lsSet('mp_servicios', servicios);
+  APP.toast.show('✅ Repuestos guardados en el catálogo del servicio', 'success');
 }
 
 function otAgregarRepuestoManual(suffix = '') {

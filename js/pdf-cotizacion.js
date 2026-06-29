@@ -6,15 +6,9 @@ function tallerGenerarPDFCotizacion(ot_id) {
   const config = APP.lsGet('taller_config', {});
   const datosLegales = config.datos_legales || {};
 
-  if (!ot || !window.jsPDF) {
+  const jsPDF = window.jspdf?.jsPDF || window.jsPDF;
+  if (!ot || typeof jsPDF !== 'function') {
     APP.toast.show('⚠️ Error: OT no encontrada o librería PDF no cargada', 'error');
-    return null;
-  }
-
-  // Nota: La librería jsPDF debe estar disponible globalmente
-  // Si no está, esta función retornará null
-  if (typeof jsPDF === 'undefined') {
-    APP.toast.show('⚠️ Librería jsPDF no disponible. Verifica CDN.', 'error');
     return null;
   }
 
