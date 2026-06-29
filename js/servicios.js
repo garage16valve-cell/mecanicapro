@@ -135,7 +135,7 @@ function svcLoadOperarios() {
   const sel = document.getElementById('svc-perm-operario');
   if (!sel) return;
   const usuarios = APP.lsGet('usuarios', []);
-  const ops = usuarios.filter(u => u.rol === 'mecanico' || u.rol === 'técnico');
+  const ops = usuarios.filter(u => u.rol === 'mecanico');
   sel.innerHTML = '<option value="">— Selecciona un operario —</option>' +
     ops.map(u => '<option value="' + _esc(u.id) + '">' + _esc(u.nombre || '') + ' ' + _esc(u.apellido || '') + '</option>').join('');
 }
@@ -201,12 +201,13 @@ function svcGetPermitidosPara(idOperario) {
 let _svcOpEditId = null;
 let _svcOpCerts  = [];
 let _svcCertEditIdx = null;
+var _svcAdminContext = false;
 
 function svcOpRender() {
   const el = document.getElementById('svc-op-lista');
   if (!el) return;
   const usuarios = APP.lsGet('usuarios', []);
-  const ops = usuarios.filter(u => u.rol === 'mecanico' || u.rol === 'técnico');
+  const ops = usuarios.filter(u => u.rol === 'mecanico');
   if (!ops.length) {
     el.innerHTML = '<div style="text-align:center;padding:24px;color:var(--text-muted);font-size:11px"><i class="ti ti-tool" style="font-size:26px;display:block;margin-bottom:6px;opacity:.3"></i>Sin operarios registrados. Usa <strong>+ Nuevo operario</strong> para agregar.</div>';
     return;
@@ -262,7 +263,10 @@ function _svcOpLimpiarForm() {
 
 function svcOpNuevo() {
   _svcOpEditId = null;
+  _svcAdminContext = false;
   _svcOpLimpiarForm();
+  const rg = document.getElementById('svc-op-rol-group');
+  if (rg) rg.style.display = 'none';
   const t = document.getElementById('svc-op-titulo');
   if (t) t.textContent = 'Nuevo operario';
   const m = document.getElementById('svc-op-modal');
@@ -274,6 +278,10 @@ function svcOpEditar(id) {
   const u = usuarios.find(x => String(x.id) === String(id));
   if (!u) return;
   _svcOpEditId = id;
+  if (typeof _svcAdminContext === 'undefined' || !_svcAdminContext) {
+    const rg = document.getElementById('svc-op-rol-group');
+    if (rg) rg.style.display = 'none';
+  }
   _svcOpLimpiarForm();
   const s = (elId, v) => { const el = document.getElementById(elId); if (el) el.value = v || ''; };
   const c = (elId, v) => { const el = document.getElementById(elId); if (el) el.checked = !!v; };
@@ -331,16 +339,22 @@ function svcOpGuardar() {
     titulo_validado: document.getElementById('svc-op-f-titulo-val')?.checked || false,
   };
 
+  let errCert = false;
   _svcOpCerts.forEach(c => {
     if (c.año_vencimiento && c.año_obtencion && c.año_vencimiento < c.año_obtencion) {
       APP.toast.show('⚠️ En ' + c.nombre + ' el año de vencimiento es anterior al de obtención.', 'warning');
-      return;
+      errCert = true;
     }
   });
+  if (errCert) return;
+
+  const rol = (typeof _svcAdminContext !== 'undefined' && _svcAdminContext)
+    ? (document.getElementById('svc-op-f-rol')?.value || 'mecanico')
+    : 'mecanico';
 
   let usuarios = APP.lsGet('usuarios', []);
   const dato = {
-    nombre, apellido, rut: g('svc-op-f-rut'), wz: g('svc-op-f-wz'), rol: 'mecanico',
+    nombre, apellido, rut: g('svc-op-f-rut'), wz: g('svc-op-f-wz'), rol,
     formacion,
     certificaciones: _svcOpCerts,
     experiencia: {
@@ -368,13 +382,15 @@ function svcOpGuardar() {
   APP.lsSet('usuarios', usuarios);
   svcOpCerrar();
   svcOpRender();
-  APP.toast.show('Operario guardado');
+  if (typeof adminRenderUsuarios === 'function') adminRenderUsuarios(document.getElementById('adm-usuarios-buscar')?.value);
+  APP.toast.show(rol === 'mecanico' ? 'Operario guardado' : 'Usuario guardado.');
 }
 
 function svcOpEliminar(id) {
   APP.modal.confirmar('¿Eliminar este operario?', () => {
     APP.lsSet('usuarios', APP.lsGet('usuarios', []).filter(u => String(u.id) !== String(id)));
     svcOpRender();
+    if (typeof adminRenderUsuarios === 'function') adminRenderUsuarios(document.getElementById('adm-usuarios-buscar')?.value);
   }, 'Eliminar', 'Cancelar');
 }
 
@@ -383,6 +399,7 @@ function svcOpCerrar() {
   if (m) m.style.display = 'none';
   _svcOpEditId = null;
   _svcOpCerts = [];
+  _svcAdminContext = false;
   svcCertCerrarPanel();
 }
 

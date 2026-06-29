@@ -230,7 +230,7 @@ function adminRenderUsuarios(buscar) {
     tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:20px;color:var(--text-muted)">' + (filtro ? 'Sin resultados' : 'Sin usuarios registrados') + '</td></tr>';
     return;
   }
-  const ROLES = { administrador:'Administrador', recepcionista:'Recepcionista', mecanico:'Mecánico', contable:'Contable' };
+  const ROLES = { Administrador:'Administrador', Recepcionista:'Recepcionista', mecanico:'Mecánico', Contador:'Contador' };
   tbody.innerHTML = filtrados.map(u => {
     const iniciales = ((u.nombre || '?')[0] + (u.apellido || '')[0]).toUpperCase() || '?';
     const esActivo = u.estado !== 'inactivo';
@@ -250,86 +250,57 @@ function adminRenderUsuarios(buscar) {
           : '<span style="background:#6b7280;color:#fff;padding:2px 8px;border-radius:20px;font-size:10px">Inactivo</span>') +
       '</td>' +
       '<td style="padding:8px;text-align:center">' +
-        '<button class="btn" onclick="adminEditarUsuario(' + u.id + ')" style="font-size:10px;padding:3px 7px"><i class="ti ti-pencil"></i></button>' +
-        (u.id !== 1 ? ' <button class="btn" onclick="adminEliminarUsuario(' + u.id + ')" style="font-size:10px;padding:3px 7px;color:#dc2626"><i class="ti ti-trash"></i></button>' : '') +
+        '<button class="btn" onclick="adminEditarUsuario(\'' + u.id + '\')" style="font-size:10px;padding:3px 7px"><i class="ti ti-pencil"></i></button>' +
+        (u.id !== 1 ? ' <button class="btn" onclick="adminEliminarUsuario(\'' + u.id + '\')" style="font-size:10px;padding:3px 7px;color:#dc2626"><i class="ti ti-trash"></i></button>' : '') +
       '</td></tr>';
   }).join('');
 }
 
-var _adminUsuarioEditandoId = null;
+// Contexto: true si viene de Admin (Usuarios y roles), false si viene de Servicios (Operarios)
+var _svcAdminContext = false;
 
 function adminNuevoUsuario() {
-  _adminUsuarioEditandoId = null;
-  ['nombre','apellido','rut','whatsapp'].forEach(f => {
-    const el = document.getElementById('modal-user-' + f);
-    if (el) el.value = '';
-  });
-  const rol = document.getElementById('modal-user-rol');
-  if (rol) rol.value = '';
-  const est = document.getElementById('modal-user-estado');
-  if (est) est.value = 'activo';
-  const titulo = document.getElementById('adm-modal-titulo');
-  if (titulo) titulo.textContent = 'Nuevo Usuario';
-  const m = document.getElementById('modal-editar-usuario');
-  if (m) m.style.display = 'flex';
+  _svcAdminContext = true;
+  _svcOpLimpiarForm();
+  _svcOpEditId = null;
+  _svcOpCerts = [];
+  const rg = document.getElementById('svc-op-rol-group');
+  if (rg) rg.style.display = 'block';
+  const sel = document.getElementById('svc-op-f-rol');
+  if (sel) sel.value = 'mecanico';
+  const t = document.getElementById('svc-op-titulo');
+  if (t) t.textContent = 'Nuevo Usuario';
+  const m = document.getElementById('svc-op-modal');
+  if (m) m.style.display = '';
 }
 
 function adminEditarUsuario(id) {
-  _adminUsuarioEditandoId = id;
-  const u = (APP.lsGet('usuarios', [])).find(x => x.id === id);
-  if (!u) return;
-  const s = (f, v) => { const el = document.getElementById('modal-user-' + f); if (el) el.value = v ?? ''; };
-  s('nombre', u.nombre);
-  s('apellido', u.apellido);
-  s('rut', u.rut);
-  s('whatsapp', u.whatsapp);
-  const rol = document.getElementById('modal-user-rol');
-  if (rol) rol.value = u.rol || '';
-  const est = document.getElementById('modal-user-estado');
-  if (est) est.value = u.estado || 'activo';
-  const titulo = document.getElementById('adm-modal-titulo');
-  if (titulo) titulo.textContent = 'Editar Usuario';
-  const m = document.getElementById('modal-editar-usuario');
-  if (m) m.style.display = 'flex';
+  _svcAdminContext = true;
+  svcOpEditar(id);
+  const rg = document.getElementById('svc-op-rol-group');
+  if (rg) rg.style.display = 'block';
+  const u = APP.lsGet('usuarios', []).find(x => String(x.id) === String(id));
+  const sel = document.getElementById('svc-op-f-rol');
+  if (sel) sel.value = u?.rol || 'mecanico';
+  const t = document.getElementById('svc-op-titulo');
+  if (t) t.textContent = 'Editar Usuario: ' + (u?.nombre || '') + ' ' + (u?.apellido || '');
 }
 
 function adminGuardarUsuario() {
-  const g = f => (document.getElementById('modal-user-' + f)?.value || '').trim();
-  const nombre = g('nombre');
-  if (!nombre) { APP.toast.show('El nombre es obligatorio.', 'warning'); return; }
-  const apellido = g('apellido');
-  const rut = g('rut');
-  const whatsapp = g('whatsapp');
-  const rol = document.getElementById('modal-user-rol')?.value || 'mecanico';
-  const estado = document.getElementById('modal-user-estado')?.value || 'activo';
-  let usuarios = APP.lsGet('usuarios', []);
-  if (_adminUsuarioEditandoId) {
-    usuarios = usuarios.map(u => u.id === _adminUsuarioEditandoId ? { ...u, nombre, apellido, rut, whatsapp, rol, estado } : u);
-  } else {
-    usuarios.push({ id: Date.now(), nombre, apellido, rut, whatsapp, rol, color: '#3B82F6', pin: '0000', estado, fecha_creacion: Date.now() });
-  }
-  APP.lsSet('usuarios', usuarios);
-  document.getElementById('adm-modal-mensaje').style.display = 'block';
-  setTimeout(() => {
-    document.getElementById('adm-modal-mensaje').style.display = 'none';
-  }, 2000);
-  adminCerrarModalUsuario();
-  adminRenderUsuarios(document.getElementById('adm-usuarios-buscar')?.value);
-  APP.toast.show('Usuario guardado.', 'success');
+  svcOpGuardar();
 }
 
 function adminEliminarUsuario(id) {
-  if (!confirm('¿Eliminar este usuario? Esta acción no se puede deshacer.')) return;
-  let usuarios = APP.lsGet('usuarios', []).filter(u => u.id !== id);
-  APP.lsSet('usuarios', usuarios);
-  adminRenderUsuarios(document.getElementById('adm-usuarios-buscar')?.value);
-  APP.toast.show('Usuario eliminado.', 'success');
+  APP.modal.confirmar('¿Eliminar este usuario? Esta acción no se puede deshacer.', () => {
+    APP.lsSet('usuarios', APP.lsGet('usuarios', []).filter(u => String(u.id) !== String(id)));
+    adminRenderUsuarios(document.getElementById('adm-usuarios-buscar')?.value);
+    APP.toast.show('Usuario eliminado.', 'success');
+  }, 'Eliminar', 'Cancelar');
 }
 
 function adminCerrarModalUsuario() {
-  const m = document.getElementById('modal-editar-usuario');
-  if (m) m.style.display = 'none';
-  _adminUsuarioEditandoId = null;
+  svcOpCerrar();
+  _svcAdminContext = false;
 }
 
 // ===== PERÍODO =====
