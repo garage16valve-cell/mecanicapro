@@ -208,6 +208,14 @@ function cambiarFaseKanban(fase) {
 
 // ─── Auto-init cuando carga el módulo ─────────────────────────────────────────
 
-document.addEventListener('DOMContentLoaded', () => {
+function iniciarListaOTSiExiste() {
   if (document.getElementById('kanban-tabs-bar')) iniciarListaOT();
-});
+}
+
+// Si el DOM ya está cargado, inicializar inmediatamente
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', iniciarListaOTSiExiste);
+} else {
+  // DOM ya está cargado
+  iniciarListaOTSiExiste();
+}
