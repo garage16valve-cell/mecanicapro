@@ -3,13 +3,11 @@
 
   <h3 style="margin-bottom:14px;font-size:16px;font-weight:600;color:var(--text-primary)">Diagnóstico técnico</h3>
 
-  <!-- PANEL 1: Síntomas registrados (read-only) -->
   <div style="background:var(--surface-1);padding:14px;border-radius:var(--radius);margin-bottom:20px;border:0.5px solid var(--border)">
     <label style="font-weight:500;font-size:11px;color:var(--text-muted)">Síntomas registrados</label>
     <div id="ot-diagnostico-sintomas-display" style="margin-top:8px;font-size:12px;line-height:1.5;color:var(--text-secondary)">Sin síntomas registrados</div>
   </div>
 
-  <!-- PANEL 2: Anotar Diagnóstico (INPUT) -->
   <div style="background:var(--surface-1);padding:14px;border-radius:var(--radius);margin-bottom:20px;border:0.5px solid var(--border)">
     <label style="font-weight:500;font-size:11px;color:var(--text-muted)">¿Cuál es el diagnóstico? *</label>
     <textarea id="ot-diagnostico-input"
@@ -18,7 +16,6 @@
     <div style="margin-top:6px;font-size:10px;color:var(--text-muted)">Campo obligatorio para avanzar</div>
   </div>
 
-  <!-- PANEL 3: Buscador de servicios con autocomplete -->
   <div style="margin-bottom:20px">
     <label style="font-weight:500;font-size:11px;color:var(--text-muted);display:block;margin-bottom:8px">Buscar servicio</label>
     <div style="position:relative">
@@ -30,7 +27,6 @@
     </div>
   </div>
 
-  <!-- PANEL 4: Datos del servicio seleccionado (EDITABLES) -->
   <div id="ot-panel-datos-servicio" style="display:none;background:var(--surface-1);padding:14px;border-radius:var(--radius);margin-bottom:20px;border:0.5px solid var(--border)">
     <label style="font-weight:500;font-size:11px;color:var(--text-muted);display:block;margin-bottom:10px">Datos del servicio</label>
     <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px">
@@ -49,7 +45,6 @@
     </div>
   </div>
 
-  <!-- PANEL 5: Repuestos sugeridos / agregados (EDITABLE) -->
   <div style="background:var(--surface-1);padding:14px;border-radius:var(--radius);margin-bottom:20px;border:0.5px solid var(--border)">
     <label style="font-weight:500;font-size:11px;color:var(--text-muted);display:block;margin-bottom:10px">Repuestos</label>
     <div id="ot-panel-repuestos-container" style="overflow-x:auto">
@@ -76,7 +71,6 @@
     </button>
   </div>
 
-  <!-- BOTONES -->
   <input type="hidden" id="ot-servicio-seleccionado-id">
   <input type="hidden" id="ot-diagnostico-ot-id">
   <div style="display:flex;gap:12px;margin-top:24px">
@@ -87,6 +81,101 @@
     <button onclick="otGuardarYAvanzarRepuestos()"
       style="flex:1;padding:12px;background:var(--bg-primary);color:white;border:none;border-radius:var(--radius);cursor:pointer;font-size:12px;font-weight:600;transition:all 0.12s;height:44px;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 4px rgba(0,0,0,0.1)">
       Guardar y avanzar a Repuestos →
+    </button>
+  </div>
+
+</div>
+
+<!-- ═══════ PANEL REPUESTOS (REPUESTOS) ═══════ -->
+<div id="ot-tab-repuestos" style="display:none;padding:24px;background:var(--surface-0)">
+
+  <h3 style="margin-bottom:14px;font-size:16px;font-weight:600;color:var(--text-primary)">Repuestos, mano de obra y cotización</h3>
+
+  <!-- DIAGNÓSTICO read-only -->
+  <div style="background:var(--surface-1);padding:14px;border-radius:var(--radius);margin-bottom:20px;border:0.5px solid var(--border)">
+    <label style="font-weight:500;font-size:11px;color:var(--text-muted)">Diagnóstico</label>
+    <div id="ot-repuestos-diagnostico-ro" style="margin-top:8px;font-size:12px;line-height:1.5;color:var(--text-secondary)">Sin diagnóstico</div>
+  </div>
+
+  <!-- TABLA REPUESTOS editable -->
+  <div style="background:var(--surface-1);padding:14px;border-radius:var(--radius);margin-bottom:20px;border:0.5px solid var(--border)">
+    <label style="font-weight:500;font-size:11px;color:var(--text-muted);display:block;margin-bottom:10px">Repuestos <span style="color:var(--text-muted);font-weight:400;font-size:10px">— Edita los valores directamente</span></label>
+    <div id="ot-repuestos-tabla-container" style="overflow-x:auto;margin-bottom:10px">
+      <table style="width:100%;border-collapse:collapse;font-size:11px;min-width:500px">
+        <thead>
+          <tr style="background:var(--surface-2)">
+            <th style="text-align:left;padding:8px;font-size:10px;font-weight:600;color:var(--text-muted);text-transform:uppercase">Repuesto</th>
+            <th style="text-align:center;padding:8px;font-size:10px;font-weight:600;color:var(--text-muted);text-transform:uppercase">Cantidad</th>
+            <th style="text-align:right;padding:8px;font-size:10px;font-weight:600;color:var(--text-muted);text-transform:uppercase">Precio Unit.</th>
+            <th style="text-align:right;padding:8px;font-size:10px;font-weight:600;color:var(--text-muted);text-transform:uppercase">Subtotal</th>
+            <th style="text-align:center;padding:8px;width:36px"></th>
+          </tr>
+        </thead>
+        <tbody id="ot-repuestos-tbody"></tbody>
+      </table>
+    </div>
+    <button onclick="otAgregarFilaRepuestoTab()" style="width:100%;padding:8px;background:var(--bg-primary);color:white;border:none;border-radius:var(--radius);cursor:pointer;font-size:11px;font-weight:500">
+      <i class="ti ti-plus"></i> Agregar repuesto
+    </button>
+  </div>
+
+  <!-- MANO DE OBRA -->
+  <div style="background:var(--surface-1);padding:14px;border-radius:var(--radius);margin-bottom:20px;border:0.5px solid var(--border)">
+    <label style="font-weight:500;font-size:11px;color:var(--text-muted);display:block;margin-bottom:10px">Mano de obra</label>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      <div>
+        <label style="font-size:10px;color:var(--text-muted)">Horas</label>
+        <input id="ot-repuestos-horas" type="number" min="0" step="0.5" value="0" oninput="otRecalcularRepuestoTab()" style="width:100%;padding:8px;border:0.5px solid var(--border);border-radius:var(--radius);background:var(--surface-2);color:var(--text-primary);font-size:12px;box-sizing:border-box">
+      </div>
+      <div>
+        <label style="font-size:10px;color:var(--text-muted)">Tarifa/hora</label>
+        <input id="ot-repuestos-tarifa" type="text" readonly value="$0" style="width:100%;padding:8px;border:0.5px solid var(--border);border-radius:var(--radius);background:var(--surface-2);color:var(--text-muted);font-size:12px;box-sizing:border-box">
+      </div>
+    </div>
+  </div>
+
+  <!-- TOTALES -->
+  <div id="ot-repuestos-totales" style="background:var(--surface-1);padding:16px;border-radius:var(--radius);margin-bottom:20px;border:0.5px solid var(--border)">
+    <div style="display:flex;justify-content:space-between;padding:4px 0;font-size:12px"><span>Subtotal repuestos</span><span id="ot-rep-subtotal-rep">$0</span></div>
+    <div style="display:flex;justify-content:space-between;padding:4px 0;font-size:12px"><span>Mano de obra</span><span id="ot-rep-mano-obra">$0</span></div>
+    <div style="display:flex;justify-content:space-between;padding:4px 0;font-size:12px;border-top:0.5px solid var(--border);margin-top:4px;padding-top:8px"><span>Subtotal</span><span id="ot-rep-subtotal" style="font-weight:500">$0</span></div>
+    <div style="display:flex;justify-content:space-between;padding:4px 0;font-size:12px;color:var(--text-muted)"><span>IVA 19%</span><span id="ot-rep-iva">$0</span></div>
+    <div style="display:flex;justify-content:space-between;padding:8px 0 0;font-size:14px;font-weight:700;border-top:0.5px solid var(--border);margin-top:4px;color:var(--text-accent)"><span>TOTAL</span><span id="ot-rep-total">$0</span></div>
+  </div>
+
+  <!-- BOTÓN GENERAR PDF -->
+  <button id="ot-btn-generar-pdf-tab" onclick="otGenerarCotizacionPDF(document.getElementById('ot-repuestos-ot-id').value)" style="width:100%;padding:12px;background:var(--bg-primary);color:white;border:none;border-radius:var(--radius);cursor:pointer;font-size:12px;font-weight:600;margin-bottom:20px;box-shadow:0 2px 4px rgba(0,0,0,0.1)">
+    <i class="ti ti-file-pdf"></i> Generar cotización PDF
+  </button>
+
+  <!-- PREVIEW PDF + ACCIONES -->
+  <div id="ot-repuestos-preview" style="display:none;background:var(--surface-1);padding:14px;border-radius:var(--radius);margin-bottom:20px;border:0.5px solid var(--border)">
+    <label style="font-weight:500;font-size:11px;color:var(--text-muted);display:block;margin-bottom:10px">Vista previa de cotización</label>
+    <div id="ot-repuestos-preview-embed" style="margin-bottom:12px;border:0.5px solid var(--border);border-radius:var(--radius);overflow:hidden">
+      <iframe id="ot-repuestos-pdf-iframe" style="width:100%;height:360px;border:none;background:white"></iframe>
+    </div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap">
+      <button onclick="otDescargarPDFCotizacion(document.getElementById('ot-repuestos-ot-id').value)" style="flex:1;padding:10px;background:#059669;color:white;border:none;border-radius:var(--radius);cursor:pointer;font-size:11px;font-weight:500;min-width:120px">
+        <i class="ti ti-download"></i> Guardar PDF
+      </button>
+      <button onclick="otImprimirCotizacion(document.getElementById('ot-repuestos-ot-id').value)" style="flex:1;padding:10px;background:#2563eb;color:white;border:none;border-radius:var(--radius);cursor:pointer;font-size:11px;font-weight:500;min-width:120px">
+        <i class="ti ti-printer"></i> Imprimir
+      </button>
+      <button onclick="otEnviarCotizacionWhatsApp(document.getElementById('ot-repuestos-ot-id').value)" style="flex:1;padding:10px;background:#25D366;color:white;border:none;border-radius:var(--radius);cursor:pointer;font-size:11px;font-weight:500;min-width:120px">
+        <i class="ti ti-brand-whatsapp"></i> Enviar por WhatsApp
+      </button>
+    </div>
+  </div>
+
+  <input type="hidden" id="ot-repuestos-ot-id">
+  <div style="display:flex;gap:12px;margin-top:24px">
+    <button onclick="otVolverDiagnostico(document.getElementById('ot-repuestos-ot-id').value)"
+      style="flex:1;padding:12px;background:var(--bg-muted);color:white;border:none;border-radius:var(--radius);cursor:pointer;font-size:12px;font-weight:500;height:44px;display:flex;align-items:center;justify-content:center">
+      ← Volver a Diagnóstico
+    </button>
+    <button id="ot-btn-avanzar-aprobacion-tab" onclick="otAvanzarAAprobacion(document.getElementById('ot-repuestos-ot-id').value)"
+      style="flex:1;padding:12px;background:var(--bg-primary);color:white;border:none;border-radius:var(--radius);cursor:pointer;font-size:12px;font-weight:600;height:44px;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 4px rgba(0,0,0,0.1)">
+      Guardar y avanzar a Aprobación →
     </button>
   </div>
 

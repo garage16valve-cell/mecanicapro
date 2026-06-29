@@ -166,23 +166,32 @@ function otAbrirCotizacion(ot_id) {
   const ots = APP.lsGet('ots', []);
   const ot = ots.find(o => o.id === ot_id);
   if (!ot) return;
-
-  // Panel izq: diagnóstico y servicios
   document.getElementById('ot-cotizacion-diagnostico-display').innerHTML = `
     <div class="card">
       <div class="ch"><span class="ct">🔍 Diagnóstico</span></div>
       <div style="padding:10px;background:var(--surface-1);border-radius:var(--radius);font-size:12px;line-height:1.6;color:var(--text-secondary)">${ot.diagnostico || 'Sin diagnóstico'}</div>
     </div>
   `;
-
-  // Panel centro: tabla repuestos
-  otRenderTablaCotizacion(ot_id);
-
-  // Panel derecha: totales
-  otActualizarTotales(ot_id);
-
+  const tbody = document.getElementById('ot-cotizacion-tbody-panel');
+  if (tbody && ot.cotizacion && ot.cotizacion.repuestos) {
+    tbody.innerHTML = ot.cotizacion.repuestos.map((r, i) => `<tr>
+      <td style="padding:6px"><input type="text" value="${r.nombre||''}" class="ot-cot-rep-nombre" style="width:100%;padding:6px;border:0.5px solid var(--border);border-radius:var(--radius);background:var(--surface-2);color:var(--text-primary);font-size:11px;box-sizing:border-box"></td>
+      <td style="padding:6px;text-align:center"><input type="number" min="1" value="${r.cantidad||1}" class="ot-cot-rep-cant" style="width:50px;padding:6px;border:0.5px solid var(--border);border-radius:var(--radius);background:var(--surface-2);color:var(--text-primary);font-size:11px;text-align:center;box-sizing:border-box" oninput="otRecalcularCotizacionPanel()"></td>
+      <td style="padding:6px;text-align:right"><input type="number" min="0" value="${r.precio_unitario||0}" class="ot-cot-rep-precio" style="width:90px;padding:6px;border:0.5px solid var(--border);border-radius:var(--radius);background:var(--surface-2);color:var(--text-primary);font-size:11px;text-align:right;box-sizing:border-box" oninput="otRecalcularCotizacionPanel()"></td>
+      <td style="padding:6px;text-align:right;font-weight:500" class="ot-cot-rep-sub">$${((r.cantidad||0)*(r.precio_unitario||0)).toLocaleString('es-CL')}</td>
+      <td style="padding:6px;text-align:center"><button onclick="this.closest('tr').remove();otRecalcularCotizacionPanel()" style="background:none;border:none;cursor:pointer;color:#ef4444;font-size:14px;padding:4px"><i class="ti ti-trash"></i></button></td>
+    </tr>`).join('');
+  }
+  document.getElementById('ot-cotizacion-horas-panel').value = ot.cotizacion?.mano_obra_horas || 0;
   document.getElementById('ot-cotizacion-ot-id-hidden').value = ot_id;
   document.getElementById('ot-cotizacion-panel').style.display = '';
+  otRecalcularCotizacionPanel();
+  if (ot.cotizacion_pdf_generado) {
+    const preview = document.getElementById('ot-cotizacion-preview-panel');
+    if (preview) preview.style.display = 'block';
+    const iframe = document.getElementById('ot-cotizacion-pdf-iframe-panel');
+    if (iframe && ot.cotizacion_pdf_datauri) iframe.src = ot.cotizacion_pdf_datauri;
+  }
 }
 
 function otRenderTablaCotizacion(ot_id) {
@@ -469,15 +478,28 @@ function otMostrarTabCotizacion(ot_id) {
   document.getElementById('ot-tab-recepcion').style.display = 'none';
   document.getElementById('ot-tab-diagnostico').style.display = 'none';
   document.getElementById('ot-tab-cotizacion').style.display = '';
-
-  // Diagnóstico read-only
   document.getElementById('ot-cotizacion-diagnostico-ro').textContent = ot.diagnostico || 'Sin diagnóstico';
-
-  // Cargar cotización
-  otRenderTablaCotizacion(ot_id);
-  otActualizarTotales(ot_id);
-
+  const tbody = document.getElementById('ot-cotizacion-tbody');
+  if (tbody && ot.cotizacion && ot.cotizacion.repuestos) {
+    tbody.innerHTML = ot.cotizacion.repuestos.map((r, i) => `<tr>
+      <td style="padding:6px"><input type="text" value="${r.nombre||''}" class="ot-cot-rep-nombre" style="width:100%;padding:6px;border:0.5px solid var(--border);border-radius:var(--radius);background:var(--surface-2);color:var(--text-primary);font-size:11px;box-sizing:border-box"></td>
+      <td style="padding:6px;text-align:center"><input type="number" min="1" value="${r.cantidad||1}" class="ot-cot-rep-cant" style="width:50px;padding:6px;border:0.5px solid var(--border);border-radius:var(--radius);background:var(--surface-2);color:var(--text-primary);font-size:11px;text-align:center;box-sizing:border-box" oninput="otRecalcularCotizacionTab()"></td>
+      <td style="padding:6px;text-align:right"><input type="number" min="0" value="${r.precio_unitario||0}" class="ot-cot-rep-precio" style="width:90px;padding:6px;border:0.5px solid var(--border);border-radius:var(--radius);background:var(--surface-2);color:var(--text-primary);font-size:11px;text-align:right;box-sizing:border-box" oninput="otRecalcularCotizacionTab()"></td>
+      <td style="padding:6px;text-align:right;font-weight:500" class="ot-cot-rep-sub">$${((r.cantidad||0)*(r.precio_unitario||0)).toLocaleString('es-CL')}</td>
+      <td style="padding:6px;text-align:center"><button onclick="this.closest('tr').remove();otRecalcularCotizacionTab()" style="background:none;border:none;cursor:pointer;color:#ef4444;font-size:14px;padding:4px"><i class="ti ti-trash"></i></button></td>
+    </tr>`).join('');
+  }
+  document.getElementById('ot-cotizacion-horas').value = ot.cotizacion?.mano_obra_horas || 0;
   document.getElementById('ot-cotizacion-ot-id').value = ot_id;
+  otRecalcularCotizacionTab();
+  if (ot.cotizacion_pdf_generado) {
+    const btn = document.getElementById('ot-btn-generar-pdf-cot');
+    if (btn) btn.style.display = 'none';
+    const preview = document.getElementById('ot-cotizacion-preview');
+    if (preview) preview.style.display = 'block';
+    const iframe = document.getElementById('ot-cotizacion-pdf-iframe');
+    if (iframe && ot.cotizacion_pdf_datauri) iframe.src = ot.cotizacion_pdf_datauri;
+  }
 
   // Highlight tab activo
   document.querySelectorAll('#ot-detalle-tabs button').forEach(btn => btn.style.borderBottomColor = 'transparent');
@@ -1148,12 +1170,16 @@ function otAbrirPanelRepuestos(ot_id) {
       </table>`
     : '<div style="text-align:center;color:var(--text-muted);padding:20px;font-size:12px">Sin repuestos agregados. Usa el botón "+ Agregar repuesto"</div>';
 
+  const pdfGen = ot.cotizacion_pdf_generado;
+  const previewDisplay = pdfGen ? 'block' : 'none';
+  const genBtnDisplay = pdfGen ? 'none' : '';
+
   _otOverlay(`
-    ${_otHeader(ot, '🔧 Repuestos — Editar repuestos y mano de obra')}
+    ${_otHeader(ot, '🔧 Repuestos — Editar repuestos, mano de obra y generar cotización')}
     ${_otBody(`
       ${_otCard('🔍 Diagnóstico', `<div style="padding:10px;background:var(--surface-1);border-radius:var(--radius);font-size:12px;line-height:1.6;color:var(--text-secondary)">${ot.diagnostico||'Sin diagnóstico'}</div>`)}
       <div class="card">
-        <div class="ch"><span class="ct">📦 Repuestos</span></div>
+        <div class="ch"><span class="ct">📦 Repuestos <span style="font-weight:400;font-size:10px;color:var(--text-muted)">— Edita los valores directamente</span></span></div>
         <div id="ot-panel-repuestos-tabla" style="overflow-x:auto;margin-bottom:10px">${repHtml}</div>
         <button class="btn bpa" style="width:100%;justify-content:center;font-size:11px" onclick="otPanelAgregarFilaRepuesto()"><i class="ti ti-plus"></i> Agregar repuesto manual</button>
       </div>
@@ -1171,76 +1197,43 @@ function otAbrirPanelRepuestos(ot_id) {
         <div style="display:flex;justify-content:space-between;padding:4px 0;font-size:12px;color:var(--text-muted)"><span>IVA 19%</span><span id="ot-panel-iva">$0</span></div>
         <div style="display:flex;justify-content:space-between;padding:8px 0 0;font-size:14px;font-weight:700;border-top:0.5px solid var(--border);margin-top:4px;color:var(--text-accent)"><span>TOTAL</span><span id="ot-panel-total">$0</span></div>
       </div>
+      <button id="ot-btn-generar-pdf-overlay" onclick="otGenerarCotizacionPDF('${ot_id}')" style="display:${genBtnDisplay};width:100%;padding:12px;background:var(--bg-primary);color:white;border:none;border-radius:var(--radius);cursor:pointer;font-size:12px;font-weight:600;margin-bottom:16px;box-shadow:0 2px 4px rgba(0,0,0,0.1)"><i class="ti ti-file-pdf"></i> Generar cotización PDF</button>
+      <div id="ot-panel-preview-pdf" style="display:${previewDisplay};background:var(--surface-1);padding:14px;border-radius:var(--radius);margin-bottom:16px;border:0.5px solid var(--border)">
+        <label style="font-weight:500;font-size:11px;color:var(--text-muted);display:block;margin-bottom:10px">Vista previa de cotización</label>
+        <div style="margin-bottom:12px;border:0.5px solid var(--border);border-radius:var(--radius);overflow:hidden">
+          <iframe id="ot-panel-pdf-iframe" style="width:100%;height:360px;border:none;background:white"></iframe>
+        </div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap">
+          <button onclick="otDescargarPDFCotizacion('${ot_id}')" style="flex:1;padding:10px;background:#059669;color:white;border:none;border-radius:var(--radius);cursor:pointer;font-size:11px;font-weight:500;min-width:120px"><i class="ti ti-download"></i> Guardar PDF</button>
+          <button onclick="otImprimirCotizacion('${ot_id}')" style="flex:1;padding:10px;background:#2563eb;color:white;border:none;border-radius:var(--radius);cursor:pointer;font-size:11px;font-weight:500;min-width:120px"><i class="ti ti-printer"></i> Imprimir</button>
+          <button onclick="otEnviarCotizacionWhatsApp('${ot_id}')" style="flex:1;padding:10px;background:#25D366;color:white;border:none;border-radius:var(--radius);cursor:pointer;font-size:11px;font-weight:500;min-width:120px"><i class="ti ti-brand-whatsapp"></i> Enviar por WhatsApp</button>
+        </div>
+      </div>
     `)}
     ${_otFooter(`
       <button class="btn" onclick="_otCerrarPanelFase()" style="font-size:12px">Cancelar</button>
-      <button class="btn bpa" onclick="otGuardarPanelRepuestos('${ot_id}')" style="font-size:12px"><i class="ti ti-device-floppy"></i> Guardar y avanzar a Aprobación</button>
+      <button class="btn bpa" onclick="otGuardarPanelRepuestos('${ot_id}')" style="font-size:12px"><i class="ti ti-check"></i> Guardar y avanzar a Aprobación</button>
     `)}
   `);
   otRecalcularPanelRepuestos();
-}
-
-function otRecalcularPanelRepuestos() {
-  const filas = document.querySelectorAll('#ot-panel-repuestos-tabla table tbody tr') || [];
-  let subRep = 0;
-  filas.forEach(tr => {
-    const cant = parseFloat(tr.querySelector('.ot-rep-cant')?.value) || 0;
-    const precio = parseFloat(tr.querySelector('.ot-rep-precio')?.value) || 0;
-    const sub = cant * precio;
-    subRep += sub;
-    const td = tr.querySelector('.ot-rep-subtotal');
-    if (td) td.textContent = '$' + sub.toLocaleString('es-CL');
-  });
-  const horas = parseFloat(document.getElementById('ot-panel-horas')?.value) || 0;
-  const config = APP.lsGet('taller_config', {});
-  const tarifa = config.tarifa_hora || 0;
-  const manoObra = horas * tarifa;
-  const subtotal = subRep + manoObra;
-  const iva = subtotal * 0.19;
-  const total = subtotal + iva;
-  const g = id => document.getElementById(id);
-  if (g('ot-panel-subtotal-rep')) g('ot-panel-subtotal-rep').textContent = '$' + subRep.toLocaleString('es-CL');
-  if (g('ot-panel-mano-obra')) g('ot-panel-mano-obra').textContent = '$' + manoObra.toLocaleString('es-CL');
-  if (g('ot-panel-subtotal')) g('ot-panel-subtotal').textContent = '$' + subtotal.toLocaleString('es-CL');
-  if (g('ot-panel-iva')) g('ot-panel-iva').textContent = '$' + iva.toLocaleString('es-CL');
-  if (g('ot-panel-total')) g('ot-panel-total').textContent = '$' + total.toLocaleString('es-CL');
-}
-
-function otPanelAgregarFilaRepuesto() {
-  const tabla = document.querySelector('#ot-panel-repuestos-tabla table tbody');
-  if (!tabla) {
-    document.getElementById('ot-panel-repuestos-tabla').innerHTML = `
-      <table style="width:100%;border-collapse:collapse;font-size:12px">
-        <thead><tr style="background:var(--surface-2);border-bottom:0.5px solid var(--border)">
-          <th style="text-align:left;padding:8px;font-size:10px;font-weight:600;color:var(--text-muted);text-transform:uppercase">Repuesto</th>
-          <th style="text-align:center;padding:8px;font-size:10px;font-weight:600;color:var(--text-muted);text-transform:uppercase">Cant.</th>
-          <th style="text-align:right;padding:8px;font-size:10px;font-weight:600;color:var(--text-muted);text-transform:uppercase">Precio</th>
-          <th style="text-align:right;padding:8px;font-size:10px;font-weight:600;color:var(--text-muted);text-transform:uppercase">Subtotal</th>
-          <th style="text-align:center;padding:8px;width:40px"></th>
-        </tr></thead>
-        <tbody></tbody>
-      </table>`;
+  if (pdfGen) {
+    setTimeout(() => otMostrarPreviewPDF(ot_id, 'ot-panel-pdf-iframe'), 300);
   }
-  const tbody = document.querySelector('#ot-panel-repuestos-tabla table tbody');
-  const tr = document.createElement('tr');
-  tr.style.borderBottom = '0.5px solid var(--border)';
-  tr.innerHTML = `
-    <td style="padding:6px"><input class="ot-rep-nombre" placeholder="Nombre repuesto" style="width:100%;padding:4px 6px;border:0.5px solid var(--border);border-radius:4px;background:var(--surface-1);color:var(--text-primary)"></td>
-    <td style="padding:6px;text-align:center"><input class="ot-rep-cant" type="number" min="1" value="1" style="width:50px;text-align:center;padding:4px;border:0.5px solid var(--border);border-radius:4px;background:var(--surface-1);color:var(--text-primary)" oninput="otRecalcularPanelRepuestos()"></td>
-    <td style="padding:6px;text-align:right"><input class="ot-rep-precio" type="number" min="0" value="0" style="width:90px;text-align:right;padding:4px;border:0.5px solid var(--border);border-radius:4px;background:var(--surface-1);color:var(--text-primary)" oninput="otRecalcularPanelRepuestos()"></td>
-    <td style="padding:6px;text-align:right;font-weight:500" class="ot-rep-subtotal">$0</td>
-    <td style="padding:6px;text-align:center"><button class="btn" style="font-size:10px;padding:2px 6px;color:var(--text-danger)" onclick="this.closest('tr').remove();otRecalcularPanelRepuestos()"><i class="ti ti-trash"></i></button></td>
-  `;
-  tbody.appendChild(tr);
-  otRecalcularPanelRepuestos();
 }
 
-function otGuardarPanelRepuestos(ot_id) {
+function otMostrarPreviewPDF(ot_id, iframeId) {
+  const ots = APP.lsGet('ots', []);
+  const ot = ots.find(o => o.id === ot_id);
+  if (!ot || !ot.cotizacion_pdf_datauri) return;
+  const iframe = document.getElementById(iframeId);
+  if (iframe) iframe.src = ot.cotizacion_pdf_datauri;
+}
+
+function otGuardarRepuestosData(ot_id) {
   const ots = APP.lsGet('ots', []);
   const ot = ots.find(o => o.id === ot_id);
   if (!ot) return;
   if (!ot.cotizacion) ot.cotizacion = { repuestos: [] };
-
   const filas = document.querySelectorAll('#ot-panel-repuestos-tabla table tbody tr') || [];
   const repuestos = [];
   filas.forEach(tr => {
@@ -1250,19 +1243,234 @@ function otGuardarPanelRepuestos(ot_id) {
     const precio_unitario = parseFloat(tr.querySelector('.ot-rep-precio')?.value) || 0;
     repuestos.push({ nombre, cantidad, precio_unitario });
   });
-
   const horas = parseFloat(document.getElementById('ot-panel-horas')?.value) || 0;
   const config = APP.lsGet('taller_config', {});
   const tarifa = config.tarifa_hora || 0;
-
   ot.cotizacion.repuestos = repuestos;
   ot.cotizacion.mano_obra_horas = horas;
   ot.cotizacion.mano_obra = horas * tarifa;
+  ot.fecha_modificacion = new Date().toISOString();
+  APP.lsSet('ots', ots);
+  return ot;
+}
+
+function otGenerarCotizacionPDF(ot_id) {
+  otGuardarRepuestosData(ot_id);
+  if (typeof tallerGenerarPDFCotizacion !== 'function') {
+    APP.toast.show('⚠️ Generador PDF no disponible', 'error');
+    return;
+  }
+  const ots = APP.lsGet('ots', []);
+  const ot = ots.find(o => o.id === ot_id);
+  if (!ot) return;
+  const doc = tallerGenerarPDFCotizacion(ot_id);
+  if (!doc) return;
+  const datauri = doc.output('datauristring');
+  ot.cotizacion_pdf_datauri = datauri;
+  ot.cotizacion_pdf_generado = true;
+  ot.fecha_cotizacion = new Date().toISOString();
+  APP.lsSet('ots', ots);
+  const btnGen = document.getElementById('ot-btn-generar-pdf-overlay');
+  if (btnGen) btnGen.style.display = 'none';
+  const preview = document.getElementById('ot-panel-preview-pdf');
+  if (preview) {
+    preview.style.display = 'block';
+    const iframe = document.getElementById('ot-panel-pdf-iframe');
+    if (iframe) iframe.src = datauri;
+  }
+  const preview2 = document.getElementById('ot-cotizacion-preview');
+  if (preview2) {
+    preview2.style.display = 'block';
+    const iframe2 = document.getElementById('ot-cotizacion-pdf-iframe');
+    if (iframe2) iframe2.src = datauri;
+  }
+  const preview3 = document.getElementById('ot-cotizacion-preview-panel');
+  if (preview3) {
+    preview3.style.display = 'block';
+    const iframe3 = document.getElementById('ot-cotizacion-pdf-iframe-panel');
+    if (iframe3) iframe3.src = datauri;
+  }
+  const btnGenTab = document.getElementById('ot-btn-generar-pdf-tab');
+  if (btnGenTab) btnGenTab.style.display = 'none';
+  const btnGenCot = document.getElementById('ot-btn-generar-pdf-cot');
+  if (btnGenCot) btnGenCot.style.display = 'none';
+  APP.toast.show('✅ Cotización PDF generada correctamente', 'success');
+}
+
+function otDescargarPDFCotizacion(ot_id) {
+  const ots = APP.lsGet('ots', []);
+  const ot = ots.find(o => o.id === ot_id);
+  if (!ot) return;
+  if (typeof tallerGenerarPDFCotizacion !== 'function') {
+    APP.toast.show('⚠️ Generador PDF no disponible', 'error');
+    return;
+  }
+  const doc = tallerGenerarPDFCotizacion(ot_id);
+  if (!doc) return;
+  const marca = (ot.vehiculo_marca || ot.marca || '').replace(/\s+/g, '');
+  const modelo = (ot.vehiculo_modelo || ot.modelo || '').replace(/\s+/g, '');
+  const filename = `COT-${ot.id}-2026_${marca}${modelo}.pdf`;
+  doc.save(filename);
+  ot.cotizacion_descargada = true;
+  APP.lsSet('ots', ots);
+  APP.toast.show('✅ PDF descargado', 'success');
+}
+
+function otImprimirCotizacion(ot_id) {
+  const ots = APP.lsGet('ots', []);
+  const ot = ots.find(o => o.id === ot_id);
+  if (!ot) return;
+  if (typeof tallerGenerarPDFCotizacion !== 'function') {
+    APP.toast.show('⚠️ Generador PDF no disponible', 'error');
+    return;
+  }
+  const doc = tallerGenerarPDFCotizacion(ot_id);
+  if (!doc) return;
+  const datauri = doc.output('datauristring');
+  const win = window.open('', '_blank');
+  if (win) {
+    win.document.write(`<html><head><title>Cotización #${ot.id}</title><style>body{margin:0;height:100vh}</style></head><body><iframe src="${datauri}" style="width:100%;height:100%;border:none"></iframe><script>setTimeout(()=>{window.print()},800)</script></body></html>`);
+    win.document.close();
+  }
+  ot.cotizacion_impresa = true;
+  APP.lsSet('ots', ots);
+}
+
+function otEnviarCotizacionWhatsApp(ot_id) {
+  const ots = APP.lsGet('ots', []);
+  const ot = ots.find(o => o.id === ot_id);
+  if (!ot) return;
+  const config = APP.lsGet('taller_config', {});
+  const datosLegales = config.datos_legales || {};
+  const nombreEmpresa = datosLegales.nombre_legal || 'Nuestro taller';
+  const repuestos = ot.cotizacion?.repuestos || [];
+  const subRep = repuestos.reduce((s, r) => s + ((r.cantidad||0)*(r.precio_unitario||0)), 0);
+  const manoObra = ot.cotizacion?.mano_obra || 0;
+  const subtotal = subRep + manoObra;
+  const iva = subtotal * 0.19;
+  const total = subtotal + iva;
+  const marca = ot.vehiculo_marca || ot.marca || '';
+  const modelo = ot.vehiculo_modelo || ot.modelo || '';
+  const mensaje = `Hola ${ot.cliente_nombre || 'cliente'},\n\nTe adjunto cotización de reparación de tu ${marca} ${modelo}:\n\n*RESUMEN:*\n- Repuestos: $${subRep.toLocaleString('es-CL')}\n- Mano de obra: $${manoObra.toLocaleString('es-CL')}\n- *TOTAL: $${total.toLocaleString('es-CL')} (IVA incluido)*\n\nVálida por 7 días.\n\n${nombreEmpresa}`;
+  const telefono = ot.cliente_whatsapp || ot.telefono || '';
+  if (telefono) {
+    const url = `https://wa.me/${telefono.replace(/[^0-9]/g,'')}?text=${encodeURIComponent(mensaje)}`;
+    window.open(url, '_blank');
+    ot.cotizacion_enviada_whatsapp = true;
+    ot.fecha_envio_cotizacion = new Date().toISOString();
+    APP.lsSet('ots', ots);
+    APP.toast.show('✅ Cotización enviada por WhatsApp', 'success');
+  } else {
+    APP.toast.show('⚠️ Cliente sin teléfono registrado', 'warning');
+  }
+}
+
+function otAvanzarAAprobacion(ot_id) {
+  otGuardarRepuestosData(ot_id);
+  const ots = APP.lsGet('ots', []);
+  const ot = ots.find(o => o.id === ot_id);
+  if (!ot) return;
+  if (!ot.cotizacion_pdf_generado) {
+    APP.toast.show('⚠️ Genera la cotización PDF antes de avanzar', 'warning');
+    return;
+  }
   ot.estado = 'aprobacion';
   ot.fecha_modificacion = new Date().toISOString();
-
   APP.lsSet('ots', ots);
   _otAvanzarAFase(ot_id, 'aprobacion', 'Aprobación');
+}
+
+function otAgregarFilaRepuestoTab() {
+  const tbody = document.getElementById('ot-repuestos-tbody');
+  if (!tbody) return;
+  const i = tbody.querySelectorAll('tr').length;
+  const tr = document.createElement('tr');
+  tr.innerHTML = `<td style="padding:6px"><input type="text" placeholder="Nombre repuesto" id="ot-tab-rep-nombre-${i}" style="width:100%;padding:6px;border:0.5px solid var(--border);border-radius:var(--radius);background:var(--surface-2);color:var(--text-primary);font-size:11px;box-sizing:border-box"></td><td style="padding:6px;text-align:center"><input type="number" min="1" value="1" id="ot-tab-rep-cant-${i}" style="width:60px;padding:6px;border:0.5px solid var(--border);border-radius:var(--radius);background:var(--surface-2);color:var(--text-primary);font-size:11px;text-align:center;box-sizing:border-box" oninput="otRecalcularRepuestoTab()"></td><td style="padding:6px;text-align:right"><input type="number" min="0" value="0" id="ot-tab-rep-precio-${i}" style="width:100px;padding:6px;border:0.5px solid var(--border);border-radius:var(--radius);background:var(--surface-2);color:var(--text-primary);font-size:11px;text-align:right;box-sizing:border-box" oninput="otRecalcularRepuestoTab()"></td><td style="padding:6px;text-align:right;font-weight:500" id="ot-tab-rep-sub-${i}">$0</td><td style="padding:6px;text-align:center"><button onclick="this.closest('tr').remove();otRecalcularRepuestoTab()" style="background:none;border:none;cursor:pointer;color:#ef4444;font-size:14px;padding:4px"><i class="ti ti-trash"></i></button></td>`;
+  tbody.appendChild(tr);
+}
+function otRecalcularRepuestoTab() {
+  const tbody = document.getElementById('ot-repuestos-tbody');
+  if (!tbody) return;
+  let subRep = 0;
+  tbody.querySelectorAll('tr').forEach((tr, i) => {
+    const cant = parseFloat(document.getElementById(`ot-tab-rep-cant-${i}`)?.value) || 0;
+    const precio = parseFloat(document.getElementById(`ot-tab-rep-precio-${i}`)?.value) || 0;
+    const sub = cant * precio;
+    subRep += sub;
+    const el = document.getElementById(`ot-tab-rep-sub-${i}`);
+    if (el) el.textContent = '$' + sub.toLocaleString('es-CL');
+  });
+  const horas = parseFloat(document.getElementById('ot-repuestos-horas')?.value) || 0;
+  const config = APP.lsGet('taller_config', {});
+  const tarifa = config.tarifa_hora || 0;
+  const manoObra = horas * tarifa;
+  const subtotal = subRep + manoObra;
+  const iva = subtotal * 0.19;
+  const total = subtotal + iva;
+  const g = id => document.getElementById(id);
+  if (g('ot-rep-subtotal-rep')) g('ot-rep-subtotal-rep').textContent = '$' + subRep.toLocaleString('es-CL');
+  if (g('ot-rep-mano-obra')) g('ot-rep-mano-obra').textContent = '$' + manoObra.toLocaleString('es-CL');
+  if (g('ot-rep-subtotal')) g('ot-rep-subtotal').textContent = '$' + subtotal.toLocaleString('es-CL');
+  if (g('ot-rep-iva')) g('ot-rep-iva').textContent = '$' + iva.toLocaleString('es-CL');
+  if (g('ot-rep-total')) g('ot-rep-total').textContent = '$' + total.toLocaleString('es-CL');
+}
+function otAgregarFilaRepuestoTabCot(suffix) {
+  const tbody = document.getElementById('ot-cotizacion-tbody' + (suffix||''));
+  if (!tbody) return;
+  const i = tbody.querySelectorAll('tr').length;
+  const tr = document.createElement('tr');
+  tr.innerHTML = `<td style="padding:6px"><input type="text" placeholder="Nombre" class="ot-cot-rep-nombre" style="width:100%;padding:6px;border:0.5px solid var(--border);border-radius:var(--radius);background:var(--surface-2);color:var(--text-primary);font-size:11px;box-sizing:border-box"></td><td style="padding:6px;text-align:center"><input type="number" min="1" value="1" class="ot-cot-rep-cant" style="width:50px;padding:6px;border:0.5px solid var(--border);border-radius:var(--radius);background:var(--surface-2);color:var(--text-primary);font-size:11px;text-align:center;box-sizing:border-box" oninput="otRecalcularCotizacionTab${suffix ? 'Panel' : ''}()"></td><td style="padding:6px;text-align:right"><input type="number" min="0" value="0" class="ot-cot-rep-precio" style="width:90px;padding:6px;border:0.5px solid var(--border);border-radius:var(--radius);background:var(--surface-2);color:var(--text-primary);font-size:11px;text-align:right;box-sizing:border-box" oninput="otRecalcularCotizacionTab${suffix ? 'Panel' : ''}()"></td><td style="padding:6px;text-align:right;font-weight:500" class="ot-cot-rep-sub">$0</td><td style="padding:6px;text-align:center"><button onclick="this.closest('tr').remove();otRecalcularCotizacionTab${suffix ? 'Panel' : ''}()" style="background:none;border:none;cursor:pointer;color:#ef4444;font-size:14px;padding:4px"><i class="ti ti-trash"></i></button></td>`;
+  tbody.appendChild(tr);
+}
+function otRecalcularCotizacionTab() {
+  const tbody = document.getElementById('ot-cotizacion-tbody');
+  if (!tbody) return;
+  let subRep = 0;
+  tbody.querySelectorAll('tr').forEach(tr => {
+    const cant = parseFloat(tr.querySelector('.ot-cot-rep-cant')?.value) || 0;
+    const precio = parseFloat(tr.querySelector('.ot-cot-rep-precio')?.value) || 0;
+    const sub = cant * precio;
+    subRep += sub;
+    const el = tr.querySelector('.ot-cot-rep-sub');
+    if (el) el.textContent = '$' + sub.toLocaleString('es-CL');
+  });
+  const horas = parseFloat(document.getElementById('ot-cotizacion-horas')?.value) || 0;
+  const config = APP.lsGet('taller_config', {});
+  const tarifa = config.tarifa_hora || 0;
+  document.getElementById('ot-cotizacion-tarifa').value = '$' + tarifa.toLocaleString('es-CL');
+  const manoObra = horas * tarifa;
+  const subtotal = subRep + manoObra;
+  const iva = subtotal * 0.19;
+  const total = subtotal + iva;
+  const g = id => document.getElementById(id);
+  if (g('ot-cot-subtotal-rep')) g('ot-cot-subtotal-rep').textContent = '$' + subRep.toLocaleString('es-CL');
+  if (g('ot-cot-mano-obra')) g('ot-cot-mano-obra').textContent = '$' + manoObra.toLocaleString('es-CL');
+  if (g('ot-cot-subtotal')) g('ot-cot-subtotal').textContent = '$' + subtotal.toLocaleString('es-CL');
+  if (g('ot-cot-iva')) g('ot-cot-iva').textContent = '$' + iva.toLocaleString('es-CL');
+  if (g('ot-cot-total')) g('ot-cot-total').textContent = '$' + total.toLocaleString('es-CL');
+}
+function otRecalcularCotizacionPanel() {
+  const tbody = document.getElementById('ot-cotizacion-tbody-panel');
+  if (!tbody) return;
+  let subRep = 0;
+  tbody.querySelectorAll('tr').forEach(tr => {
+    const cant = parseFloat(tr.querySelector('.ot-cot-rep-cant')?.value) || 0;
+    const precio = parseFloat(tr.querySelector('.ot-cot-rep-precio')?.value) || 0;
+    subRep += cant * precio;
+  });
+  const horas = parseFloat(document.getElementById('ot-cotizacion-horas-panel')?.value) || 0;
+  const config = APP.lsGet('taller_config', {});
+  const tarifa = config.tarifa_hora || 0;
+  const manoObra = horas * tarifa;
+  const subtotal = subRep + manoObra;
+  const iva = subtotal * 0.19;
+  const total = subtotal + iva;
+  const g = id => document.getElementById(id);
+  if (g('ot-cot-p-subtotal-rep')) g('ot-cot-p-subtotal-rep').textContent = '$' + subRep.toLocaleString('es-CL');
+  if (g('ot-cot-p-mano-obra')) g('ot-cot-p-mano-obra').textContent = '$' + manoObra.toLocaleString('es-CL');
+  if (g('ot-cot-p-subtotal')) g('ot-cot-p-subtotal').textContent = '$' + subtotal.toLocaleString('es-CL');
+  if (g('ot-cot-p-iva')) g('ot-cot-p-iva').textContent = '$' + iva.toLocaleString('es-CL');
+  if (g('ot-cot-p-total')) g('ot-cot-p-total').textContent = '$' + total.toLocaleString('es-CL');
 }
 
 // ===== PANEL 4: APROBACIÓN =====
@@ -1575,6 +1783,18 @@ window.otAgregarRepuestoManual = otAgregarRepuestoManual;
 window.otEliminarFilaRepuesto = otEliminarFilaRepuesto;
 window.otGuardarYAvanzarRepuestos = otGuardarYAvanzarRepuestos;
 window.otAbrirPanelRepuestos = otAbrirPanelRepuestos;
+window.otMostrarPreviewPDF = otMostrarPreviewPDF;
+window.otGuardarRepuestosData = otGuardarRepuestosData;
+window.otGenerarCotizacionPDF = otGenerarCotizacionPDF;
+window.otDescargarPDFCotizacion = otDescargarPDFCotizacion;
+window.otImprimirCotizacion = otImprimirCotizacion;
+window.otEnviarCotizacionWhatsApp = otEnviarCotizacionWhatsApp;
+window.otAvanzarAAprobacion = otAvanzarAAprobacion;
+window.otAgregarFilaRepuestoTab = otAgregarFilaRepuestoTab;
+window.otRecalcularRepuestoTab = otRecalcularRepuestoTab;
+window.otAgregarFilaRepuestoTabCot = otAgregarFilaRepuestoTabCot;
+window.otRecalcularCotizacionTab = otRecalcularCotizacionTab;
+window.otRecalcularCotizacionPanel = otRecalcularCotizacionPanel;
 window.otRecalcularPanelRepuestos = otRecalcularPanelRepuestos;
 window.otPanelAgregarFilaRepuesto = otPanelAgregarFilaRepuesto;
 window.otGuardarPanelRepuestos = otGuardarPanelRepuestos;
