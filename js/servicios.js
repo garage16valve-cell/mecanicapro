@@ -153,11 +153,12 @@ function svcPermCargar(idOperario) {
   const operPerms  = permisos.filter(p => String(p.id_operario) === String(idOperario)).map(p => p.id_cat);
 
   wrap.style.display = 'block';
+  info.style.display = 'block';
   if (!operPerms.length) {
-    info.style.display = 'block';
     info.innerHTML = '<i class="ti ti-checkbox"></i> Sin restricciones — este operario puede hacer todas las categorías. Marca categorías para restringir.';
   } else {
-    info.style.display = 'none';
+    const catNames = categorias.filter(c => operPerms.includes(c.id)).map(c => c.nombre);
+    info.innerHTML = '<i class="ti ti-circle-check"></i> Este operario está habilitado solo para: ' + catNames.join(', ');
   }
 
   if (!categorias.length) {
