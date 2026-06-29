@@ -1738,8 +1738,8 @@
 
   <div id="inv-tab-inv">
     <div style="display:flex;gap:6px;margin-bottom:14px">
-      <button class="btn bpa"><i class="ti ti-plus"></i>Agregar repuesto</button>
-      <button class="btn"><i class="ti ti-truck"></i>Registrar entrada</button>
+      <button class="btn bpa" onclick="invNuevoRepuesto()"><i class="ti ti-plus"></i>Agregar repuesto</button>
+      <button class="btn" onclick="invRegistrarEntrada()"><i class="ti ti-truck"></i>Registrar entrada</button>
     </div>
     <div class="sb"><i class="ti ti-search" style="color:var(--text-muted);font-size:14px"></i><input placeholder="Buscar por código, nombre o ubicación en bodega…"></div>
     <div id="inv-wrapper"></div>
@@ -1776,6 +1776,68 @@
       <button class="btn bpa" style="margin-top:12px" onclick="invGuardarConfigRepuestos()">
         <i class="ti ti-device-floppy"></i> Guardar configuración
       </button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL NUEVO REPUESTO -->
+<div id="inv-modal-repuesto" class="modal-overlay" style="display:none">
+  <div class="modal-grande" style="max-width:560px">
+    <div class="modal-header">
+      <h2 id="inv-repuesto-title">Nuevo repuesto</h2>
+      <button class="modal-close" onclick="invCerrarModalRepuesto()">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="fg"><label>Código</label><input id="ir-codigo" placeholder="Ej: FIL-5W30"></div>
+      <div class="fg"><label>Nombre</label><input id="ir-nombre" placeholder="Ej: Filtro aceite 5W-30"></div>
+      <div class="fg"><label>Marca</label>
+        <select id="ir-marca"></select>
+      </div>
+      <div class="fg"><label>Ubicación en bodega</label><input id="ir-ubicacion" placeholder="Ej: Estante A, Fila 1"></div>
+      <div class="g2">
+        <div class="fg"><label>Stock inicial</label><input id="ir-stock" type="number" min="0" value="0"></div>
+        <div class="fg"><label>Stock mínimo</label><input id="ir-min" type="number" min="0" value="5"></div>
+      </div>
+      <div class="g2">
+        <div class="fg"><label>Precio compra</label><input id="ir-precio-compra" type="number" min="0" step="100" placeholder="0"></div>
+        <div class="fg"><label>% Ganancia</label><input id="ir-ganancia" type="number" min="0" max="200" step="1" value="30"></div>
+      </div>
+      <div class="fg"><label>Proveedor</label>
+        <select id="ir-proveedor"><option value="">Sin proveedor</option></select>
+      </div>
+      <div class="fg"><label>Notas</label><textarea id="ir-notas" rows="2" placeholder="Observaciones…"></textarea></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="invCerrarModalRepuesto()"><i class="ti ti-x"></i> Cancelar</button>
+      <button class="btn bpa" onclick="invGuardarRepuesto()"><i class="ti ti-device-floppy"></i> Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL REGISTRAR ENTRADA -->
+<div id="inv-modal-entrada" class="modal-overlay" style="display:none">
+  <div class="modal-grande" style="max-width:520px">
+    <div class="modal-header">
+      <h2>Registrar entrada de stock</h2>
+      <button class="modal-close" onclick="invCerrarModalEntrada()">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="fg"><label>Repuesto</label>
+        <select id="ie-repuesto"></select>
+      </div>
+      <div class="g2">
+        <div class="fg"><label>Cantidad</label><input id="ie-cantidad" type="number" min="1" value="1"></div>
+        <div class="fg"><label>Fecha</label><input id="ie-fecha" type="date"></div>
+      </div>
+      <div class="fg"><label>N° Factura / OC</label><input id="ie-factura" placeholder="Opcional"></div>
+      <div class="fg"><label>Proveedor</label>
+        <select id="ie-proveedor"><option value="">Sin proveedor</option></select>
+      </div>
+      <div class="fg"><label>Observaciones</label><textarea id="ie-obs" rows="2" placeholder="Detalles…"></textarea></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="invCerrarModalEntrada()"><i class="ti ti-x"></i> Cancelar</button>
+      <button class="btn bpa" onclick="invGuardarEntrada()"><i class="ti ti-device-floppy"></i> Registrar</button>
     </div>
   </div>
 </div>

@@ -314,3 +314,174 @@ function renderProvStats(proveedores) {
 window.abrirModalProveedor = abrirModalProveedor;
 window.cerrarModalProveedor = cerrarModalProveedor;
 window.compartirProveedor = compartirProveedor;
+window.invNuevoRepuesto = invNuevoRepuesto;
+window.invEditarRepuesto = invEditarRepuesto;
+window.invCerrarModalRepuesto = invCerrarModalRepuesto;
+window.invGuardarRepuesto = invGuardarRepuesto;
+window.invRegistrarEntrada = invRegistrarEntrada;
+window.invCerrarModalEntrada = invCerrarModalEntrada;
+window.invGuardarEntrada = invGuardarEntrada;
+
+// ===== REPUESTOS: NUEVO Y ENTRADA =====
+let _editandoRepuestoId = null;
+
+function invNuevoRepuesto() {
+  _editandoRepuestoId = null;
+  ['ir-codigo','ir-nombre','ir-ubicacion','ir-stock','ir-min','ir-precio-compra','ir-ganancia','ir-notas'].forEach(id => {
+    const el = document.getElementById(id); if (el) el.value = '';
+  });
+  const s = document.getElementById('ir-marca');
+  if (s) s.value = '';
+  const p = document.getElementById('ir-proveedor');
+  if (p) p.value = '';
+  document.getElementById('ir-stock').value = '0';
+  document.getElementById('ir-min').value = '5';
+  document.getElementById('ir-ganancia').value = '30';
+  document.getElementById('ir-precio-compra').value = '0';
+  invCargarMarcas();
+  invCargarProveedoresSelect();
+  document.getElementById('inv-repuesto-title').textContent = 'Nuevo repuesto';
+  document.getElementById('inv-modal-repuesto').style.display = '';
+}
+
+function invEditarRepuesto(id) {
+  const items = APP.lsGet('mp_inventario', []);
+  const item = items.find(x => x.c === id);
+  if (!item) return;
+  _editandoRepuestoId = id;
+  const s = (elId, v) => { const el = document.getElementById(elId); if (el) el.value = v || ''; };
+  s('ir-codigo', item.c);
+  s('ir-nombre', item.n);
+  s('ir-ubicacion', item.ub);
+  s('ir-stock', item.st);
+  s('ir-min', item.mn);
+  s('ir-precio-compra', (item.p || '').replace(/[^\d]/g, ''));
+  const cfg = APP.lsGet('rep_config', {});
+  s('ir-ganancia', cfg.ganancia || 30);
+  s('ir-notas', item.notas || '');
+  const selMarca = document.getElementById('ir-marca');
+  if (selMarca) selMarca.value = item.m || '';
+  const selProv = document.getElementById('ir-proveedor');
+  if (selProv) selProv.value = item.prov_id || '';
+  invCargarMarcas();
+  invCargarProveedoresSelect();
+  document.getElementById('inv-repuesto-title').textContent = 'Editar: ' + item.n;
+  document.getElementById('inv-modal-repuesto').style.display = '';
+}
+
+function invCerrarModalRepuesto() {
+  document.getElementById('inv-modal-repuesto').style.display = 'none';
+  _editandoRepuestoId = null;
+}
+
+function invCargarMarcas() {
+  const s = document.getElementById('ir-marca');
+  if (!s) return;
+  const proveedores = APP.lsGet('mp_proveedores', PROV_DEFAULT);
+  const MARCAS_BASE = ['Toyota','Hyundai','Kia','Chevrolet','Suzuki','Nissan','Honda','Ford','Volkswagen','Mazda','Mitsubishi','Subaru','JAC','Chery','BYD','Mercedes-Benz','BMW','Renault','Peugeot','Fiat'];
+  const todas = [...MARCAS_BASE, ...proveedores.flatMap(p => p.marcas || [])].filter((v, i, a) => a.indexOf(v) === i).sort();
+  s.innerHTML = '<option value="">Seleccionar…</option>' + todas.map(m => `<option value="${m}">${m}</option>`).join('');
+}
+
+function invCargarProveedoresSelect() {
+  ['ir-proveedor','ie-proveedor'].forEach(id => {
+    const s = document.getElementById(id);
+    if (!s) return;
+    const proveedores = APP.lsGet('mp_proveedores', PROV_DEFAULT);
+    s.innerHTML = '<option value="">Sin proveedor</option>' + proveedores.map(p => `<option value="${p.id}">${p.nombre}</option>`).join('');
+  });
+}
+
+function invGuardarRepuesto() {
+  const g = id => (document.getElementById(id)?.value || '').trim();
+  const codigo = g('ir-codigo');
+  const nombre = g('ir-nombre');
+  if (!codigo || !nombre) { APP.toast.show('⚠️ Código y nombre son obligatorios.', 'warning'); return; }
+
+  const items = APP.lsGet('mp_inventario', []);
+  const cfg = APP.lsGet('rep_config', {});
+  const ganancia = cfg.ganancia || parseFloat(g('ir-ganancia')) || 0;
+  const precioCompra = parseFloat(g('ir-precio-compra')) || 0;
+  const precioVenta = precioCompra > 0 ? Math.round(precioCompra * (1 + ganancia / 100)) : 0;
+
+  const dato = {
+    c: codigo,
+    n: nombre,
+    m: document.getElementById('ir-marca')?.value || '',
+    ub: g('ir-ubicacion'),
+    st: parseInt(g('ir-stock')) || 0,
+    mn: parseInt(g('ir-min')) || 5,
+    p: precioVenta ? '$' + precioVenta.toLocaleString('es-CL') : '—',
+    e: 's-done',
+    et: 'OK',
+    prov_id: document.getElementById('ir-proveedor')?.value || '',
+    notas: g('ir-notas')
+  };
+
+  if (_editandoRepuestoId) {
+    const idx = items.findIndex(x => x.c === _editandoRepuestoId);
+    if (idx >= 0) items[idx] = { ...items[idx], ...dato, c: dato.c };
+  } else {
+    if (items.some(x => x.c === codigo)) { APP.toast.show('⚠️ El código ya existe.', 'warning'); return; }
+    items.push(dato);
+  }
+  APP.lsSet('mp_inventario', items);
+  invCerrarModalRepuesto();
+  renderInventario();
+  APP.toast.show('Repuesto guardado.', 'success');
+}
+
+function invRegistrarEntrada() {
+  _editandoRepuestoId = null;
+  const s1 = document.getElementById('ie-cantidad'); if (s1) s1.value = '1';
+  const s2 = document.getElementById('ie-factura'); if (s2) s2.value = '';
+  const s3 = document.getElementById('ie-obs'); if (s3) s3.value = '';
+  const s4 = document.getElementById('ie-fecha'); if (s4) s4.value = new Date().toISOString().split('T')[0];
+  invCargarRepuestosSelect();
+  invCargarProveedoresSelect();
+  document.getElementById('inv-modal-entrada').style.display = '';
+}
+
+function invCargarRepuestosSelect() {
+  const s = document.getElementById('ie-repuesto');
+  if (!s) return;
+  const items = APP.lsGet('mp_inventario', []);
+  s.innerHTML = '<option value="">Seleccionar repuesto…</option>' + items.map(i => `<option value="${i.c}">${i.c} — ${i.n}</option>`).join('');
+}
+
+function invCerrarModalEntrada() {
+  document.getElementById('inv-modal-entrada').style.display = 'none';
+}
+
+function invGuardarEntrada() {
+  const g = id => (document.getElementById(id)?.value || '').trim();
+  const codigo = document.getElementById('ie-repuesto')?.value;
+  const cantidad = parseInt(g('ie-cantidad')) || 0;
+  if (!codigo || cantidad <= 0) { APP.toast.show('⚠️ Selecciona repuesto y cantidad.', 'warning'); return; }
+
+  const items = APP.lsGet('mp_inventario', []);
+  const idx = items.findIndex(x => x.c === codigo);
+  if (idx < 0) { APP.toast.show('⚠️ Repuesto no encontrado.', 'warning'); return; }
+
+  items[idx].st = (items[idx].st || 0) + cantidad;
+  APP.lsSet('mp_inventario', items);
+
+  // Registrar movimiento en historial
+  const mov = {
+    tipo: 'entrada',
+    codigo,
+    cantidad,
+    fecha: g('ie-fecha'),
+    factura: g('ie-factura'),
+    proveedor: document.getElementById('ie-proveedor')?.value || '',
+    obs: g('ie-obs'),
+    creado: new Date().toISOString()
+  };
+  const historial = APP.lsGet('inv_historial', []);
+  historial.unshift(mov);
+  APP.lsSet('inv_historial', historial);
+
+  invCerrarModalEntrada();
+  renderInventario();
+  APP.toast.show('Entrada registrada.', 'success');
+}
