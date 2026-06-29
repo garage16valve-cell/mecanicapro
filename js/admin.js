@@ -260,7 +260,18 @@ function adminRenderUsuarios(buscar) {
 var _svcAdminContext = false;
 
 function adminNuevoUsuario() {
-  svcOpNuevo();
+  _svcOpEditId = null;
+  _svcAdminContext = true;
+  _svcOpLimpiarForm();
+  _svcOpCerts = [];
+  const rg = document.getElementById('svc-op-rol-group');
+  if (rg) rg.style.display = 'block';
+  const sel = document.getElementById('svc-op-f-rol');
+  if (sel) sel.value = 'mecanico';
+  const t = document.getElementById('svc-op-titulo');
+  if (t) t.textContent = 'Nuevo Usuario';
+  const m = document.getElementById('svc-op-modal');
+  if (m) m.style.display = '';
 }
 
 function adminEditarUsuario(id) {
@@ -774,37 +785,472 @@ function admEliminarLogo() {
 // ═══════════════════════════════════════════════════════════════════
 
 // ===== CASCADA PAÍS-REGIÓN-CIUDAD-COMUNA =====
-const _admRegiones = {
-  Chile: ['Metropolitana', 'Valparaíso', 'Biobío'],
-  Argentina: ['Buenos Aires', 'Córdoba'],
-  Perú: ['Lima', 'Arequipa']
-};
-const _admCiudades = {
-  Metropolitana: ['Santiago', 'Puente Alto', 'La Florida'],
-  Valparaíso: ['Valparaíso', 'Viña del Mar'],
-  Biobío: ['Concepción', 'Los Ángeles'],
-  'Buenos Aires': ['La Plata', 'Lomas de Zamora'],
-  Córdoba: ['Córdoba capital', 'Río Cuarto'],
-  Lima: ['Lima Metropolitana', 'Callao'],
-  Arequipa: ['Arequipa capital']
-};
-const _admComunas = {
-  Santiago: ['Providencia', 'Ñuñoa', 'Las Condes'],
-  'Puente Alto': ['Puente Alto'],
-  'La Florida': ['La Florida'],
-  Valparaíso: ['Cerro Barón', 'Gálvez'],
-  'Viña del Mar': ['Viña del Mar'],
-  Concepción: ['Chillán', 'Talcahuano'],
-  'Los Ángeles': ['Los Ángeles'],
-  'La Plata': ['La Plata'],
-  'Lomas de Zamora': ['Lomas de Zamora'],
-  'Córdoba capital': ['Córdoba capital'],
-  'Río Cuarto': ['Río Cuarto'],
-  'Lima Metropolitana': ['Lima Metropolitana'],
-  Callao: ['Callao'],
-  'Arequipa capital': ['Arequipa capital']
+// ──────────────────────────────────────────────
+// DATOS COMPLETOS DE UBICACIONES (Chile, Argentina, Perú)
+// Estructura: UBICACIONES[pais][region][ciudad] = [comunas]
+// ──────────────────────────────────────────────
+const UBICACIONES = {
+  // ═══════════════════════════════════════════════
+  // CHILE — 16 regiones
+  // ═══════════════════════════════════════════════
+  Chile: {
+    'Arica y Parinacota': {
+      Arica: ['Arica', 'San Miguel de Azapa', 'San Pedro de Atacama', 'Cerro Sombrero', 'Chacalluta', 'Linderos'],
+      Putre: ['Putre', 'Belén', 'Socoroma', 'Guallatiri', 'Pachama', 'Ticnámar', 'Copaquilla']
+    },
+    Tarapacá: {
+      Iquique: ['Iquique', 'Alto Hospicio', 'Pica', 'La Tirana', 'Matilla', 'Chanavayita'],
+      'Pozo Almonte': ['Pozo Almonte', 'La Tirana', 'Mamiña'],
+      Huara: ['Huara', 'Pisagua', 'Tarapacá', 'Pachica'],
+      Camiña: ['Camiña', 'Nama', 'Moquilla'],
+      Colchane: ['Colchane', 'Cariquima', 'Enquelga']
+    },
+    Antofagasta: {
+      Antofagasta: ['Antofagasta', 'Mejillones', 'Baquedano', 'Sierra Gorda', 'Caleta El Cobre', 'La Negra', 'Coloso', 'Caleta Loa'],
+      Calama: ['Calama', 'San Pedro de Atacama', 'Chiu Chiu', 'Lasana', 'Ayquina', 'Turi', 'Río Grande', 'Socaire', 'Toconao', 'Talabre', 'El Tatio'],
+      Tocopilla: ['Tocopilla', 'María Elena', 'El Toco', 'La Caleta', 'Barriles'],
+      Taltal: ['Taltal', 'Paposo', 'La Chimba', 'Cifuncho']
+    },
+    Atacama: {
+      Copiapó: ['Copiapó', 'Caldera', 'Tierra Amarilla', 'Piedra Colgada', 'Paipote', 'San Fernando Viejo', 'Bahía Inglesa', 'Puerto Viejo', 'Puerto Flamenco', 'Puerto del Morro'],
+      Vallenar: ['Vallenar', 'Huasco', 'Freirina', 'Alto del Carmen', 'San Félix', 'El Transito', 'La Higuerita', 'Canto del Agua', 'Domeyko', 'Maitencillo'],
+      Chañaral: ['Chañaral', 'El Salado', 'Barquito', 'Flamenco', 'Pan de Azúcar'],
+      'Diego de Almagro': ['Diego de Almagro', 'El Inca', 'Potrerillos', 'Llanta', 'Las Ánimas']
+    },
+    Coquimbo: {
+      'La Serena': ['La Serena', 'Altovalsol', 'Algarrobito', 'Islón', 'La Florida', 'Lambert', 'Las Rojas'],
+      Coquimbo: ['Coquimbo', 'El Llano', 'Las Tacas', 'Los Hornos', 'Playa Changa', 'Tongoy', 'Guanaqueros', 'La Herradura', 'Peñuelas'],
+      Ovalle: ['Ovalle', 'Monte Patria', 'Punitaqui', 'Combarbalá', 'Sotaquí', 'Barraza', 'Chañaral Alto', 'Peña Blanca', 'El Mauro', 'Río Hurtado'],
+      Illapel: ['Illapel', 'Salamanca', 'Los Vilos', 'Canela', 'Huentelauquén', 'Pichidangui', 'Limahuida', 'San Agustín'],
+      Vicuña: ['Vicuña', 'Paihuano', 'Perallillo', 'La Campana', 'Andacollo', 'La Calera', 'Elqui', 'Horcón'],
+      'Los Vilos': ['Los Vilos', 'Quilimarí', 'Tilama', 'Cavilolén', 'Choapa']
+    },
+    Valparaíso: {
+      Valparaíso: ['Valparaíso', 'Concón', 'Casablanca', 'Juan Fernández', 'Playa Ancha', 'Cerro Barón', 'Cerro Alegre', 'Cerro Concepción', 'Cerro Bellavista', 'Puerto', 'Almendral', 'Viña del Mar (parte)', 'Laguna Verde', 'Quintil', 'El Faro', 'Bosques de Montemar', 'Reñaca Alto', 'El Salto', 'Curauma', 'Peñablanca'],
+      'Viña del Mar': ['Viña del Mar', 'Reñaca', 'Santa Inés', 'Agua Santa', 'Tranque Sur', 'El Viñedo Alto', 'Chorrillos', 'Espejo', 'Valle Alegre', 'Gómez Carreño'],
+      Quilpué: ['Quilpué', 'El Belloto', 'Los Pinos', 'Villa Alemana (parte)'],
+      'Villa Alemana': ['Villa Alemana', 'Peñablanca', 'Los Pinos'],
+      'San Antonio': ['San Antonio', 'Cartagena', 'El Quisco', 'El Tabo', 'Algarrobo', 'Santo Domingo', 'Llo-Lleo', 'Llolleo', 'San Juan', 'Barrancas', 'Tejas Verdes', 'Rocas de Santo Domingo'],
+      'San Felipe': ['San Felipe', 'Putaendo', 'Santa María', 'Panquehue', 'Llay-Llay', 'Catemu', 'Curimón', 'San José', 'Rinconada de Silva', 'Unión Campesina'],
+      'Los Andes': ['Los Andes', 'San Esteban', 'Calle Larga', 'Rinconada', 'Río Colorado', 'Vilcuya', 'Portillo', 'Juncal'],
+      Quillota: ['Quillota', 'La Cruz', 'Limache', 'Olmué', 'San Pedro', 'Boco', 'Valle Hermoso', 'El Retiro', 'Los Laureles', 'Las Palmas'],
+      'La Ligua': ['La Ligua', 'Cabildo', 'Papudo', 'Zapallar', 'Petorca', 'Pichicuy', 'Los Molles', 'Ventanas', 'Pullally', 'Cachagua', 'Maitencillo (Puchuncaví)'],
+      'Isla de Pascua': ['Hanga Roa', 'Hanga Piko', 'Mataveri'],
+      Marga Marga: ['Limache', 'Olmué'],
+      Puchuncaví: ['Puchuncaví', 'La Greda', 'Laguna Verde', 'El Rincón', 'Campiche', 'Pucalán'],
+      'Nuevo Imperial': ['La Estrella', 'Litueche', 'Marchihue', 'Navidad', 'Pichilemu']
+    },
+    Metropolitana: {
+      Santiago: ['Santiago Centro', 'Estación Central', 'Independencia', 'Recoleta', 'Providencia', 'Las Condes', 'Vitacura', 'Lo Barnechea', 'Ñuñoa', 'La Reina', 'Macul', 'Peñalolén', 'La Florida', 'San Joaquín', 'San Miguel', 'Pedro Aguirre Cerda', 'Lo Espejo', 'El Bosque', 'La Cisterna', 'San Ramón', 'La Granja', 'Cerro Navia', 'Lo Prado', 'Quinta Normal', 'Renca', 'Conchalí', 'Huechuraba', 'Quilicura', 'Pudahuel', 'Cerrillos', 'Maipú', 'Padre Hurtado', 'Puente Alto', 'Pirque', 'San José de Maipo', 'Colina', 'Lampa', 'Tiltil'],
+      'San Bernardo': ['San Bernardo', 'Buin', 'Paine', 'Calera de Tango', 'El Monte', 'Isla de Maipo', 'Los Cerrillos', 'Nos', 'San José de Maipo', 'Puente Alto (parte)'],
+      Talagante: ['Talagante', 'Peñaflor', 'El Monte', 'Isla de Maipo', 'Monte Tiro', 'Malloco', 'Lo Chacón'],
+      Melipilla: ['Melipilla', 'Alhué', 'María Pinto', 'San Pedro', 'Curacaví', 'Pomaire', 'Calcuya', 'Bollenar', 'La Capilla'],
+      Colina: ['Colina', 'Lampa', 'Tiltil', 'Chicureo', 'El Colorado', 'San José de Lampa'],
+      Pirque: ['Pirque', 'San José de Maipo', 'Las Vertientes', 'El Principal', 'La Obra']
+    },
+    "Libertador General Bernardo O'Higgins": {
+      Rancagua: ['Rancagua', 'Graneros', 'Machalí', 'Requínoa', 'Olivar', 'Doñihue', 'Coinco', 'Coltauco', 'Las Cabras', 'Peumo', 'Pichidegua', 'San Vicente de Tagua Tagua', 'Quinta de Tilcoco', 'Rengo', 'Malloa', 'Mostazal', 'Codegua', 'Chépica'],
+      'San Fernando': ['San Fernando', 'Chimbarongo', 'Nancagua', 'Placilla', 'Pumanque', 'Lolol', 'Santa Cruz', 'Palmilla', 'Peralillo', 'Marchigüe', 'Navidad', 'Litueche', 'La Estrella', 'Pichilemu'],
+      Rengo: ['Rengo', 'Requínoa', 'Malloa', 'Quinta de Tilcoco', 'San Vicente de Tagua Tagua', 'Pichidegua'],
+      Mostazal: ['Mostazal', 'Codegua', 'Graneros'],
+      Lolol: ['Lolol', 'Santa Cruz', 'Pumanque', 'Nancagua']
+    },
+    Maule: {
+      Talca: ['Talca', 'San Clemente', 'Pelarco', 'Pencahue', 'Maule', 'San Rafael', 'Curepto', 'Constitución', 'Empedrado', 'Molina', 'Sagrada Familia', 'Río Claro', 'Lontué', 'Duao', 'Putú', 'Iloca'],
+      Curicó: ['Curicó', 'Teno', 'Romeral', 'Rauco', 'Vichuquén', 'Hualañé', 'Licantén', 'Molina', 'Sagrada Familia', 'Los Niches', 'Upeo', 'La Huerta del Maule', 'Patacón', 'Llico', 'Boca de Maule'],
+      Linares: ['Linares', 'San Javier', 'Villa Alegre', 'Yerbas Buenas', 'Colbún', 'Longaví', 'Parral', 'Retiro', 'Copihue', 'Peñaflor', 'Los Robles'],
+      Cauquenes: ['Cauquenes', 'Chanco', 'Pelluhue', 'Curanipe', 'Las Cardas', 'Quella', 'Bullenar'],
+      Constitución: ['Constitución', 'Putú', 'Iloca', 'Duao', 'Quivolgo', 'Rancura', 'Potrero Grande'],
+      Parral: ['Parral', 'Retiro', 'Longaví', 'Copihue', 'Cauquenes (parte)']
+    },
+    Ñuble: {
+      Chillán: ['Chillán', 'Chillán Viejo', 'Quillón', 'Bulnes', 'San Ignacio', 'El Carmen', 'Pemuco', 'Yungay', 'Cobquecura', 'Ránquil', 'Quirihue', 'Ninhue', 'Portezuelo', 'Coihueco', 'Pinto', 'San Fabián', 'Ñiquén', 'San Carlos'],
+      'San Carlos': ['San Carlos', 'San Fabián', 'Cobquecura', 'Quirihue', 'Ninhue', 'Ránquil', 'Portezuelo'],
+      Coihueco: ['Coihueco', 'Pinto', 'San Ignacio'],
+      Yungay: ['Yungay', 'Pemuco', 'El Carmen']
+    },
+    Biobío: {
+      Concepción: ['Concepción', 'Talcahuano', 'Hualpén', 'Chiguayante', 'San Pedro de la Paz', 'Coronel', 'Lota', 'Penco', 'Tomé', 'Hualqui', 'Santa Juana', 'Florida', 'Florida', 'El Arenal', 'Andalién', 'Tumbes', 'Lirquén'],
+      'Los Ángeles': ['Los Ángeles', 'Quilleco', 'Antuco', 'Tucapel', 'Alto Biobío', 'Santa Bárbara', 'Quilaco', 'Mulchén', 'Negrete', 'Nacimiento', 'San Rosendo', 'Yumbel', 'Cabrero', 'Laja'],
+      'Lebu': ['Lebu', 'Curanilahue', 'Arauco', 'Cañete', 'Contulmo', 'Tirúa', 'Los Álamos', 'Laraquete', 'Carampangue'],
+      Cañete: ['Cañete', 'Contulmo', 'Tirúa'],
+      Arauco: ['Arauco', 'Curanilahue', 'Lebu', 'Los Álamos'],
+      'San Pedro de la Paz': ['San Pedro de la Paz', 'Lomas Coloradas', 'Miches', 'Candelaria', 'Santa Margarita'],
+      Chiguayante: ['Chiguayante', 'Manquimávida', 'El Manzano', 'Valle Noble', 'Enrique Arenas', 'Tucapel Bajo']
+    },
+    'La Araucanía': {
+      Temuco: ['Temuco', 'Padre Las Casas', 'Vilcún', 'Freire', 'Nueva Imperial', 'Carahue', 'Cholchol', 'Saavedra', 'Teodoro Schmidt', 'Pitrufquén', 'Loncoche', 'Toltén', 'Gorbea', 'Cunco', 'Melipeuco'],
+      Villarrica: ['Villarrica', 'Pucón', 'Licán Ray', 'Coñaripe', 'Curarrehue', 'Caburgua', 'Palguín Bajo', 'Lago Llanquihue (parte)'],
+      Angol: ['Angol', 'Collipulli', 'Ercilla', 'Victoria', 'Lautaro', 'Curacautín', 'Lonquimay', 'Traiguén', 'Los Sauces', 'Purén', 'Renaico', 'Perquenco', 'Galvarino'],
+      Victoria: ['Victoria', 'Curacautín', 'Lonquimay', 'Selva Oscura', 'Malalcahuello'],
+      Lautaro: ['Lautaro', 'Perquenco', 'Galvarino'],
+      'Padre Las Casas': ['Padre Las Casas', 'Carhue', 'Huichahue', 'Quepe', 'Maquegua', 'Molco', 'Nielol']
+    },
+    'Los Ríos': {
+      Valdivia: ['Valdivia', 'Corral', 'Máfil', 'Los Lagos', 'Paillaco', 'Lanco', 'Panguipulli', 'Niebla', 'Isla Teja', 'Las Ánimas', 'Torreones', 'Cayumapu', 'Collico', 'Pelchuquín', 'Punucapa'],
+      'La Unión': ['La Unión', 'Río Bueno', 'Llanquihue (parte)', 'Trumao', 'El Llolly', 'San Javier de Transandino'],
+      Panguipulli: ['Panguipulli', 'Coñaripe', 'Licán Ray', 'Choshuenco', 'Neltume', 'Puerto Fuy', 'Pirihueico', 'Carranco'],
+      'Río Bueno': ['Río Bueno', 'Lago Ranco', 'Futrono', 'El Llolly'],
+      Lanco: ['Lanco', 'Máfil', 'Los Lagos']
+    },
+    'Los Lagos': {
+      'Puerto Montt': ['Puerto Montt', 'Puerto Varas', 'Llanquihue', 'Frutillar', 'Fresia', 'Calbuco', 'Los Muermos', 'Maullín', 'Cochamó', 'Ralún', 'Las Cascadas', 'Puelo', 'Lago Chapo', 'Alerce', 'Tenglo', 'Metri'],
+      Osorno: ['Osorno', 'Purranque', 'Río Negro', 'San Pablo', 'San Juan de la Costa', 'Puyehue', 'Entre Lagos', 'Rupanco', 'Bahía Mansa', 'Pucatrihue', 'Caleta Cóndor'],
+      Castro: ['Castro', 'Ancud', 'Quellón', 'Dalcahue', 'Puqueldón', 'Curaco de Vélez', 'Quinchao', 'Achao', 'Chonchi', 'Hualaihué', 'Chaitén', 'Futaleufú', 'Palena', 'Chepu', 'Llicaldad', 'Putemún', 'Nercón', 'Rilán'],
+      Ancud: ['Ancud', 'Quemchi', 'Dalcahue', 'Manao', 'Cucao', 'Caulín', 'Pugueñón', 'Coquiao', 'Linao', 'Ahoni', 'Huicha', 'Chacao', 'Lepué'],
+      'Puerto Varas': ['Puerto Varas', 'Frutillar', 'Llanquihue', 'Cochamó', 'Ensenada', 'Petrohué', 'Río Pescado'],
+      Calbuco: ['Calbuco', 'Maullín', 'Los Muermos', 'Pargua', 'Carelmapu', 'Río Chico'],
+      Chiloé: ['Castro', 'Ancud', 'Quellón', 'Dalcahue', 'Chonchi', 'Quemchi', 'Quinchao', 'Puqueldón', 'Curaco de Vélez', 'Hualaihué', 'Chaitén', 'Futaleufú', 'Palena'],
+      Chaitén: ['Chaitén', 'Futaleufú', 'Palena', 'Ayacara', 'Puerto Carmen', 'El Amarillo'],
+      'Hualaihué': ['Hualaihué', 'Aulen', 'Pichicolo', 'Hornopirén', 'Caleta Gonzalo', 'El Bolsón', 'Lago Cabrera', 'Chauchil']
+    },
+    'Aysén del General Carlos Ibáñez del Campo': {
+      Coyhaique: ['Coyhaique', 'Puerto Aysén', 'Lago Verde', 'Villa Mañihuales', 'El Blanco', 'Villa Tapera', 'El Correl', 'El Barco', 'Valle Simpson'],
+      'Puerto Aysén': ['Puerto Aysén', 'Aysén', 'Villa Mañihuales', 'Puerto Chacabuco', 'Río Blanco', 'Puyuhuapi', 'La Tapera', 'Isla Huemules', 'Faro Raper'],
+      'Chile Chico': ['Chile Chico', 'Los Antiguos (vecino Argentina)', 'Puerto Cristal', 'Balmaceda', 'El Chacay', 'Río Hunco', 'Bahía Jara', 'Valle Chacabuco', 'Lago Buenos Aires', 'Río Ibáñez'],
+      Cochrane: ['Cochrane', 'Tortel', 'Villa O\'Higgins', 'Puerto Yungay', 'Río Baker', 'Río Bravo', 'Bahía Murta', 'El Ranchillo'],
+      'Villa O\'Higgins': ['Villa O\'Higgins', 'Puerto Yungay', 'El Pascua', 'Monte Aguilera', 'Bahía Bahamondes']
+    },
+    'Magallanes y de la Antártica Chilena': {
+      'Punta Arenas': ['Punta Arenas', 'Puerto Natales', 'Río Verde', 'Porvenir', 'Cabo de Hornos', 'Puerto Williams', 'Cerro Sombrero', 'Timaukel', 'Pampa Guanaco', 'Laguna Blanca', 'San Gregorio', 'Peckett', 'Cameron'],
+      'Puerto Natales': ['Puerto Natales', 'Torres del Paine', 'Cerro Castillo', 'Río Baguales', 'Estancia Cerro Negro', 'Villa Tehuelches'],
+      Porvenir: ['Porvenir', 'Cameron', 'Río Grande', 'Pampa Baja'],
+      'Puerto Williams': ['Puerto Williams', 'Bahía Puerto', 'Península Dumas', 'Isla Navarino', 'Río Grande (Tierra del Fuego)']
+    }
+  },
+
+  // ═══════════════════════════════════════════════
+  // ARGENTINA — 23 provincias + CABA
+  // ═══════════════════════════════════════════════
+  Argentina: {
+    'Buenos Aires (Provincia)': {
+      'La Plata': ['La Plata', 'Berisso', 'Ensenada', 'City Bell', 'Villa Elisa', 'Gonnet', 'Tolosa', 'Los Hornos', 'Ringuelet', 'Manuel B. Gonnet', 'José Hernández', 'El Pato', 'Olmos', 'Arana', 'Etcheverry'],
+      'Mar del Plata': ['Mar del Plata', 'Batán', 'Sierra de los Padres', 'El Coyunco', 'Colinas de Peralta Ramos', 'La Florida', 'Parque Palermo', 'Las Heras (parte)'],
+      Bahía Blanca: ['Bahía Blanca', 'Ingeniero White', 'General Cerri', 'Cabildo', 'Puerto Belgrano', 'Punta Alta', 'Villa del Mar'],
+      'Lanús': ['Lanús', 'Remedios de Escalada', 'Valentín Alsina', 'Monte Chingolo', 'Villa de los Industriales', 'Gerli', 'Piñeyro'],
+      'Lomas de Zamora': ['Lomas de Zamora', 'Banfield', 'Temperley', 'Llavallol', 'Turdera', 'San José', 'Villa Centenario', 'Fiorito'],
+      'Quilmes': ['Quilmes', 'Bernal', 'Ezpeleta', 'Villa La Florida', 'San Francisco Solano', 'Don Bosco', 'Ranelagh'],
+      'San Isidro': ['San Isidro', 'Martínez', 'Acassuso', 'Béccar', 'Boulogne Sur Mer', 'Villa Adelina', 'Vicente López', 'Olivos'],
+      'Morón': ['Morón', 'Castelar', 'Haedo', 'El Palomar', 'Villa Sarmiento', 'Ramos Mejía', 'Ciudad Jardín Lomas del Palomar'],
+      'Tandil': ['Tandil', 'Gardey', 'María Ignacia', 'Vela', 'De la Canal', 'Azucena', 'Fulton'],
+      'La Matanza': ['San Justo', 'Ramos Mejía', 'Ciudad Evita', 'Isidro Casanova', 'Laferrere', 'González Catán', 'Villa Luzuriaga', 'Tapiales', 'Aldo Bonzi', 'Madero'],
+      'Pilar': ['Pilar', 'Manuel Alberti', 'Del Viso', 'Presidente Derqui', 'Villa Rosa', 'Fátima', 'La Lonja', 'Laguna de Lobos', 'El Haras'],
+      'General Sarmiento': ['José C. Paz', 'San Miguel', 'Malvinas Argentinas', 'Los Polvorines', 'Grand Bourg', 'Tortuguitas'],
+      'Tres de Febrero': ['Caseros', 'Ciudad Jardín', 'El Libertador', 'Martín Coronado', 'Pablo Podestá', 'Remedios de Escalada', 'Saavedra', 'Villa Bosch']
+    },
+    'CABA': {
+      'Buenos Aires Centro': ['San Nicolás', 'Montserrat', 'Balvanera', 'Recoleta', 'Retiro', 'Puerto Madero'],
+      'Belgrano': ['Belgrano', 'Núñez', 'Coghlan', 'Saavedra', 'Colegiales'],
+      'Palermo': ['Palermo', 'Las Cañitas', 'Bosques de Palermo', 'Barrio Parque', 'Palermo Viejo', 'Palermo Chico', 'Palermo Hollywood', 'Palermo Soho'],
+      'Almagro': ['Almagro', 'Boedo', 'Caballito', 'Flores', 'San Cristóbal', 'Villa Santa Rita', 'Floresta', 'Villa General Mitre', 'Villa Crespo'],
+      'La Boca': ['La Boca', 'Barracas', 'Constitución', 'Parque Patricios', 'Nueva Pompeya'],
+      'Mataderos': ['Mataderos', 'Liniers', 'Villa Luro', 'Vélez Sársfield', 'Monte Castro', 'Villa Real', 'Villa Devoto', 'Versalles'],
+      'Villa Urquiza': ['Villa Urquiza', 'Villa Pueyrredón', 'Belgrano R', 'Parque Chas', 'Villa Ortúzar', 'La Paternal', 'Chacarita', 'Agronomía']
+    },
+    Córdoba: {
+      'Córdoba Capital': ['Centro', 'Nueva Córdoba', 'Cerro de las Rosas', 'Alta Córdoba', 'Güemes', 'General Paz', 'San Vicente', 'Rancagua', 'Cofico', 'Observatorio', 'Jardín Espinosa', 'Urca', 'Los Boulevares', 'Villa Allende Parque', 'Argüello', 'La Calera'],
+      'Río Cuarto': ['Río Cuarto', 'Las Higueras', 'Elena', 'Coronel Moldes', 'Alpa Corral', 'Achiras', 'Carnerillo'],
+      'Villa María': ['Villa María', 'Villa Nueva', 'Tío Pujio', 'Costa Bonita', 'La Playosa', 'Arroyito'],
+      'San Francisco': ['San Francisco', 'Frontera', 'Plaza Clucellas', 'Devoto', 'Bella Italia', 'Colonia Marina', 'Toscano', 'El Tío'],
+      'Carlos Paz': ['Villa Carlos Paz', 'Morteros', 'Cosquín', 'La Falda', 'Capilla del Monte', 'Cruz del Eje', 'Mina Clavero', 'Alta Gracia', 'Río Tercero', 'Embalse', 'Santa Rosa de Calamuchita', 'Villa General Belgrano'],
+      'Río Tercero': ['Río Tercero', 'Almafuerte', 'Berrotarán', 'Corralito', 'Dalmacio Vélez Sarsfield', 'General Fotheringham', 'Las Perdices', 'Tancacha', 'Villa Ascasubi']
+    },
+    'Santa Fe': {
+      Rosario: ['Rosario', 'Villa Gobernador Gálvez', 'Granadero Baigorria', 'Pérez', 'San Lorenzo', 'Roldán', 'Funes', 'Arroyo Seco', 'Capitán Bermúdez', 'Fray Luis Beltrán', 'Puerto General San Martín', 'Timbúes', 'Soldini', 'Zavalla'],
+      'Santa Fe Capital': ['Santa Fe', 'Santo Tomé', 'San José del Rincón', 'Recreo', 'Monte Vera', 'Candioti', 'Laguna Paiva', 'Nelson', 'Llambi Campbell'],
+      Rafaela: ['Rafaela', 'Sunchales', 'Esperanza', 'San Carlos Centro', 'Santa Clara de Saguier', 'San Vicente', 'Ataliva', 'Lehmann', 'Moisés Ville', 'Gálvez', 'San Jerónimo Norte'],
+      'Venado Tuerto': ['Venado Tuerto', 'Firmat', 'Cañada de Gómez', 'Villa Constitución', 'Casilda', 'Sanford', 'Melincué', 'Murphy', 'Wheelwright', 'Elortondo', 'Chovet'],
+      Reconquista: ['Reconquista', 'Avellaneda', 'Malería', 'Villa Ocampo', 'Las Toscas', 'San Javier', 'Romang', 'Tostado', 'Vera', 'Calchaquí']
+    },
+    Mendoza: {
+      Mendoza: ['Ciudad de Mendoza', 'Godoy Cruz', 'Guaymallén', 'Las Heras', 'Maipú', 'Luján de Cuyo', 'San Martín', 'Rivadavia', 'Junín', 'La Paz', 'General Alvear', 'San Rafael', 'Tunuyán', 'Tupungato'],
+      'San Rafael': ['San Rafael', 'General Alvear', 'Malargüe', 'Monte Comán', 'La Llave', 'Cuadro Nacional', 'Tierra del Fuego', 'Villa Atuel', 'Real del Padre', 'La Chimba'],
+      'San Martín': ['San Martín', 'Junín', 'Rivadavia', 'La Colonia'],
+      Luján: ['Luján de Cuyo', 'Agrelo', 'Perdriel', 'Uspallata', 'Cacheuta', 'Potrerillos', 'Las Heras (parte)'],
+      'Valle de Uco': ['Tunuyán', 'Tupungato', 'San Carlos', 'Vista Flores', 'Los Chacales']
+    },
+    Tucumán: {
+      'San Miguel de Tucumán': ['San Miguel de Tucumán', 'Yerba Buena', 'Tafí Viejo', 'Banda del Río Salí', 'Alderetes', 'El Manantial', 'Las Talitas', 'Los Pocitos', 'San Pablo', 'Villa Muñecas', 'Villa Luján', 'Villa Mariano Moreno'],
+      'Concepción': ['Concepción', 'Aguilares', 'Juan Bautista Alberdi', 'Monte Bello', 'Alto Verde'],
+      'Tafí del Valle': ['Tafí del Valle', 'El Mollar', 'Amaicha del Valle', 'Colalao del Valle', 'El Desmonte'],
+      'Lules': ['Lules', 'Famaillá', 'Bella Vista', 'Los Ralos', 'El Timbó']
+    },
+    Salta: {
+      'Salta Capital': ['Salta', 'Vaqueros', 'La Caldera', 'Cerrillos', 'Rosario de Lerma', 'Campo Quijano', 'Chicoana', 'El Carril', 'La Merced'],
+      'San Ramón de la Nueva Orán': ['Orán', 'Embarcación', 'Tartagal', 'Aguas Blancas', 'Pichanal', 'Hipólito Yrigoyen', 'Colonia Santa Rosa', 'Urundel', 'Tabacal', 'Isla de Cañas'],
+      'Cafayate': ['Cafayate', 'San Carlos', 'Anastacio', 'El Pucará', 'Tolombón', 'La Viña'],
+      'General Güemes': ['General Güemes', 'Las Lajitas', 'Joaquín V. González', 'Nueva Esperanza', 'Lumbera', 'El Quebrachal', 'Apolinario Saravia']
+    },
+    'Entre Ríos': {
+      Paraná: ['Paraná', 'Oro Verde', 'San Benito', 'Colonia Avellaneda', 'Crespo', 'Viale', 'Tabossi', 'Seguí', 'Hasenkamp', 'Piedras Blancas'],
+      Concordia: ['Concordia', 'Federación', 'Villa Adela', 'La Criolla', 'Colonia Yeruá', 'Calabacilla', 'Puerto Yeruá'],
+      Gualeguaychú: ['Gualeguaychú', 'Irazusta', 'Aldea San Juan', 'Enrique Carbó', 'Larroque', 'Pueblo General Belgrano', 'Victoria', 'Ibicuy'],
+      'Colón': ['Colón', 'San José', 'Uruguay', 'Villa Elisa', 'Liebig', 'Pueblo Cazes']
+    },
+    Corrientes: {
+      'Corrientes Capital': ['Corrientes', 'Riachuelo', 'Santa Ana de los Guácaras', 'San Cosme', 'San Cayetano', 'El Sombrero', 'Herlitzka', 'Ombú'],
+      'Goya': ['Goya', 'Esquina', 'Carlos Pellegrini', 'Lavalle', 'Valentín (parte)', 'Colonia Carolina'],
+      'Paso de los Libres': ['Paso de los Libres', 'Bompland', 'La Cruz', 'Yapeyú', 'Alvear', 'San Martín'],
+      'Mercedes': ['Mercedes', 'Curuzú Cuatiá', 'Monte Caseros', 'Mocoretá', 'Labougle', 'Pueblo Libertador'],
+      'Santo Tomé': ['Santo Tomé', 'Virasoro', 'Garaví', 'Apeadero', 'Tres Cerros']
+    },
+    Chaco: {
+      'Resistencia': ['Resistencia', 'Barranqueras', 'Fontana', 'Puerto Vilelas', 'Villa Ángela', 'La Leonesa', 'Margarita Belén', 'Colonia Benítez', 'Basail', 'Makallé'],
+      'Sáenz Peña': ['Presidencia Roque Sáenz Peña', 'Avia Terai', 'Campo Largo', 'Coronel Du Graty', 'La Escondida', 'La Verde', 'Mesón de Fierro', 'Napalpí', 'Tres Isletas'],
+      'Villa Ángela': ['Villa Ángela', 'Santa Sylvina', 'Charata', 'Las Breñas', 'General Pinedo', 'Hermoso Campo', 'Itín', 'La Clotilde', 'Pampa del Infierno'],
+      'Capitán Solari': ['Capitán Solari', 'Taco Pozo', 'Almirante Brown', 'El Sauzalito', 'Misión Nueva Pompeya', 'Wichí']
+    },
+    Misiones: {
+      Posadas: ['Posadas', 'Garupá', 'Candelaria', 'Santa Ana', 'Fachinal', 'Cerro Corá', 'Jardín América', 'Oberá', 'San Ignacio', 'Loreto'],
+      Oberá: ['Oberá', 'Campo Grande', 'Campo Viera', 'Panambí', 'Colonia Aurora', 'Almafuerte', 'Los Helechos', 'Caá Yarí'],
+      'Puerto Iguazú': ['Puerto Iguazú', 'Wanda', 'Cataratas del Iguazú', 'Esperanza', 'Libertad', 'Puerto Libertad'],
+      'San Pedro': ['San Pedro', 'Pozo Azul', 'Santa Rosa', 'San Vicente', 'El Soberbio', 'Dos Arroyos', 'Fracrán']
+    },
+    Neuquén: {
+      'Neuquén Capital': ['Neuquén', 'Plottier', 'Cipolletti (parte)', 'Centenario', 'Senillosa', 'Vista Alegre', 'El Chocón'],
+      'San Martín de los Andes': ['San Martín de los Andes', 'Junín de los Andes', 'Aluminé', 'Villa La Angostura', 'Villa Traful'],
+      'Zapala': ['Zapala', 'Mariano Moreno', 'Las Lajas', 'Cutral Có', 'Plaza Huincul', 'Aluminé', 'Loncopué', 'Paso Aguerre'],
+      'Chos Malal': ['Chos Malal', 'Andacollo', 'Buta Ranquil', 'El Huecú', 'Villa Curí Leuvén', 'Paso de San Ignacio']
+    },
+    'Río Negro': {
+      'San Carlos de Bariloche': ['San Carlos de Bariloche', 'Villa La Angostura (parte)', 'Dina Huapi', 'El Bolsón', 'El Manso', 'Mallín Ahogado', 'Colonia Suiza', 'Puerto Blest'],
+      'General Roca': ['General Roca', 'Cipolletti', 'Allen', 'Villa Regina', 'Cervantes', 'Contralmirante Cordero', 'Stefenelli', 'Ceferino Namuncurá', 'Las Perlas'],
+      'Viedma': ['Viedma', 'Carmen de Patagones', 'San Javier', 'El Cóndor', 'El Juncal', 'Guardia Mitre', 'Pozo Salado', 'La Lobería', 'San Antonio Oeste'],
+      'El Bolsón': ['El Bolsón', 'Lago Puelo', 'Epuyén', 'Cholila', 'El Hoyo', 'Parque Nacional Los Alerces']
+    },
+    'San Juan': {
+      'San Juan Capital': ['San Juan', 'Rawson', 'Rivadavia', 'Santa Lucía', 'Chimbas', 'Pocito', 'Capital (Nueve de Julio)', 'San Martín'],
+      'Calingasta': ['Calingasta', 'Barreal', 'Tamberías', 'Paso del Paramillo'],
+      'Jáchal': ['San José de Jáchal', 'Niquivil', 'Tamberías', 'Paso de Otarola', 'Huaco'],
+      'Valle Fértil': ['Villa San Agustín', 'Astica', 'Baldecito', 'Los Médanos'],
+      'Iglesia': ['Iglesia', 'Las Flores', 'Pismanta', 'Angualasto', 'Tudcum']
+    },
+    'San Luis': {
+      'San Luis Capital': ['San Luis', 'Juana Koslay', 'La Punta', 'El Volcán', 'Aviador Origone', 'Alto Pelado', 'Balde de Escudero', 'Las Chacras', 'Villa de la Quebrada', 'San Gerónimo'],
+      'Villa Mercedes': ['Villa Mercedes', 'Justo Daract', 'Unión', 'Tilisarao', 'Concarán', 'Nueva Galia', 'Anchorena', 'La Toma', 'Nogolí', 'Quines'],
+      'Merlo': ['Merlo', 'Papagayos', 'Corte Viejo', 'Villa de Praga', 'Los Molles', 'Paso del Rey', 'Villa Larca', 'Cortaderas', 'El Trapiche']
+    },
+    'La Rioja': {
+      'La Rioja Capital': ['La Rioja', 'Anillaco', 'Chuquis', 'Montalvo', 'Sanagasta', 'Villa Unión', 'Olta'],
+      'Chilecito': ['Chilecito', 'Los Sarmientos', 'Sañogasta', 'Malligasta', 'La Puntilla', 'San Miguel'],
+      'Famatina': ['Famatina', 'Pituil', 'Plaza Vieja', 'Campanas'],
+      'Aimogasta': ['Aimogasta', 'Macha', 'Salicas', 'Villa Mazán', 'La Falda']
+    },
+    'Santiago del Estero': {
+      'Santiago del Estero Capital': ['Santiago del Estero', 'La Banda', 'Termas de Río Hondo', 'Beltrán', 'Clodomira', 'Macro', 'Lugones', 'Villa Zanjón', 'Arraga', 'Añatuya'],
+      'La Banda': ['La Banda', 'Termas de Río Hondo', 'Villa Río Hondo', 'Los Núñez', 'Abra Grande', 'Tramo 20'],
+      'Termas de Río Hondo': ['Termas de Río Hondo', 'Villa Río Hondo', 'Chauchillas', 'Los Encantos'],
+      'Añatuya': ['Añatuya', 'Tintina', 'Sumampa', 'Estación Arraga', 'Herrera', 'Las Tijeras', 'Suncho Corral', 'Quimilí']
+    },
+    "Santa Cruz": {
+      'Río Gallegos': ['Río Gallegos', 'Puerto Santa Cruz', 'Piedrabuena', 'Gobernador Gregores', 'El Chaltén', 'Comandante Luis Piedrabuena', 'Cañadón Seco'],
+      'Caleta Olivia': ['Caleta Olivia', 'Pico Truncado', 'Puerto Deseado', 'Las Heras', 'Koluel Kayke', 'Los Antiguos', 'Perito Moreno', 'Gobernador Gregores'],
+      El Calafate: ['El Calafate', 'Río Turbio', 'Puerto Natales (vecino Chile)', 'El Chaltén', 'Lago Argentino', 'Cerro Fitz Roy'],
+      'Puerto San Julián': ['Puerto San Julián', 'Cabo Blanco', 'Gobernador Gregores', 'Estancia La Argentina']
+    },
+    'Tierra del Fuego': {
+      'Río Grande': ['Río Grande', 'Tolhuin', 'San Sebastián', 'Cabo San Pablo', 'Estancia Viamonte', 'Almanza'],
+      Ushuaia: ['Ushuaia', 'Puerto Williams (vecino Chile)', 'Tolhuin', 'Río Pipo', 'Cerro Alarkén', 'Lago Escondido', 'Lago Fagnano']
+    },
+    'La Pampa': {
+      'Santa Rosa': ['Santa Rosa', 'Toay', 'Anguil', 'Caleufú', 'Colonia Barón', 'Coronel Hilario Lagos', 'Alpachiri', 'General Pico', 'Intendente Alvear', 'Realicó'],
+      'General Pico': ['General Pico', 'Intendente Alvear', 'Realicó', 'Colonia Barón', 'Quemú Quemú', 'Dorila', 'Trenel', 'Falucho'],
+      'General Acha': ['General Acha', 'Chacharramendi', 'La Gloria', 'Limay Mahuida', 'Utracán', 'Victorica'],
+      'Victorica': ['Victorica', 'Telén', 'La Humada', 'Medanos', 'Chical Co']
+    },
+    Chubut: {
+      Comodoro Rivadavia: ['Comodoro Rivadavia', 'Rada Tilly', 'Sarmiento', 'Río Mayo', 'José de San Martín', 'Alto Río Senguer', 'Km 5', 'Km 11', 'Km 8', 'Caleta Córdova', 'General Mosconi', 'Campamento Central'],
+      'Puerto Madryn': ['Puerto Madryn', 'Trelew', 'Rawson', 'Gaiman', 'Dolavon', 'Puerto Pirámides', '28 de Julio', 'Boca de Zanja'],
+      Esquel: ['Esquel', 'Trevelin', 'Corcovado', 'Tecka', 'Lago Rosario', 'Los Cipreses', 'Parque Nacional Los Alerces'],
+      Trelew: ['Trelew', 'Rawson', 'Gaiman', 'Dolavon', 'Puerto Madryn (parte)', '28 de Julio', 'Boca de Zanja']
+    },
+    'Formosa': {
+      'Formosa Capital': ['Formosa', 'Clorinda', 'Puerto Pilcomayo', 'Riacho He-Hé', 'Lanteri', 'Gran Guardia', 'Mariano Boedo', 'San Hilario', 'Herradura'],
+      'Clorinda': ['Clorinda', 'Puerto Pilcomayo', 'Riacho He-Hé', 'Siete Palmas', 'Laguna Blanca', 'Palo Santo'],
+      'Las Lomitas': ['Las Lomitas', 'Ingeniero Juárez', 'Ibarreta', 'Estanislao del Campo', 'General Mosconi', 'Pozo del Tigre', 'El Pato', 'Laguna Yema']
+    },
+    'Jujuy': {
+      'San Salvador de Jujuy': ['San Salvador de Jujuy', 'Palpalá', 'Perico', 'Monterrico', 'San Antonio', 'Reyes', 'Yala', 'La Almona', 'Alto Comedero'],
+      'La Quiaca': ['La Quiaca', 'Abra Pampa', 'Puesto del Marqués', 'Yavi', 'Siberia', 'Catua'],
+      'Humahuaca': ['Humahuaca', 'Tilcara', 'Purmamarca', 'Maimará', 'Uquía', 'Tumbaya', 'Purchena'],
+      'Libertador General San Martín': ['Libertador General San Martín', 'Caimancito', 'Yuto', 'El Piquete', 'Piedras Negras', 'Villa Maior']
+    },
+    Catamarca: {
+      'San Fernando del Valle de Catamarca': ['San Fernando del Valle', 'El Rodeo', 'Huillapima', 'Capayán', 'Valle Viejo', 'Chumbicha', 'Mutquín', 'Pomán', 'Miraflores', 'Bañado'],
+      'Santa María': ['Santa María', 'San José', 'Famatanca', 'La Loma', 'El Desmonte', 'Caspinchango'],
+      'Belén': ['Belén', 'Puerta de San José', 'Londres', 'La Ciénaga', 'Farallón Negro'],
+      'Tinogasta': ['Tinogasta', 'Fiambalá', 'La Puntilla', 'El Eje', 'Costa de Reyes', 'La Calera'],
+      'Andalgalá': ['Andalgalá', 'Aconquija', 'El Potrero', 'La Aguada']
+    }
+  },
+
+  // ═══════════════════════════════════════════════
+  // PERÚ — 24 departamentos
+  // ═══════════════════════════════════════════════
+  Perú: {
+    Lima: {
+      'Lima Metropolitana': ['Miraflores', 'San Isidro', 'Barranco', 'San Borja', 'La Molina', 'Santiago de Surco', 'Jesús María', 'Pueblo Libre', 'San Miguel', 'Magdalena del Mar', 'Lince', 'San Juan de Miraflores', 'Villa María del Triunfo', 'Villa El Salvador', 'San Juan de Lurigancho', 'Comas', 'Los Olivos', 'Puente Piedra', 'Carabayllo', 'Lurín', 'Pachacámac', 'Cieneguilla', 'Chorrillos', 'Rímac', 'El Agustino', 'Ate', 'Santa Anita', 'Lurigancho', 'Independencia', 'San Martín de Porres', 'Callao', 'Bellavista', 'Carmen de la Legua', 'La Perla', 'La Punta', 'Ventanilla', 'Mi Perú'],
+      'Lima Provincias': ['Canta', 'Huarochirí', 'Huaral', 'Cañete', 'Barranca', 'Oyón', 'Yauyos', 'Cajatambo', 'Canta', 'Santa Cruz de Flores', 'Mala', 'Chilca', 'Asia']
+    },
+    Callao: {
+      Callao: ['Callao', 'Bellavista', 'Carmen de la Legua', 'La Perla', 'La Punta', 'Ventanilla', 'Mi Perú', 'Bocanegra', 'Chacarita', 'Puerto del Callao']
+    },
+    Arequipa: {
+      'Arequipa Centro': ['Arequipa', 'Cayma', 'Cerro Colorado', 'Yanahuara', 'Sachaca', 'Tiabaya', 'José Luis Bustamante y Rivero', 'Mariano Melgar', 'Miraflores', 'Paucarpata', 'Sabandía', 'Socabaya', 'Characato', 'Uchumayo', 'Huachipa'],
+      'Caylloma': ['Caylloma', 'Chivay', 'Maca', 'Coporaque', 'Ichupampa', 'Lari', 'Madrigal', 'Sibayo', 'Tuti', 'Yanque'],
+      'Caravelí': ['Caravelí', 'Acarí', 'Atico', 'Bella Unión', 'Cháparra', 'Huanuhuanu', 'Jaquí', 'Lomas', 'Quicacha'],
+      'Islay': ['Islay', 'Mollendo', 'Mejía', 'Punta de Bombón', 'Cocachacra', 'Deán Valdivia']
+    },
+    Cusco: {
+      'Cusco Centro': ['Cusco', 'San Jerónimo', 'San Sebastián', 'Santiago', 'Wanchaq', 'Wimpyllay', 'Poroy', 'Ccorca', 'Saylla', 'Oropesa', 'Lucre', 'Pisac', 'Urubamba', 'Ollantaytambo', 'Yucay', 'Chinchero', 'Maras', 'Moray', 'Calca', 'Lares'],
+      'Urubamba': ['Urubamba', 'Ollantaytambo', 'Yucay', 'Chinchero', 'Maras', 'Moray', 'Huayllabamba', 'Machu Picchu Pueblo'],
+      La Convención: ['Quillabamba', 'Santa Ana', 'Echarati', 'Huayopata', 'Maranura', 'Occobamba', 'Vilcabamba', 'Kimbiri', 'Pichari'],
+      'Espinar': ['Espinar', 'Yauri', 'Coporaque', 'Condoroma', 'Pallpata', 'Pichigua', 'Suyckutambo'],
+      'Canchis': ['Sicuani', 'San Pablo', 'San Pedro', 'Tinta', 'Checacupe', 'Combapata', 'Marangani', 'Langui', 'Layo'],
+      'Anta': ['Anta', 'Huarocondo', 'Limatambo', 'Mollepata', 'Pucyura', 'Zurite', 'Cachimayo', 'Chinchaypujio']
+    },
+    Piura: {
+      'Piura Centro': ['Piura', 'Castilla', 'Catacaos', 'Veintiséis de Octubre', 'La Unión', 'El Tallán', 'Cura Mori', 'Tambogrande', 'Las Lomas', 'Chulucanas', 'Morropón', 'Salitral', 'Buenos Aires', 'La Matanza'],
+      'Sullana': ['Sullana', 'Marcavelica', 'Querecotillo', 'Bellavista', 'Ignacio Escudero', 'Lancones', 'Miguel Checa'],
+      'Talara': ['Talara', 'Pariñas', 'El Alto', 'La Brea', 'Lobitos', 'Los Órganos', 'Máncora', 'El Ñuro', 'Vichayal'],
+      'Paita': ['Paita', 'Amotape', 'Colán', 'La Huaca', 'Tamarindo', 'Vichayal', 'Yacila'],
+      'Sechura': ['Sechura', 'Bellavista de la Unión', 'Bernal', 'Cristo Nos Valga', 'Rinconada Llicuar', 'Vice']
+    },
+    'La Libertad': {
+      Trujillo: ['Trujillo', 'Víctor Larco Herrera', 'Huanchaco', 'La Esperanza', 'El Porvenir', 'Florencia de Mora', 'Moche', 'Salaverry', 'Laredo', 'Simbal', 'Poroto'],
+      'San Pedro de Lloc': ['San Pedro de Lloc', 'Pacasmayo', 'Guadalupe', 'Jequetepeque', 'Pueblo Nuevo', 'Chepén', 'Pacanga', 'Chocope', 'Paiján', 'Rázuri'],
+      'Huamachuco': ['Huamachuco', 'Santiago de Chuco', 'Quiruvilca', 'Marcabal', 'Sanagorán', 'Sarín', 'Cochabamba', 'Curgos', 'Mollebamba'],
+      'Cajabamba': ['Cajabamba', 'Cachachi', 'Condebamba', 'Sitacocha'],
+      'Bolívar': ['Bolívar', 'Bambamarca', 'Condormarca', 'Longotea', 'Ucuncha']
+    },
+    Cajamarca: {
+      'Cajamarca Centro': ['Cajamarca', 'Baños del Inca', 'Cheta', 'Llacanora', 'Matara', 'Namora', 'San Juan', 'Jesús', 'Cachachi', 'Asunción', 'Magdalena', 'San Marcos', 'Celendín', 'Hualgayoc', 'Bambamarca', 'San Miguel', 'San Pablo', 'Contumazá'],
+      'Chota': ['Chota', 'Anguía', 'Chalamarca', 'Cochabamba', 'Conchán', 'Huambos', 'Lajas', 'Llama', 'Miracosta', 'Paccha', 'Pión', 'Querocoto', 'San Juan de Licupis', 'Tacabamba', 'Tocmoche'],
+      'Jaén': ['Jaén', 'Bellavista', 'Chontali', 'Colasay', 'Huabal', 'Las Pirias', 'Pomahuaca', 'Pucará', 'Sallique', 'San Felipe', 'San José del Alto', 'Santa Rosa'],
+      'Cutervo': ['Cutervo', 'Callayuc', 'Choros', 'Cujillo', 'La Ramada', 'Pimpingos', 'Querocoto', 'San Andrés de Cutervo', 'San Juan de Cutervo', 'San Luis de Lucma', 'Santa Cruz', 'Santo Domingo de la Capilla', 'Socota', 'Toribio Casanova'],
+      'Santa Cruz': ['Santa Cruz', 'Catache', 'La Florida', 'Ninabamba', 'Pulán', 'Saucepampa', 'Sexi', 'Uticyacu', 'Yauyucán']
+    },
+    Junín: {
+      Huancayo: ['Huancayo', 'El Tambo', 'Chilca', 'Pilcomayo', 'San Agustín', 'Sicaya', 'Chupaca', 'Concepción', 'Orcotuna', 'Sapallanga', 'Huayucachi', 'Viques', 'Cajas', 'Chambará', 'Ahuac', 'Colca', 'Pucará', 'Marcavalle'],
+      'Tarma': ['Tarma', 'Acobamba', 'Huaricolca', 'Huasahuasi', 'La Unión', 'Palca', 'Palcamayo', 'San Pedro de Cajas', 'Tapo', 'Yauli'],
+      'La Merced': ['La Merced', 'Chanchamayo', 'Perené', 'Pichanaqui', 'San Luis de Shuaro', 'San Ramón', 'Vitoc', 'Río Seco'],
+      'Jauja': ['Jauja', 'Acolla', 'Apata', 'Ataura', 'Canchayllo', 'Curicaca', 'El Mantaro', 'Huamalí', 'Huancaní', 'Leonor Ordóñez', 'Llocllapampa', 'Marco', 'Masma', 'Masma Chicche', 'Molinos', 'Monobamba', 'Muqui', 'Muquiyauyo', 'Paca', 'Paccha', 'Pancán', 'Parco', 'Pomacancha', 'Ricrán', 'San Lorenzo', 'San Pedro de Chunán', 'Sausa', 'Sincos', 'Tunanmarca', 'Yauli', 'Yauyos'],
+      'Satipo': ['Satipo', 'Coviriali', 'Llaylla', 'Mazamari', 'Pampa Hermosa', 'Pangoa', 'Río Negro', 'Río Tambo', 'San Martín de Pangoa', 'San Miguel de Eneñas']
+    },
+    Lambayeque: {
+      Chiclayo: ['Chiclayo', 'La Victoria', 'Lambayeque', 'José Leonardo Ortiz', 'Pimentel', 'San José', 'Monsefú', 'Reque', 'Santa Rosa', 'Eten', 'Pueblo Nuevo'],
+      'Ferreñafe': ['Ferreñafe', 'Cañaris', 'Incahuasi', 'Manuel Antonio Mesones Muro', 'Pitipo', 'Pueblo Nuevo'],
+      'Lambayeque': ['Lambayeque', 'Chóchope', 'Íllimo', 'Jayanca', 'Mochumí', 'Mórrope', 'Motupe', 'Olmos', 'Pacora', 'Salas', 'San José', 'Túcume']
+    },
+    Puno: {
+      'Puno Centro': ['Puno', 'Ácora', 'Amantaní', 'Atuncolla', 'Capachica', 'Chucuito', 'Coata', 'Huata', 'Mañazo', 'Paucarcolla', 'Pichacani', 'Platería', 'San Antonio', 'Tiquillaca', 'Vilque'],
+      'Juliaca': ['Juliaca', 'Caracoto', 'Cabanillas', 'Lampa', 'Cabana', 'Cabanilla', 'Achaya', 'Caminaca', 'Calapuja', 'Nicasio', 'Taraco', 'Juliaca Centro'],
+      'Azángaro': ['Azángaro', 'Achaya', 'Arapa', 'Asillo', 'Caminaca', 'Chupa', 'José Domingo Choquehuanca', 'Muñani', 'Potoni', 'Samán', 'San Antón', 'San José', 'San Juan de Salinas', 'Santiago de Pupuja', 'Tirapata'],
+      'Ilave': ['Ilave', 'Juli', 'Pomata', 'Yunguyo', 'Desaguadero', 'Huacullani', 'Kelluyo', 'Pisacoma', 'Santa Rosa', 'Conduriri', 'Ácora (parte)'],
+      'Putina': ['Putina', 'Ananea', 'Pedro Vilca Apaza', 'Quilcapuncu', 'Sina', 'Cuyocuyo', 'Tiquillaca'],
+      'Sandia': ['Sandia', 'Cuyocuyo', 'Limbani', 'Patambuco', 'Phara', 'Quiaca', 'San Juan del Oro', 'Yanahuaya', 'Alto Inambari', 'San Pedro de Putina Punco'],
+      'Lago Titicaca': ['Puno', 'Juliaca', 'Ilave', 'Yunguyo', 'Capachica', 'Amantaní', 'Taquile', 'Chucuito', 'Juli', 'Pomata', 'Zepita']
+    },
+    Áncash: {
+      Huaraz: ['Huaraz', 'Carhuaz', 'Casma', 'Huarmey', 'Chacas', 'San Luis', 'Recuay', 'Aija', 'Antonio Raymondi', 'La Merced', 'Cátac', 'Mancos', 'Yungay', 'Caraz', 'Cabana', 'Huaylas', 'Corongo', 'Pomabamba', 'Mariscal Luzuriaga'],
+      Chimbote: ['Chimbote', 'Nuevo Chimbote', 'Coishco', 'Santa', 'Macate', 'Cáceres del Perú', 'Moro', 'Nepeña', 'Samaco', 'San Jacinto'],
+      'Santa': ['Santa', 'Chimbote (parte)', 'Moro', 'Nepeña', 'Cáceres del Perú', 'Macate', 'Samaco'],
+      'Huari': ['Huari', 'Anra', 'Cajay', 'Chavín de Huántar', 'Huacachi', 'Huachis', 'Huántar', 'Masín', 'Paucas', 'Ponto', 'Rahuapampa', 'Rapayan', 'San Marcos', 'San Pedro de Chaná', 'Uco']
+    },
+    Ica: {
+      'Ica Centro': ['Ica', 'Subtanjalla', 'Tate', 'Los Aquijes', 'Pueblo Nuevo', 'La Tinguiña', 'Parcona', 'Yauca del Rosario', 'San José de los Molinos', 'San Juan Bautista', 'Pachacútec', 'Ocucaje'],
+      'Chincha': ['Chincha Alta', 'Alto Larán', 'Chavín', 'Chincha Baja', 'El Carmen', 'Grocio Prado', 'Pueblo Nuevo', 'San Juan de Yanac', 'San Pedro de Huacarpana', 'Sunampe', 'Tambo de Mora'],
+      'Pisco': ['Pisco', 'San Andrés', 'San Clemente', 'Tupac Amaru Inca', 'Paracas', 'Huáncano', 'Humay', 'Independencia', 'Villacuri'],
+      'Nazca': ['Nazca', 'Changuillo', 'El Ingenio', 'Marcona', 'Vista Alegre', 'Bella Esperanza', 'San Javier']
+    },
+    Huánuco: {
+      'Huánuco Centro': ['Huánuco', 'Amarilis', 'Churubamba', 'Margos', 'Pillco Marca', 'Quisqui', 'San Francisco de Cayrán', 'San Pedro de Chaulán', 'Santa María del Valle', 'Yarumayo'],
+      'Tingo María': ['Tingo María', 'Castillo Grande', 'Pumahuasi', 'Rupa Rupa', 'Santo Domingo de Anda', 'Mariano Dámaso Beraún', 'José Crespo y Castillo', 'Luyando', 'Hermilio Valdizán'],
+      'Cerro de Pasco': ['Cerro de Pasco (parte)', 'Chaupimarca', 'Huayllay', 'Ninacaca', 'Pallanchacra', 'Paucartambo', 'San Francisco de Asís de Yarusyacán', 'Simón Bolívar', 'Ticlacayán', 'Tinyahuarco', 'Vicco', 'Yanacocha'],
+      'Huamalíes': ['Llata', 'Arancay', 'Chavín de Pariarca', 'Jacas Grande', 'Jircán', 'Miraflores', 'Monzón', 'Punchao', 'Puños', 'Singa', 'Tantamayo'],
+      'Leoncio Prado': ['Tingo María (parte)', 'Castillo Grande', 'José Crespo y Castillo', 'Luyando', 'Mariano Dámaso Beraún', 'Pucayacu', 'Rupa Rupa', 'Santo Domingo de Anda']
+    },
+    'San Martín': {
+      'Moyobamba': ['Moyobamba', 'Calzada', 'Habana', 'Jepelacio', 'Soritor', 'Yantalo', 'Pósic', 'San Martín de Alao'],
+      Tarapoto: ['Tarapoto', 'Morales', 'La Banda de Shilcayo', 'Cacatachi', 'Pilluana', 'San Antonio', 'San Hilarión', 'Shapaja', 'Juan Guerra', 'Saposoa'],
+      'Juanjuí': ['Juanjuí', 'Campanilla', 'Huicungo', 'Pachiza', 'Pajarillo', 'Sisa', 'Sacanche', 'Tocache', 'Uchiza', 'Pólvora', 'Shunte'],
+      'Lamas': ['Lamas', 'Alberto Leveau', 'Caynarachi', 'Cuñumbuqui', 'Pinto Recodo', 'Rumisapa', 'San Roque de Cumbaza', 'Shanao', 'Tabalosos', 'Zapatero'],
+      'Tocache': ['Tocache', 'Nuevo Progreso', 'Pólvora', 'Shunte', 'Uchiza']
+    },
+    Ayacucho: {
+      'Ayacucho Centro': ['Ayacucho', 'San Juan Bautista', 'Carmen Alto', 'Los Olivos', 'Jesús Nazareno', 'Chacolla', 'Huanta', 'La Mar', 'Luricocha', 'Santillana', 'Sivia', 'Anco'],
+      'Huanta': ['Huanta', 'Luricocha', 'Santillana', 'Sivia', 'Ayahuanco', 'Huamanguilla', 'Iguain', 'Llochegua', 'Uchuraccay'],
+      'La Mar': ['La Mar', 'Anco', 'Ayna', 'Chilcas', 'Chungui', 'Luis Carranza', 'Samugari', 'San Miguel', 'Santa Rosa', 'Tambo'],
+      'Lucanas': ['Lucanas', 'Aucara', 'Cabana', 'Carmen Salcedo', 'Chaviña', 'Chipao', 'Huac-Huas', 'Laramate', 'Leoncio Prado', 'Llauta', 'Lucanas', 'Ocaña', 'Otoca', 'Puquio', 'San Pedro', 'San Cristóbal', 'San Juan', 'San Pedro de Palco', 'Sancos', 'Santa Ana de Huaycahuacho', 'Santa Lucía'],
+      'Parinacochas': ['Coracora', 'Chumpi', 'Coronel Castañeda', 'Pacapausa', 'Pullo', 'Puyusca', 'San Francisco de Ravacayco', 'Upahuacho']
+    },
+    Ucayali: {
+      'Pucallpa': ['Pucallpa', 'Yarinacocha', 'Callería', 'Manantay', 'Campo Verde', 'Nueva Requena', 'Aguaytía', 'Curimaná', 'Irazola', 'Padre Abad', 'San Alejandro', 'Nuevo Mariscal'],
+      'Aguaytía': ['Aguaytía', 'Padre Abad', 'Irazola', 'Curimaná', 'San Alejandro', 'Nuevo Mariscal'],
+      'Atalaya': ['Atalaya', 'Raymondi', 'Sepahua', 'Tahuanía', 'Yurúa']
+    },
+    Tacna: {
+      'Tacna Centro': ['Tacna', 'Alto de la Alianza', 'Ciudad Nueva', 'Pocollay', 'Calana', 'Sama', 'Pachía', 'Palca', 'Ite', 'La Yarada-Los Palos'],
+      'Tarata': ['Tarata', 'Héroes Albarracín', 'Estique', 'Estique-Pampa', 'Sitajara', 'Susapaya', 'Tarucachi', 'Ticaco'],
+      'Jorge Basadre': ['Locumba', 'Ite', 'Ilabaya'],
+      'Candarave': ['Candarave', 'Cairani', 'Camilaca', 'Curibaya', 'Huanuara', 'Quilahuani']
+    },
+    Pasco: {
+      'Cerro de Pasco': ['Cerro de Pasco', 'Chaupimarca', 'Huayllay', 'Ninacaca', 'Pallanchacra', 'Paucartambo', 'San Francisco de Asís de Yarusyacán', 'Simón Bolívar', 'Ticlacayán', 'Tinyahuarco', 'Vicco', 'Yanacocha'],
+      'Oxapampa': ['Oxapampa', 'Chontabamba', 'Huancabamba', 'Palcazú', 'Pozuzo', 'Puerto Bermúdez', 'Villa Rica', 'Constitución']
+    },
+    Moquegua: {
+      'Moquegua Centro': ['Moquegua', 'Samegua', 'Ilo', 'Pacocha', 'El Algarrobal', 'Torata', 'Carumas', 'Cuchumbaya', 'San Cristóbal', 'Ichupampa'],
+      'Ilo': ['Ilo', 'Pacocha', 'El Algarrobal', 'La Pampa', 'Caleta de Ilo', 'Yarada'],
+      'Mariscal Nieto': ['Moquegua', 'Carumas', 'Cuchumbaya', 'San Cristóbal', 'Samegua', 'Torata']
+    },
+    Amazonas: {
+      Chachapoyas: ['Chachapoyas', 'Asunción', 'Balsas', 'Cheto', 'Chiliquín', 'Chuquibamba', 'Granada', 'Huancas', 'La Jalca', 'Leimebamba', 'Levanto', 'Magdalena', 'Mariscal Castilla', 'Molinopampa', 'Montevideo', 'Olleros', 'Quinjalca', 'San Francisco de Daguas', 'San Isidro de Maino', 'Soloco', 'Sonche'],
+      'Bagua': ['Bagua', 'Aramango', 'Copallín', 'El Parco', 'Imaza', 'La Peca'],
+      'Luya': ['Luya', 'Camporredondo', 'Cocabamba', 'Colcamar', 'Conila', 'Inguilpata', 'Lámud', 'Longuita', 'Lonya Chico', 'Luya Viejo', 'María', 'Ocalli', 'Ocumal', 'Pisuquía', 'Providencia', 'San Cristóbal', 'San Francisco de Yeso', 'San Jerónimo', 'San Juan de Lopecancha', 'Santa Catalina', 'Santo Tomás', 'Tingo', 'Trita'],
+      'Rodríguez de Mendoza': ['Rodríguez de Mendoza', 'Chirimoto', 'Cochamal', 'Huambo', 'Limabamba', 'Longar', 'Mariscal Benavides', 'Milpuc', 'Omia', 'San Nicolás', 'Santa Rosa', 'Totora', 'Vista Alegre'],
+      'Condorcanqui': ['Santa María de Nieva', 'El Cenepa', 'Río Santiago']
+    },
+    Huancavelica: {
+      'Huancavelica Centro': ['Huancavelica', 'Acobambilla', 'Acoria', 'Conayca', 'Cuenca', 'Huachocolpa', 'Huayllahuara', 'Izcuchaca', 'Laria', 'Manta', 'Mariscal Cáceres', 'Moya', 'Nuevo Occoro', 'Palca', 'Pilchaca', 'Vilca', 'Yauli', 'Ascensión', 'Yanaccollpa'],
+      'Angaraes': ['Angaraes', 'Anchonga', 'Callanmarca', 'Ccochaccasa', 'Chincho', 'Congalla', 'Huanca-Huanca', 'Huayllay Grande', 'Julcamarca', 'Lircay', 'San Antonio de Antaparco', 'Santo Tomás de Pata', 'Secclla'],
+      'Castrovirreyna': ['Castrovirreyna', 'Arma', 'Aurahuá', 'Capillas', 'Chupamarca', 'Cocas', 'Huachos', 'Huamatambo', 'Mollepampa', 'San Juan', 'Santa Ana', 'Tantara', 'Ticrapo'],
+      'Tayacaja': ['Pampas', 'Acostambo', 'Acraquia', 'Ahuaycha', 'Colcabamba', 'Daniel Hernández', 'Huachocolpa (parte)', 'Huaribamba', 'Ñahuimpuquio', 'Pazos', 'Quishuar', 'Salcabamba', 'Salcahuasi', 'San Marcos de Rocchac', 'Surcubamba', 'Tintay Puncu', 'Quichuas', 'Santiago de Tuna']
+    },
+    Apurímac: {
+      Abancay: ['Abancay', 'Circa', 'Curahuasi', 'Huanipaca', 'Lambrama', 'Pichirhua', 'San Pedro de Cachora', 'Tamburco', 'Chacoche'],
+      Andahuaylas: ['Andahuaylas', 'Andarapa', 'Chiara', 'Huancarama', 'Huancaray', 'Huayana', 'José María Arguedas', 'Kaquiabamba', 'Kishuara', 'Pacobamba', 'Pacucha', 'Pampachiri', 'Pomacocha', 'San Antonio de Cachi', 'San Jerónimo', 'San Miguel de Chaccrampa', 'Santa María de Chicmo', 'Talavera', 'Tumay Huaraca', 'Turpo'],
+      'Antabamba': ['Antabamba', 'El Oro', 'Huaquirca', 'Juan Espinoza Medrano', 'Oropesa', 'Pachaconas', 'Sabaino'],
+      'Chincheros': ['Chincheros', 'Anco-Huallo', 'Cocharcas', 'Huaccana', 'Los Chankas', 'Ongoy', 'Ocobamba', 'Ranracancha', 'Rocchacc', 'Uranmarca', 'Uripa'],
+      'Grau': ['Grau', 'Chuquibambilla', 'Curpahuasi', 'Gamarra', 'Huayllati', 'Mamara', 'Micaela Bastidas', 'Pataypampa', 'Progreso', 'San Antonio', 'Santa Rosa', 'Turpay', 'Vilcabamba', 'Virundo']
+    },
+    'Madre de Dios': {
+      'Puerto Maldonado': ['Puerto Maldonado', 'Tambopata', 'Laberinto', 'Las Piedras', 'Tahuamanu', 'Iñapari', 'Iberia', 'Mavila', 'Alto Tambopata', 'Bajo Tambopata'],
+      'Tahuamanu': ['Tahuamanu', 'Iñapari', 'Iberia', 'Mavila'],
+      'Manu': ['Manu', 'Fitzcarrald', 'Madre de Dios', 'Huepetuhe', 'Mazuko']
+    },
+    Tumbes: {
+      'Tumbes Centro': ['Tumbes', 'Corrales', 'La Cruz', 'Pampas de Hospital', 'San Jacinto', 'San Juan de la Virgen', 'Nuevo Tumbes', 'Andrés Araujo'],
+      'Zarumilla': ['Zarumilla', 'Aguas Verdes', 'Papayal', 'Matapalo'],
+      'Contralmirante Villar': ['Zorritos', 'Casitas', 'Canoas de Punta Sal', 'Cancas']
+    },
+    Loreto: {
+      Iquitos: ['Iquitos', 'San Juan Bautista', 'Belén', 'Punchana', 'Indiana', 'Mazán', 'Napo', 'Putumayo', 'Torres Causana', 'Alto Nanay', 'Fernando Lores', 'Las Amazonas'],
+      'Yurimaguas': ['Yurimaguas', 'Alto Amazonas', 'Balsapuerto', 'Jeberos', 'Lagunas', 'Teniente César López Rojas', 'Yurimaguas Centro'],
+      'Contamana': ['Contamana', 'Inahuaya', 'Padre Márquez', 'Pampa Hermosa', 'Sarayacu', 'Vargas Guerra', 'Ucayali (parte)'],
+      'Nauta': ['Nauta', 'Parinari', 'Tigre', 'Trompeteros', 'Urarinas']
+    }
+  }
 };
 
+// ──────────────────────────────────────────────
+// FUNCIONES DE CASCADA GEOGRÁFICA
+// ──────────────────────────────────────────────
+
+/**
+ * Carga el selector de regiones según el país seleccionado.
+ * Usa size dinámico para mostrar múltiples opciones visibles.
+ */
 function cargarRegiones() {
   const pais = document.getElementById('taller-pais')?.value || '';
   const selRegion = document.getElementById('taller-region');
@@ -814,43 +1260,55 @@ function cargarRegiones() {
   selRegion.innerHTML = '<option value="">— Seleccionar región —</option>';
   selCiudad.innerHTML = '<option value="">— Seleccionar ciudad —</option>';
   selComuna.innerHTML = '<option value="">— Seleccionar comuna —</option>';
-  if (!pais) return;
-  const regiones = _admRegiones[pais] || [];
+  if (!pais || !UBICACIONES[pais]) { selRegion.size = 1; return; }
+  const regiones = Object.keys(UBICACIONES[pais]);
   regiones.forEach(r => {
     const opt = document.createElement('option');
     opt.value = r; opt.textContent = r;
     selRegion.appendChild(opt);
   });
+  selRegion.size = Math.min(regiones.length + 1, 15);
 }
 
+/**
+ * Carga el selector de ciudades según la región seleccionada.
+ */
 function cargarCiudades() {
+  const pais = document.getElementById('taller-pais')?.value || '';
   const region = document.getElementById('taller-region')?.value || '';
   const selCiudad = document.getElementById('taller-ciudad');
   const selComuna = document.getElementById('taller-comuna');
   if (!selCiudad) return;
   selCiudad.innerHTML = '<option value="">— Seleccionar ciudad —</option>';
   selComuna.innerHTML = '<option value="">— Seleccionar comuna —</option>';
-  if (!region) return;
-  const ciudades = _admCiudades[region] || [];
+  if (!pais || !region || !UBICACIONES[pais] || !UBICACIONES[pais][region]) { selCiudad.size = 1; return; }
+  const ciudades = Object.keys(UBICACIONES[pais][region]);
   ciudades.forEach(c => {
     const opt = document.createElement('option');
     opt.value = c; opt.textContent = c;
     selCiudad.appendChild(opt);
   });
+  selCiudad.size = Math.min(ciudades.length + 1, 15);
 }
 
+/**
+ * Carga el selector de comunas según la ciudad seleccionada.
+ */
 function cargarComunas() {
+  const pais = document.getElementById('taller-pais')?.value || '';
+  const region = document.getElementById('taller-region')?.value || '';
   const ciudad = document.getElementById('taller-ciudad')?.value || '';
   const selComuna = document.getElementById('taller-comuna');
   if (!selComuna) return;
   selComuna.innerHTML = '<option value="">— Seleccionar comuna —</option>';
-  if (!ciudad) return;
-  const comunas = _admComunas[ciudad] || [];
+  if (!pais || !region || !ciudad || !UBICACIONES[pais] || !UBICACIONES[pais][region] || !UBICACIONES[pais][region][ciudad]) { selComuna.size = 1; return; }
+  const comunas = UBICACIONES[pais][region][ciudad];
   comunas.forEach(c => {
     const opt = document.createElement('option');
     opt.value = c; opt.textContent = c;
     selComuna.appendChild(opt);
   });
+  selComuna.size = Math.min(comunas.length + 1, 15);
 }
 
 function actualizarHeaderNombreFantasia() {
