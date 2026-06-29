@@ -969,12 +969,13 @@ function otAbrirPanelDiagnostico(ot_id) {
                 <th style="text-align:left;padding:8px;font-size:10px;font-weight:600;color:var(--text-muted);text-transform:uppercase">Repuesto</th>
                 <th style="text-align:center;padding:8px;font-size:10px;font-weight:600;color:var(--text-muted);text-transform:uppercase">Cantidad</th>
                 <th style="text-align:right;padding:8px;font-size:10px;font-weight:600;color:var(--text-muted);text-transform:uppercase">Precio</th>
+                <th style="text-align:left;padding:8px;font-size:10px;font-weight:600;color:var(--text-muted);text-transform:uppercase">Proveedor</th>
                 <th style="text-align:center;padding:8px;width:40px"></th>
               </tr>
             </thead>
             <tbody id="ot-panel-repuestos-tbody${sf}">
               <tr id="ot-panel-repuestos-vacio${sf}">
-                <td colspan="4" style="text-align:center;padding:20px;color:var(--text-muted);font-size:11px">Selecciona un servicio para ver repuestos sugeridos</td>
+                <td colspan="5" style="text-align:center;padding:20px;color:var(--text-muted);font-size:11px">Selecciona un servicio para ver repuestos sugeridos</td>
               </tr>
             </tbody>
           </table>
@@ -1018,7 +1019,7 @@ function otBuscadorServicios(texto, suffix = '') {
 }
 
 function otRellenarServicioSeleccionado(servicio_id, suffix = '') {
-  const servDefault = [{id:'serv-1',nombre:'Cambio aceite',horas:0.5,precio_venta:25000,repuestos:[]},{id:'serv-2',nombre:'Cambio filtro',horas:0.25,precio_venta:12000,repuestos:[]},{id:'serv-3',nombre:'Cambio de frenos',horas:1.5,precio_venta:45000,repuestos:[{nombre:'Pastillas freno',cantidad:1,precio:15000},{nombre:'Discos freno',cantidad:2,precio:25000}]},{id:'serv-4',nombre:'Alineación',horas:1,precio_venta:22000,repuestos:[]},{id:'serv-5',nombre:'Balanceo de ruedas',horas:0.75,precio_venta:18000,repuestos:[]}];
+  const servDefault = [{id:'serv-1',nombre:'Cambio aceite',horas:0.5,precio_venta:25000,repuestos:[]},{id:'serv-2',nombre:'Cambio filtro',horas:0.25,precio_venta:12000,repuestos:[]},{id:'serv-3',nombre:'Cambio de frenos',horas:1.5,precio_venta:45000,repuestos:[{nombre:'Pastillas freno',cantidad:1,precio:15000,proveedor:'Bosch'},{nombre:'Discos freno',cantidad:2,precio:25000,proveedor:'Bosch'}]},{id:'serv-4',nombre:'Alineación',horas:1,precio_venta:22000,repuestos:[]},{id:'serv-5',nombre:'Balanceo de ruedas',horas:0.75,precio_venta:18000,repuestos:[]}];
   const servicios = APP.lsGet('mp_servicios', servDefault);
   const servicio = servicios.find(s => s.id === servicio_id);
   if (!servicio) return;
@@ -1034,9 +1035,68 @@ function otRellenarServicioSeleccionado(servicio_id, suffix = '') {
   if (repuestos.length > 0) {
     otCargarRepuestosTabla(repuestos, sf);
   } else {
+    otCargarRepuestosSugeridos(servicio_id, sf);
+  }
+  otGuardarServicioAuto(sf);
+}
+
+function otGuardarServicioAuto(suffix = '') {
+  const sf = suffix;
+  const nombre = document.getElementById('ot-servicio-nombre' + sf)?.value?.trim();
+  const horas = parseFloat(document.getElementById('ot-servicio-horas' + sf)?.value) || 0;
+  const valor = parseInt(document.getElementById('ot-servicio-valor' + sf)?.value) || 0;
+  const otId = document.getElementById('ot-diagnostico-ot-id' + sf)?.value || document.getElementById('ot-diagnostico-ot-id-hidden')?.value;
+  if (!otId || !nombre) return;
+  const ots = APP.lsGet('ots', []);
+  const ot = ots.find(o => o.id === otId);
+  if (!ot) return;
+  ot.servicio_temporal = { nombre, horas, valor };
+  APP.lsSet('ots', ots);
+  const servicios = APP.lsGet('mp_servicios', []);
+  const match = servicios.find(s => s.nombre.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '') === nombre.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, ''));
+  if (match) {
+    document.getElementById('ot-servicio-seleccionado-id' + sf).value = match.id;
+    otCargarRepuestosTabla([], sf);
+    otCargarRepuestosSugeridos(match.id, sf);
+  }
+}
+
+function otCargarRepuestosSugeridos(servicio_id, suffix = '') {
+  const sf = suffix;
+  const wiki = APP.lsGet('wiki_tecnica', {});
+  const repuestosDB = APP.lsGet('repuestos', []);
+  const proveedores = APP.lsGet('proveedores', []);
+  const config = APP.lsGet('taller_config', {});
+  const defProvId = config.proveedor_predeterminado || '';
+  const sugeridos = [];
+  (wiki.especificaciones || []).forEach(spec => {
+    if (spec.tipo === 'repuestos' && spec.servicio_relacionado === servicio_id) {
+      const repDB = repuestosDB.find(r => r.nombre?.toLowerCase() === (spec.nombre || '').toLowerCase());
+      const provId = repDB?.proveedor_id || defProvId;
+      const prov = proveedores.find(p => p.id === provId);
+      sugeridos.push({
+        nombre: spec.nombre || '—',
+        cantidad: 1,
+        precio: repDB?.precio_venta || 0,
+        proveedor: prov?.nombre || '—'
+      });
+    }
+  });
+  if (sugeridos.length > 0) {
+    otCargarRepuestosTabla(sugeridos, sf);
+  } else {
     const repuestosBase = APP.lsGet('repuestos', []);
-    const sugeridos = repuestosBase.filter(r => servicio.nombre.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').includes(r.categoria ? r.categoria.toLowerCase() : ''));
-    otCargarRepuestosTabla(sugeridos.slice(0,5).map(r => ({nombre:r.nombre,cantidad:1,precio:r.precio_venta||0})), sf);
+    const servicio = (APP.lsGet('mp_servicios', [])).find(s => s.id === servicio_id);
+    const servNombre = servicio?.nombre || '';
+    const filtrados = repuestosBase.filter(r => servNombre.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').includes((r.categoria || '').toLowerCase()));
+    if (filtrados.length > 0) {
+      otCargarRepuestosTabla(filtrados.slice(0, 5).map(r => {
+        const prov = proveedores.find(p => p.id === (r.proveedor_id || defProvId));
+        return { nombre: r.nombre, cantidad: 1, precio: r.precio_venta || 0, proveedor: prov?.nombre || '—' };
+      }), sf);
+    } else {
+      otCargarRepuestosTabla([], sf);
+    }
   }
 }
 
@@ -1047,7 +1107,7 @@ function otCargarRepuestosTabla(repuestos, suffix = '') {
   if (!tbody) return;
   if (!repuestos || repuestos.length === 0) {
     if (vacio) vacio.style.display = '';
-    tbody.innerHTML = vacio ? vacio.outerHTML : '<tr><td colspan="4" style="text-align:center;padding:20px;color:var(--text-muted);font-size:11px">Sin repuestos</td></tr>';
+    tbody.innerHTML = vacio ? vacio.outerHTML : '<tr><td colspan="5" style="text-align:center;padding:20px;color:var(--text-muted);font-size:11px">Sin repuestos</td></tr>';
     return;
   }
   if (vacio) vacio.style.display = 'none';
@@ -1056,6 +1116,7 @@ function otCargarRepuestosTabla(repuestos, suffix = '') {
       <td style="padding:6px"><input type="text" value="${r.nombre||''}" placeholder="Nombre repuesto" id="ot-rep-nombre${sf}-${i}" style="width:100%;padding:6px;border:0.5px solid var(--border);border-radius:var(--radius);background:var(--surface-2);color:var(--text-primary);font-size:11px;box-sizing:border-box"></td>
       <td style="padding:6px;text-align:center"><input type="number" min="1" value="${r.cantidad||1}" id="ot-rep-cant${sf}-${i}" style="width:60px;padding:6px;border:0.5px solid var(--border);border-radius:var(--radius);background:var(--surface-2);color:var(--text-primary);font-size:11px;text-align:center;box-sizing:border-box"></td>
       <td style="padding:6px;text-align:right"><input type="number" min="0" value="${r.precio||r.precio_unitario||0}" id="ot-rep-precio${sf}-${i}" style="width:100px;padding:6px;border:0.5px solid var(--border);border-radius:var(--radius);background:var(--surface-2);color:var(--text-primary);font-size:11px;text-align:right;box-sizing:border-box"></td>
+      <td style="padding:6px"><input type="text" value="${r.proveedor||''}" placeholder="Proveedor" id="ot-rep-prov${sf}-${i}" style="width:100%;padding:6px;border:0.5px solid var(--border);border-radius:var(--radius);background:var(--surface-2);color:var(--text-primary);font-size:11px;box-sizing:border-box"></td>
       <td style="padding:6px;text-align:center"><button onclick="otEliminarFilaRepuesto(${i},'${sf}')" style="background:none;border:none;cursor:pointer;color:#ef4444;font-size:14px;padding:4px"><i class="ti ti-trash"></i></button></td>
     </tr>
   `).join('');
@@ -1074,6 +1135,7 @@ function otAgregarRepuestoManual(suffix = '') {
     <td style="padding:6px"><input type="text" placeholder="Nombre repuesto" id="ot-rep-nombre${sf}-${filas}" style="width:100%;padding:6px;border:0.5px solid var(--border);border-radius:var(--radius);background:var(--surface-2);color:var(--text-primary);font-size:11px;box-sizing:border-box"></td>
     <td style="padding:6px;text-align:center"><input type="number" min="1" value="1" id="ot-rep-cant${sf}-${filas}" style="width:60px;padding:6px;border:0.5px solid var(--border);border-radius:var(--radius);background:var(--surface-2);color:var(--text-primary);font-size:11px;text-align:center;box-sizing:border-box"></td>
     <td style="padding:6px;text-align:right"><input type="number" min="0" value="0" id="ot-rep-precio${sf}-${filas}" style="width:100px;padding:6px;border:0.5px solid var(--border);border-radius:var(--radius);background:var(--surface-2);color:var(--text-primary);font-size:11px;text-align:right;box-sizing:border-box"></td>
+    <td style="padding:6px"><input type="text" placeholder="Proveedor" id="ot-rep-prov${sf}-${filas}" style="width:100%;padding:6px;border:0.5px solid var(--border);border-radius:var(--radius);background:var(--surface-2);color:var(--text-primary);font-size:11px;box-sizing:border-box"></td>
     <td style="padding:6px;text-align:center"><button onclick="otEliminarFilaRepuesto(${filas},'${sf}')" style="background:none;border:none;cursor:pointer;color:#ef4444;font-size:14px;padding:4px"><i class="ti ti-trash"></i></button></td>
   `;
   tbody.appendChild(tr);
@@ -1087,7 +1149,7 @@ function otEliminarFilaRepuesto(index, suffix = '') {
   if (filas.length <= 1) {
     const vacio = document.getElementById('ot-panel-repuestos-vacio' + sf);
     if (vacio) vacio.style.display = '';
-    tbody.innerHTML = vacio ? vacio.outerHTML : '<tr><td colspan="4" style="text-align:center;padding:20px;color:var(--text-muted);font-size:11px">Sin repuestos</td></tr>';
+    tbody.innerHTML = vacio ? vacio.outerHTML : '<tr><td colspan="5" style="text-align:center;padding:20px;color:var(--text-muted);font-size:11px">Sin repuestos</td></tr>';
     return;
   }
   const fila = filas[index];
@@ -1114,7 +1176,8 @@ function otGuardarYAvanzarRepuestos(suffix = '', ot_id_param = '') {
       if (!nombre) return;
       const cantidad = parseInt(document.getElementById('ot-rep-cant' + sf + '-' + i)?.value) || 1;
       const precio = parseInt(document.getElementById('ot-rep-precio' + sf + '-' + i)?.value) || 0;
-      repuestosGuardar.push({ nombre, cantidad, precio_unitario: precio });
+      const proveedor = document.getElementById('ot-rep-prov' + sf + '-' + i)?.value?.trim() || '';
+      repuestosGuardar.push({ nombre, cantidad, precio_unitario: precio, proveedor });
     });
   }
   const ots = APP.lsGet('ots', []);
@@ -1795,6 +1858,8 @@ window.otRecalcularRepuestoTab = otRecalcularRepuestoTab;
 window.otAgregarFilaRepuestoTabCot = otAgregarFilaRepuestoTabCot;
 window.otRecalcularCotizacionTab = otRecalcularCotizacionTab;
 window.otRecalcularCotizacionPanel = otRecalcularCotizacionPanel;
+window.otGuardarServicioAuto = otGuardarServicioAuto;
+window.otCargarRepuestosSugeridos = otCargarRepuestosSugeridos;
 window.otRecalcularPanelRepuestos = otRecalcularPanelRepuestos;
 window.otPanelAgregarFilaRepuesto = otPanelAgregarFilaRepuesto;
 window.otGuardarPanelRepuestos = otGuardarPanelRepuestos;

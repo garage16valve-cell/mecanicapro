@@ -32,15 +32,15 @@
     <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px">
       <div>
         <label style="font-size:10px;color:var(--text-muted)">Nombre del servicio</label>
-        <input id="ot-servicio-nombre" type="text" style="width:100%;padding:8px;border:0.5px solid var(--border);border-radius:var(--radius);background:var(--surface-2);color:var(--text-primary);font-size:12px;box-sizing:border-box">
+        <input id="ot-servicio-nombre" type="text" oninput="otGuardarServicioAuto()" style="width:100%;padding:8px;border:0.5px solid var(--border);border-radius:var(--radius);background:var(--surface-2);color:var(--text-primary);font-size:12px;box-sizing:border-box">
       </div>
       <div>
         <label style="font-size:10px;color:var(--text-muted)">Horas estimadas</label>
-        <input id="ot-servicio-horas" type="number" step="0.5" min="0" value="0" style="width:100%;padding:8px;border:0.5px solid var(--border);border-radius:var(--radius);background:var(--surface-2);color:var(--text-primary);font-size:12px;box-sizing:border-box">
+        <input id="ot-servicio-horas" type="number" step="0.5" min="0" value="0" oninput="otGuardarServicioAuto()" style="width:100%;padding:8px;border:0.5px solid var(--border);border-radius:var(--radius);background:var(--surface-2);color:var(--text-primary);font-size:12px;box-sizing:border-box">
       </div>
       <div>
         <label style="font-size:10px;color:var(--text-muted)">Valor CLP</label>
-        <input id="ot-servicio-valor" type="number" min="0" value="0" style="width:100%;padding:8px;border:0.5px solid var(--border);border-radius:var(--radius);background:var(--surface-2);color:var(--text-primary);font-size:12px;box-sizing:border-box">
+        <input id="ot-servicio-valor" type="number" min="0" value="0" oninput="otGuardarServicioAuto()" style="width:100%;padding:8px;border:0.5px solid var(--border);border-radius:var(--radius);background:var(--surface-2);color:var(--text-primary);font-size:12px;box-sizing:border-box">
       </div>
     </div>
   </div>
@@ -54,12 +54,13 @@
             <th style="text-align:left;padding:8px;font-size:10px;font-weight:600;color:var(--text-muted);text-transform:uppercase">Repuesto</th>
             <th style="text-align:center;padding:8px;font-size:10px;font-weight:600;color:var(--text-muted);text-transform:uppercase">Cantidad</th>
             <th style="text-align:right;padding:8px;font-size:10px;font-weight:600;color:var(--text-muted);text-transform:uppercase">Precio</th>
+            <th style="text-align:left;padding:8px;font-size:10px;font-weight:600;color:var(--text-muted);text-transform:uppercase">Proveedor</th>
             <th style="text-align:center;padding:8px;width:40px"></th>
           </tr>
         </thead>
         <tbody id="ot-panel-repuestos-tbody">
           <tr id="ot-panel-repuestos-vacio">
-            <td colspan="4" style="text-align:center;padding:20px;color:var(--text-muted);font-size:11px">
+            <td colspan="5" style="text-align:center;padding:20px;color:var(--text-muted);font-size:11px">
               Selecciona un servicio para ver repuestos sugeridos
             </td>
           </tr>
