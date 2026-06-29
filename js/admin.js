@@ -205,6 +205,7 @@ function admSetTab(tab) {
   if (tabConfig) tabConfig.style.display = tab === 'config' ? '' : 'none';
   if (tab === 'usuarios' && typeof adminRenderUsuarios === 'function') adminRenderUsuarios();
   if (tab === 'config' && typeof tallerCargarDatos === 'function') tallerCargarDatos();
+  if (tab === 'config' && typeof renderCfgChecklist === 'function') renderCfgChecklist();
   if (tab === 'reportes') {
     if (typeof _admKPIs === 'function') _admKPIs();
     if (typeof _admGraficoMensual === 'function') _admGraficoMensual();

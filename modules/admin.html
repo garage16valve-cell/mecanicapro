@@ -285,11 +285,109 @@
 
     <!-- CONTENIDO: Flujo de OT -->
     <div id="cfg-tab-flujo-ot" class="cfg-tab-content" style="display:none">
-      <!-- Contenido futuro: Configuración checklist flujo OT -->
-      <div style="padding:20px;background:var(--surface-1);border-radius:8px;text-align:center;color:var(--text-muted)">
-        <p>Configuración de flujo de OT — próximamente</p>
+      <!-- Panel: Configuración checklist flujo OT -->
+      <h2 style="margin-bottom:16px">Configuración de checklist por fase</h2>
+      <p style="font-size:12px;color:var(--text-muted);margin-bottom:16px">Define qué campos son obligatorios (bloquean), opcionales (avisan) o inactivos al avanzar de fase.</p>
+
+      <div style="background:var(--surface-1);border-radius:8px;padding:16px;border:0.5px solid var(--border);margin-bottom:16px">
+        <div style="font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:8px">Leyenda</div>
+        <div style="display:flex;gap:16px;flex-wrap:wrap;font-size:11px">
+          <span style="display:flex;align-items:center;gap:6px"><span style="width:12px;height:12px;border-radius:3px;background:#ef4444"></span> Bloquea — No permite avanzar sin el dato</span>
+          <span style="display:flex;align-items:center;gap:6px"><span style="width:12px;height:12px;border-radius:3px;background:#f59e0b"></span> Advierte — Avisa pero permite avanzar</span>
+          <span style="display:flex;align-items:center;gap:6px"><span style="width:12px;height:12px;border-radius:3px;background:#6b7280"></span> Inactivo — No se valida en esta fase</span>
+        </div>
+      </div>
+
+      <div id="cfg-checklist-lista"></div>
+
+      <div style="margin-top:20px;padding-top:16px;border-top:0.5px solid var(--border);display:flex;justify-content:flex-end">
+        <button class="btn" onclick="resetCfgChecklist()" style="font-size:11px;padding:8px 16px"><i class="ti ti-rotate-ccw"></i> Restaurar valores por defecto</button>
       </div>
     </div>
+
+    <script>
+      const CFG_CHECKLIST_DEFAULTS = {
+        rut_cliente:         { modo:'bloquea',  fase:'recepcion',    label:'RUT cliente' },
+        patente:             { modo:'bloquea',  fase:'recepcion',    label:'Patente' },
+        diagnostico_anotado: { modo:'bloquea',  fase:'diagnostico',  label:'Diagnóstico' },
+        nmotor:              { modo:'advierte', fase:'todos',        label:'N° Motor' },
+        km_entrada:          { modo:'advierte', fase:'todos',        label:'Km entrada' },
+        color:               { modo:'advierte', fase:'todos',        label:'Color' },
+        cotizacion_items:    { modo:'advierte', fase:'repuestos',    label:'Ítems cotización' }
+      };
+
+      const CFG_CAMPO_MAP = {
+        rut_cliente:         function(ot) { return ot.cliente_rut; },
+        patente:             function(ot) { return ot.patente; },
+        diagnostico_anotado: function(ot) { return ot.diagnostico; },
+        nmotor:              function(ot) { return ot.nmotor; },
+        km_entrada:          function(ot) { return ot.km_entrada; },
+        color:               function(ot) { return ot.color; },
+        cotizacion_items:    function(ot) { return ot.repuestos && ot.repuestos.length > 0; }
+      };
+
+      function getCfgChecklist() {
+        const raw = APP.lsGet('mp_config_checklist');
+        return raw ? JSON.parse(raw) : CFG_CHECKLIST_DEFAULTS;
+      }
+
+      function renderCfgChecklist() {
+        const cfg = getCfgChecklist();
+        const container = document.getElementById('cfg-checklist-lista');
+        if (!container) return;
+
+        const faseOrden = ['recepcion','diagnostico','repuestos','aprobacion','reparacion','control','entrega','todos'];
+        const faseLabels = {
+          recepcion:'Recepción', diagnostico:'Diagnóstico', repuestos:'Repuestos',
+          aprobacion:'Aprobación', reparacion:'Reparación', control:'Control',
+          entrega:'Entrega', todos:'Todas las fases'
+        };
+
+        let html = '';
+        faseOrden.forEach(function(fase) {
+          const camposEnFase = Object.keys(cfg).filter(function(k) { return cfg[k].fase === fase; });
+          if (!camposEnFase.length) return;
+
+          html += '<div style="margin-bottom:16px">';
+          html += '<div style="font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;margin-bottom:8px;padding-bottom:4px;border-bottom:0.5px solid var(--border)">' + faseLabels[fase] + '</div>';
+
+          camposEnFase.forEach(function(key) {
+            const conf = cfg[key];
+            const modo = conf.modo;
+            html += '<div style="display:flex;align-items:center;gap:12px;padding:10px 12px;background:var(--surface-2);border:0.5px solid var(--border);border-radius:var(--radius);margin-bottom:8px">';
+            html += '<div style="flex:1;min-width:0"><div style="font-size:12px;font-weight:500;color:var(--text-primary)">' + _admEsc(conf.label) + '</div></div>';
+            html += '<div style="display:flex;gap:6px;flex-wrap:wrap">';
+
+            ['bloquea','advierte','inactivo'].forEach(function(m) {
+              const label = m === 'bloquea' ? 'Bloquea' : (m === 'advierte' ? 'Advierte' : 'Inactivo');
+              const active = modo === m ? 'activo' : '';
+              const color = m === 'bloquea' ? '#ef4444' : (m === 'advierte' ? '#f59e0b' : '#6b7280');
+              html += '<button id="cfg-pill-' + key + '-' + m + '" class="' + active + '" onclick="setCfgModo(\'' + _admEsc(key) + '\',\'' + m + '\')" style="flex:1;min-width:70px;padding:6px 10px;border-radius:6px;font-size:11px;font-weight:600;color:#fff;background:' + color + ';border:none;cursor:pointer;transition:opacity .15s" onmouseover="this.style.opacity=.85" onmouseout="this.style.opacity=1">' + label + '</button>';
+            });
+
+            html += '</div></div>';
+          });
+
+          html += '</div>';
+        });
+
+        container.innerHTML = html;
+      }
+
+      function setCfgModo(key, modo) {
+        const cfg = getCfgChecklist();
+        cfg[key].modo = modo;
+        APP.lsSet('mp_config_checklist', cfg);
+        APP.toast.show('Configuración guardada', 'success');
+        renderCfgChecklist();
+      }
+
+      function resetCfgChecklist() {
+        APP.lsSet('mp_config_checklist', CFG_CHECKLIST_DEFAULTS);
+        APP.toast.show('Valores restaurados', 'success');
+        renderCfgChecklist();
+      }
+    </script>
 
   </div><!-- /adm-tab-config -->
 
