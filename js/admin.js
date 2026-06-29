@@ -256,69 +256,35 @@ function adminRenderUsuarios(buscar) {
   }).join('');
 }
 
-var _admUsuEditId = null;
-
 function adminNuevoUsuario() {
-  _admUsuEditId = null;
-  document.getElementById('adm-usu-f-nombre').value = '';
-  document.getElementById('adm-usu-f-apellido').value = '';
-  document.getElementById('adm-usu-f-rut').value = '';
-  document.getElementById('adm-usu-f-wz').value = '';
-  document.getElementById('adm-usu-f-rol').value = 'mecanico';
-  document.getElementById('adm-usu-f-activo').checked = true;
-  document.getElementById('adm-modal-usuario-titulo').textContent = 'Nuevo usuario';
-  document.getElementById('adm-modal-usuario').style.display = 'flex';
+  svcOpNuevo();
+  _svcAdminContext = true;
+  const rg = document.getElementById('svc-op-rol-group');
+  if (rg) rg.style.display = 'block';
+  const t = document.getElementById('svc-op-titulo');
+  if (t) t.textContent = 'Nuevo usuario';
+  const btn = document.getElementById('svc-op-guardar-btn');
+  if (btn) btn.textContent = 'Guardar usuario';
 }
 
 function adminEditarUsuario(id) {
+  _svcAdminContext = true;
+  svcOpEditar(id);
+  const rg = document.getElementById('svc-op-rol-group');
+  if (rg) rg.style.display = 'block';
   const u = APP.lsGet('usuarios', []).find(x => String(x.id) === String(id));
-  if (!u) return;
-  _admUsuEditId = id;
-  document.getElementById('adm-usu-f-nombre').value  = u.nombre || '';
-  document.getElementById('adm-usu-f-apellido').value = u.apellido || '';
-  document.getElementById('adm-usu-f-rut').value      = u.rut || '';
-  document.getElementById('adm-usu-f-wz').value       = u.whatsapp || u.wz || '';
-  document.getElementById('adm-usu-f-rol').value      = u.rol || 'mecanico';
-  document.getElementById('adm-usu-f-activo').checked  = u.estado !== 'inactivo';
-  document.getElementById('adm-modal-usuario-titulo').textContent = 'Editar usuario: ' + (u.nombre || '') + ' ' + (u.apellido || '');
-  document.getElementById('adm-modal-usuario').style.display = 'flex';
+  const sel = document.getElementById('svc-op-f-rol');
+  if (sel) sel.value = u?.rol || 'mecanico';
+  const t = document.getElementById('svc-op-titulo');
+  if (t) t.textContent = 'Editar usuario: ' + (u?.nombre || '') + ' ' + (u?.apellido || '');
+  const btn = document.getElementById('svc-op-guardar-btn');
+  if (btn) btn.textContent = 'Guardar usuario';
 }
 
 function adminGuardarUsuario() {
-  const g = id => (document.getElementById(id)?.value || '').trim();
-  const nombre   = g('adm-usu-f-nombre');
-  const apellido = g('adm-usu-f-apellido');
-  if (!nombre && !apellido) { APP.toast.show('⚠️ Ingresa al menos el nombre.', 'warning'); return; }
-  const rol = document.getElementById('adm-usu-f-rol')?.value || 'mecanico';
-  const activo = document.getElementById('adm-usu-f-activo')?.checked !== false;
-  let usuarios = APP.lsGet('usuarios', []);
-  if (_admUsuEditId) {
-    const idx = usuarios.findIndex(x => String(x.id) === String(_admUsuEditId));
-    if (idx >= 0) {
-      usuarios[idx].nombre   = nombre;
-      usuarios[idx].apellido = apellido;
-      usuarios[idx].rut      = g('adm-usu-f-rut');
-      usuarios[idx].whatsapp = g('adm-usu-f-wz');
-      usuarios[idx].wz       = g('adm-usu-f-wz');
-      usuarios[idx].rol      = rol;
-      usuarios[idx].estado   = activo ? 'activo' : 'inactivo';
-    }
-  } else {
-    usuarios.push({
-      id: 'usr-' + Date.now(),
-      nombre, apellido,
-      rut: g('adm-usu-f-rut'),
-      wz: g('adm-usu-f-wz'),
-      whatsapp: g('adm-usu-f-wz'),
-      rol,
-      estado: activo ? 'activo' : 'inactivo',
-      creado: new Date().toISOString()
-    });
-  }
-  APP.lsSet('usuarios', usuarios);
-  adminCerrarModalUsuario();
+  _svcAdminContext = true;
+  svcOpGuardar();
   adminRenderUsuarios(document.getElementById('adm-usuarios-buscar')?.value);
-  APP.toast.show('Usuario guardado.', 'success');
 }
 
 function adminEliminarUsuario(id) {
@@ -330,9 +296,7 @@ function adminEliminarUsuario(id) {
 }
 
 function adminCerrarModalUsuario() {
-  const m = document.getElementById('adm-modal-usuario');
-  if (m) m.style.display = 'none';
-  _admUsuEditId = null;
+  svcOpCerrar();
 }
 
 // ===== PERÍODO =====

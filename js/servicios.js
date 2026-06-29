@@ -269,6 +269,8 @@ function svcOpNuevo() {
   if (rg) rg.style.display = 'none';
   const t = document.getElementById('svc-op-titulo');
   if (t) t.textContent = 'Nuevo operario';
+  const btn = document.getElementById('svc-op-guardar-btn');
+  if (btn) btn.textContent = 'Guardar operario';
   const m = document.getElementById('svc-op-modal');
   if (m) m.style.display = '';
 }
