@@ -239,6 +239,22 @@ window.APP = {
       const el = document.getElementById('app-modal-overlay');
       if (el) el.remove();
     },
+    custom(titulo, contenidoHtml, onGuardar, textoGuardar = 'Guardar', textoCancelar = 'Cancelar') {
+      const html = `
+        <div class="modal-header">
+          <h2>${titulo}</h2>
+          <button class="modal-close" onclick="APP.modal.cerrar()">×</button>
+        </div>
+        <div class="modal-body" style="padding:20px">${contenidoHtml}</div>
+        <div class="modal-footer">
+          <button class="btn" onclick="APP.modal.cerrar()">${textoCancelar}</button>
+          <button class="btn bpa" id="app-modal-ok-btn">${textoGuardar}</button>
+        </div>`;
+      this.abrir(html, 'mediano');
+      document.getElementById('app-modal-ok-btn').addEventListener('click', () => {
+        onGuardar();
+      });
+    },
     confirmar(mensaje, onSi, textoSi = 'Sí, confirmar', textoNo = 'Cancelar') {
       const html = `
         <div class="modal-header">
