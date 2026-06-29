@@ -305,6 +305,10 @@ function adminGuardarUsuario() {
     usuarios.push({ id: Date.now(), nombre, apellido, rut, whatsapp, rol, color: '#3B82F6', pin: '0000', estado, fecha_creacion: Date.now() });
   }
   APP.lsSet('usuarios', usuarios);
+  document.getElementById('adm-panel-mensaje').style.display = 'block';
+  setTimeout(() => {
+    document.getElementById('adm-panel-mensaje').style.display = 'none';
+  }, 2000);
   adminCerrarModalUsuario();
   adminRenderUsuarios(document.getElementById('adm-usuarios-buscar')?.value);
   APP.toast.show('Usuario guardado.', 'success');
