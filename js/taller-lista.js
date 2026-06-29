@@ -33,7 +33,7 @@ function iniciarKanban() {
 }
 
 function _getOTs() {
-  return APP.lsGet('mp_ots') || [];
+  return APP.lsGet('ots') || [];
 }
 
 function _contarPorFase(ots) {
@@ -237,7 +237,7 @@ function avanzarOT(id) {
   const nuevaFase = KANBAN_FASES[idx + 1];
   ot.fase = nuevaFase.id;
   _logEvento(ot, `Avanzó a ${nuevaFase.label}`);
-  APP.lsSet('mp_ots', ots);
+  APP.lsSet('ots', ots);
   renderKanban();
   showToast(`OT #${id} avanzó a ${nuevaFase.label}`);
 }
@@ -251,7 +251,7 @@ function retrocederOT(id) {
   const nuevaFase = KANBAN_FASES[idx - 1];
   ot.fase = nuevaFase.id;
   _logEvento(ot, `Retrocedió a ${nuevaFase.label}`);
-  APP.lsSet('mp_ots', ots);
+  APP.lsSet('ots', ots);
   renderKanban();
   showToast(`OT #${id} retrocedió a ${nuevaFase.label}`);
 }

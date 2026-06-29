@@ -855,6 +855,7 @@ function nfGuardarOT() {
     vehiculo_id: vehiculoId,
     tecnico_id: tecnico,
     motivo_ingreso: motivo,
+    sintomas: motivo,
     servicios: servicios,
     recepcion: {
       objetos_valor: g('nf-objetos-valor') || '',
