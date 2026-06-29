@@ -9,6 +9,15 @@ function mktSetTab(name, btn) {
   if (btn) btn.classList.add('active');
 }
 
+function mktSetWZPTab(tab) {
+  ['notif','plant'].forEach(t => {
+    document.getElementById('mkt-wzp-' + t).style.display = (t === tab) ? '' : 'none';
+  });
+  document.querySelectorAll('#mkt-wzp-container .tab').forEach(b => b.classList.remove('active'));
+  const btn = document.getElementById('mkt-tab-' + tab + '-btn');
+  if (btn) btn.classList.add('active');
+}
+
 // ===== WHATSAPP — PLANTILLAS =====
 
 const _MKT_PLANTILLAS_DEFAULT = {
