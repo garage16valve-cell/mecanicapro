@@ -854,36 +854,49 @@
           </div>
         </div>
 
-        <!-- Dos columnas: Repuestos e Insumos -->
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px">
+        <!-- Servicios a realizar (reemplaza repuestos+insumos) -->
+        <div class="card" style="margin-bottom:14px">
+          <div class="ch"><span class="ct">🔧 Servicios a realizar</span></div>
 
-          <!-- REPUESTOS -->
-          <div class="card">
-            <div class="ch"><span class="ct">🔩 Repuestos requeridos</span></div>
-            <div class="fg"><label>Nombre repuesto</label><input id="diag-rep-nombre" placeholder="Ej: Pastillas de freno"></div>
-            <div class="fg"><label>Referencia</label><input id="diag-rep-ref" placeholder="Código o referencia"></div>
-            <div class="fg"><label>Cantidad</label><input type="number" id="diag-rep-cant" min="1" value="1" step="1"></div>
-            <div class="fg"><label>Observaciones</label><input id="diag-rep-obs" placeholder="Opcional"></div>
-            <button class="btn bpa" style="width:100%;justify-content:center;margin-bottom:10px" onclick="_diagAgregarRepuesto()">
-              <i class="ti ti-plus"></i> AGREGAR
-            </button>
-            <div id="diag-rep-lista"></div>
+          <!-- Buscador -->
+          <div class="fg" style="position:relative;margin-bottom:8px">
+            <label>Buscar servicio en catálogo</label>
+            <input id="diag-svc-buscar" type="text" placeholder="Escribe nombre del servicio..."
+              autocomplete="off"
+              oninput="_diagBuscarServicio(this.value)"
+              onblur="setTimeout(()=>{const d=document.getElementById('diag-svc-sugerencias');if(d)d.style.display='none'},200)">
+            <div id="diag-svc-sugerencias" style="display:none;position:absolute;top:100%;left:0;right:0;background:var(--surface-2);border:0.5px solid var(--border);border-radius:0 0 var(--radius) var(--radius);z-index:100;max-height:200px;overflow-y:auto;box-shadow:0 4px 12px rgba(0,0,0,0.15)"></div>
           </div>
 
-          <!-- INSUMOS -->
-          <div class="card">
-            <div class="ch"><span class="ct">🧴 Insumos requeridos</span></div>
-            <div class="fg"><label>Nombre insumo</label><input id="diag-ins-nombre" placeholder="Ej: Aceite motor 5W-30"></div>
-            <div class="fg"><label>Referencia</label><input id="diag-ins-ref" placeholder="Código o referencia"></div>
-            <div class="fg"><label>Cantidad</label><input type="number" id="diag-ins-cant" min="1" value="1" step="1"></div>
-            <div class="fg"><label>Observaciones</label><input id="diag-ins-obs" placeholder="Opcional"></div>
-            <button class="btn bpa" style="width:100%;justify-content:center;margin-bottom:10px" onclick="_diagAgregarInsumo()">
-              <i class="ti ti-plus"></i> AGREGAR
-            </button>
-            <div id="diag-ins-lista"></div>
+          <!-- Info del servicio seleccionado/creado -->
+          <div id="diag-svc-info" style="display:none;padding:10px;background:var(--surface-1);border-radius:var(--radius);border:0.5px solid var(--border);margin-bottom:10px">
+            <input type="hidden" id="diag-svc-seleccionado-id">
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:8px">
+              <div class="fg" style="margin:0"><label>Nombre</label><input id="diag-svc-nombre" type="text" style="width:100%"></div>
+              <div class="fg" style="margin:0"><label>Horas</label><input id="diag-svc-horas" type="number" step="0.5" min="0" value="0" style="width:100%"></div>
+              <div class="fg" style="margin:0"><label>Valor CLP</label><input id="diag-svc-valor" type="number" min="0" value="0" style="width:100%"></div>
+            </div>
+            <div id="diag-svc-repuestos" style="font-size:11px;color:var(--text-muted);margin-bottom:8px">Selecciona un servicio para ver repuestos sugeridos</div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap">
+              <button id="diag-btn-agregar-svc" class="btn bpa" onclick="_diagAgregarServicio()" style="display:none;font-size:11px">
+                <i class="ti ti-plus"></i> AGREGAR SERVICIO
+              </button>
+              <button id="diag-btn-guardar-svc" class="btn" onclick="_diagGuardarServicioCatalogo()" style="display:none;font-size:11px;background:#16a34a;color:white;border:none">
+                <i class="ti ti-device-floppy"></i> GUARDAR SERVICIO
+              </button>
+            </div>
           </div>
 
-        </div><!-- /dos columnas -->
+          <!-- Lista servicios agregados -->
+          <div id="diag-servicios-lista" style="margin-top:4px">
+            <div style="font-size:11px;color:var(--text-muted);padding:4px 0">Sin servicios agregados</div>
+          </div>
+
+          <!-- Subtotal -->
+          <div id="diag-servicios-total" style="display:none;margin-top:8px;padding:10px 12px;background:var(--surface-1);border-radius:var(--radius);text-align:right;font-size:13px;font-weight:600">
+            Subtotal: <span id="diag-subtotal-valor">$0</span>
+          </div>
+        </div>
 
         <!-- Nueva falla -->
         <div style="padding:12px 14px;background:var(--surface-1);border:0.5px solid var(--border);border-radius:var(--radius);margin-bottom:14px">

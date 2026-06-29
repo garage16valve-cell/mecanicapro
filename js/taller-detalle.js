@@ -162,11 +162,12 @@ function confirmarAprobacionVerbal() {
 
 // ===== MÓDULO: DIAGNÓSTICO TÉCNICO =====
 
-let _diagOtId    = null;
-let _diagMotoIdx = 0;
-let _diagReps    = [];   // repuestos temporales del motivo actual
-let _diagIns     = [];   // insumos temporales del motivo actual
-let _diagFotos   = [];   // fotos temporales del motivo actual
+let _diagOtId       = null;
+let _diagMotoIdx    = 0;
+let _diagReps       = [];   // repuestos temporales del motivo actual (agregados desde servicios)
+let _diagIns        = [];   // insumos temporales del motivo actual (deprecated)
+let _diagFotos      = [];   // fotos temporales del motivo actual
+let _diagServicios  = [];   // servicios agregados en el motivo actual
 
 // ---- Panel en detalle OT que aparece cuando fase === 'diagnostico' ----
 function _detDiagPanelRender(ot) {
@@ -284,7 +285,12 @@ function _diagCargarMotivo(idx, ot) {
   _diagMotoIdx = idx;
   const m = (ot.motivos || [])[idx] || {};
 
-  _diagReps  = [...(m.repuestos || [])];
+  _diagServicios = [...(m.servicios || [])];
+  if (m.servicios) {
+    _diagReps = _diagServicios.flatMap(s => s.repuestos || []);
+  } else {
+    _diagReps = [...(m.repuestos || [])];
+  }
   _diagIns   = [...(m.insumos   || [])];
   _diagFotos = [...(m.evidencia_diagnostico || [])];
 
@@ -303,8 +309,7 @@ function _diagCargarMotivo(idx, ot) {
     _diagCalcIva();
   }
 
-  _diagRenderReps();
-  _diagRenderIns();
+  _diagRenderServicios();
   _diagRenderFotos();
 
   const badge = document.getElementById('diag-motivo-badge');
@@ -346,69 +351,151 @@ function _diagCalcIva() {
   if (el) el.value = mo ? Math.round(mo * (1 + iva)) : '';
 }
 
-// ---- Repuestos ----
-function _diagAgregarRepuesto() {
-  const nombre = document.getElementById('diag-rep-nombre')?.value.trim();
-  if (!nombre) { APP.toast.show('Ingresa el nombre del repuesto', 'warning'); return; }
-  _diagReps.push({
-    nombre,
-    referencia:    document.getElementById('diag-rep-ref')?.value.trim() || '',
-    cantidad:      parseFloat(document.getElementById('diag-rep-cant')?.value) || 1,
-    observaciones: document.getElementById('diag-rep-obs')?.value.trim() || '',
-  });
-  ['diag-rep-nombre','diag-rep-ref','diag-rep-obs'].forEach(id => { const e = document.getElementById(id); if (e) e.value = ''; });
-  const c = document.getElementById('diag-rep-cant'); if (c) c.value = '1';
-  _diagRenderReps();
-}
-
-function _diagEliminarRep(i) { _diagReps.splice(i, 1); _diagRenderReps(); }
-
-function _diagRenderReps() {
-  const el = document.getElementById('diag-rep-lista');
-  if (!el) return;
-  if (!_diagReps.length) {
-    el.innerHTML = '<div style="font-size:11px;color:var(--text-muted);padding:4px 0">Sin repuestos agregados</div>';
+// ---- Servicios ----
+function _diagBuscarServicio(texto) {
+  const dropdown = document.getElementById('diag-svc-sugerencias');
+  if (!dropdown) return;
+  if (!texto || texto.length < 1) {
+    dropdown.style.display = 'none';
+    document.getElementById('diag-svc-info').style.display = 'none';
     return;
   }
-  el.innerHTML = _diagReps.map((r, i) => `
-    <div style="display:flex;align-items:center;gap:6px;font-size:11px;padding:5px 0;border-bottom:0.5px solid var(--border)">
-      <span style="color:#16a34a;font-size:12px">✓</span>
-      <span style="flex:1"><strong>${r.nombre}</strong>${r.referencia ? ' — ' + r.referencia : ''} <span style="color:var(--text-muted)">(Cant: ${r.cantidad})</span>${r.observaciones ? '<br><span style="color:var(--text-muted)">' + r.observaciones + '</span>' : ''}</span>
-      <button onclick="_diagEliminarRep(${i})" style="background:none;border:none;cursor:pointer;color:#ef4444;font-size:15px;padding:0;line-height:1" title="Eliminar">🗑️</button>
-    </div>`).join('');
+  const t = texto.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  const servicios = APP.lsGet('mp_servicios', []);
+  const filtrados = servicios.filter(s =>
+    (s.nombre||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').includes(t)
+  );
+  if (filtrados.length > 0) {
+    dropdown.innerHTML = filtrados.map(s =>
+      `<div onclick="_diagSeleccionarServicio('${s.id}')" style="cursor:pointer;padding:8px 10px;font-size:12px;border-bottom:0.5px solid var(--border)"
+         onmouseover="this.style.background='var(--surface-1)'" onmouseout="this.style.background=''">
+        <span style="font-weight:500">${s.nombre}</span>
+        <span style="color:var(--text-muted);font-size:10px;margin-left:8px">${(s.horas_estimadas||s.horasEst||0)}h · $${(s.precio_venta||s.precioFijo||0).toLocaleString('es-CL')}</span>
+      </div>`
+    ).join('');
+    dropdown.style.display = 'block';
+  } else {
+    dropdown.style.display = 'none';
+    document.getElementById('diag-svc-info').style.display = 'block';
+    document.getElementById('diag-svc-nombre').value = texto;
+    document.getElementById('diag-svc-horas').value = '0';
+    document.getElementById('diag-svc-valor').value = '0';
+    document.getElementById('diag-svc-seleccionado-id').value = '';
+    document.getElementById('diag-svc-repuestos').innerHTML = 'No encontrado en catálogo. Completa los datos y usa "Guardar servicio" para crearlo.';
+    document.getElementById('diag-btn-agregar-svc').style.display = 'none';
+    document.getElementById('diag-btn-guardar-svc').style.display = '';
+  }
 }
 
-// ---- Insumos ----
-function _diagAgregarInsumo() {
-  const nombre = document.getElementById('diag-ins-nombre')?.value.trim();
-  if (!nombre) { APP.toast.show('Ingresa el nombre del insumo', 'warning'); return; }
-  _diagIns.push({
-    nombre,
-    referencia:    document.getElementById('diag-ins-ref')?.value.trim() || '',
-    cantidad:      parseFloat(document.getElementById('diag-ins-cant')?.value) || 1,
-    observaciones: document.getElementById('diag-ins-obs')?.value.trim() || '',
-  });
-  ['diag-ins-nombre','diag-ins-ref','diag-ins-obs'].forEach(id => { const e = document.getElementById(id); if (e) e.value = ''; });
-  const c = document.getElementById('diag-ins-cant'); if (c) c.value = '1';
-  _diagRenderIns();
+function _diagSeleccionarServicio(id) {
+  const servicios = APP.lsGet('mp_servicios', []);
+  const servicio = servicios.find(s => s.id === id);
+  if (!servicio) return;
+  document.getElementById('diag-svc-nombre').value = servicio.nombre;
+  document.getElementById('diag-svc-horas').value = servicio.horas_estimadas || servicio.horasEst || 0;
+  document.getElementById('diag-svc-valor').value = servicio.precio_venta || servicio.precioFijo || 0;
+  document.getElementById('diag-svc-seleccionado-id').value = id;
+  document.getElementById('diag-svc-info').style.display = 'block';
+  const dropdown = document.getElementById('diag-svc-sugerencias');
+  if (dropdown) dropdown.style.display = 'none';
+  const reps = servicio.repuestos || servicio.repuestosSugeridos || [];
+  const repsEl = document.getElementById('diag-svc-repuestos');
+  if (repsEl) {
+    if (reps.length) {
+      repsEl.innerHTML = '<div style="font-size:10px;font-weight:600;color:var(--text-muted);text-transform:uppercase;margin-bottom:4px">Repuestos sugeridos</div>' +
+        reps.map(r =>
+          `<div style="font-size:10px;padding:2px 0;color:var(--text-secondary)">• ${r.nombre}${r.cantidad ? ' (x' + r.cantidad + ')' : ''}${r.precio || r.precio_unitario ? ' — $' + ((r.precio||r.precio_unitario||0)).toLocaleString('es-CL') : ''}${r.proveedor ? ' — ' + r.proveedor : ''}</div>`
+        ).join('');
+    } else {
+      repsEl.innerHTML = '<div style="font-size:11px;color:var(--text-muted)">Sin repuestos sugeridos</div>';
+    }
+  }
+  document.getElementById('diag-btn-agregar-svc').style.display = '';
+  document.getElementById('diag-btn-guardar-svc').style.display = 'none';
 }
 
-function _diagEliminarIns(i) { _diagIns.splice(i, 1); _diagRenderIns(); }
+function _diagAgregarServicio() {
+  const nombre = document.getElementById('diag-svc-nombre').value.trim();
+  const horas  = parseFloat(document.getElementById('diag-svc-horas').value) || 0;
+  const valor  = parseInt(document.getElementById('diag-svc-valor').value) || 0;
+  const svcId  = document.getElementById('diag-svc-seleccionado-id').value;
+  if (!nombre) { APP.toast.show('El nombre del servicio es obligatorio', 'warning'); return; }
+  const servicios = APP.lsGet('mp_servicios', []);
+  const servicio  = servicios.find(s => s.id === svcId);
+  const repuestos = servicio ? JSON.parse(JSON.stringify(servicio.repuestos || servicio.repuestosSugeridos || [])) : [];
+  _diagServicios.push({ id: svcId || ('manual-'+Date.now()), nombre, horas, valor, repuestos });
+  _diagReps = _diagServicios.flatMap(s => s.repuestos || []);
+  _diagRenderServicios();
+  _diagLimpiarInfoServicio();
+  APP.toast.show('✅ ' + nombre + ' agregado', 'success');
+}
 
-function _diagRenderIns() {
-  const el = document.getElementById('diag-ins-lista');
+function _diagEliminarServicio(idx) {
+  _diagServicios.splice(idx, 1);
+  _diagReps = _diagServicios.flatMap(s => s.repuestos || []);
+  _diagRenderServicios();
+}
+
+function _diagGuardarServicioCatalogo() {
+  const nombre = document.getElementById('diag-svc-nombre').value.trim();
+  const horas  = parseFloat(document.getElementById('diag-svc-horas').value) || 0;
+  const valor  = parseInt(document.getElementById('diag-svc-valor').value) || 0;
+  if (!nombre) { APP.toast.show('El nombre del servicio es obligatorio', 'warning'); return; }
+  const servicios = APP.lsGet('mp_servicios', []);
+  const nuevo = { id:'svc-'+Date.now(), nombre, horas_estimadas:horas, horasEst:horas, precio_venta:valor, precioFijo:valor, repuestos:[], repuestosSugeridos:[], categoria:'Otro', creado:new Date().toISOString() };
+  servicios.push(nuevo);
+  APP.lsSet('mp_servicios', servicios);
+  APP.toast.show('💾 ' + nombre + ' guardado en catálogo', 'success');
+  _diagSeleccionarServicio(nuevo.id);
+}
+
+function _diagRenderServicios() {
+  const el = document.getElementById('diag-servicios-lista');
+  const totalEl = document.getElementById('diag-servicios-total');
+  const subVal  = document.getElementById('diag-subtotal-valor');
   if (!el) return;
-  if (!_diagIns.length) {
-    el.innerHTML = '<div style="font-size:11px;color:var(--text-muted);padding:4px 0">Sin insumos agregados</div>';
+  if (!_diagServicios.length) {
+    el.innerHTML = '<div style="font-size:11px;color:var(--text-muted);padding:4px 0">Sin servicios agregados</div>';
+    if (totalEl) totalEl.style.display = 'none';
     return;
   }
-  el.innerHTML = _diagIns.map((r, i) => `
-    <div style="display:flex;align-items:center;gap:6px;font-size:11px;padding:5px 0;border-bottom:0.5px solid var(--border)">
-      <span style="color:#16a34a;font-size:12px">✓</span>
-      <span style="flex:1"><strong>${r.nombre}</strong>${r.referencia ? ' — ' + r.referencia : ''} <span style="color:var(--text-muted)">(Cant: ${r.cantidad})</span>${r.observaciones ? '<br><span style="color:var(--text-muted)">' + r.observaciones + '</span>' : ''}</span>
-      <button onclick="_diagEliminarIns(${i})" style="background:none;border:none;cursor:pointer;color:#ef4444;font-size:15px;padding:0;line-height:1" title="Eliminar">🗑️</button>
-    </div>`).join('');
+  let subtotal = 0;
+  el.innerHTML = _diagServicios.map((s, i) => {
+    subtotal += s.valor || 0;
+    const reps = s.repuestos && s.repuestos.length ? s.repuestos.map(r => r.nombre).join(', ') : '';
+    return `<div style="display:flex;align-items:center;gap:6px;font-size:11px;padding:6px 0;border-bottom:0.5px solid var(--border)">
+      <i class="ti ti-tool" style="color:#2563eb;font-size:14px"></i>
+      <span style="flex:1">
+        <strong>${s.nombre}</strong>
+        ${s.horas ? ' <span style="color:var(--text-muted)">(' + s.horas + 'h)</span>' : ''}
+        <span style="color:var(--text-accent)"> ${'$' + (s.valor||0).toLocaleString('es-CL')}</span>
+        ${reps ? '<br><span style="color:var(--text-muted);font-size:10px">🔩 ' + reps + '</span>' : ''}
+      </span>
+      <button onclick="_diagEliminarServicio(${i})" style="background:none;border:none;cursor:pointer;color:#ef4444;font-size:15px;padding:0;line-height:1" title="Eliminar">🗑️</button>
+    </div>`;
+  }).join('');
+  if (totalEl && subVal) {
+    totalEl.style.display = '';
+    subVal.textContent = '$' + subtotal.toLocaleString('es-CL');
+  }
 }
+
+function _diagLimpiarInfoServicio() {
+  const info = document.getElementById('diag-svc-info');
+  if (info) info.style.display = 'none';
+  const buscar = document.getElementById('diag-svc-buscar');
+  if (buscar) buscar.value = '';
+  ['diag-svc-nombre','diag-svc-horas','diag-svc-valor'].forEach(id => {
+    const e = document.getElementById(id); if (e) e.value = '';
+  });
+  const h = document.getElementById('diag-svc-horas'); if (h) h.value = '0';
+  const v = document.getElementById('diag-svc-valor'); if (v) v.value = '0';
+  const sel = document.getElementById('diag-svc-seleccionado-id'); if (sel) sel.value = '';
+  const agg = document.getElementById('diag-btn-agregar-svc'); if (agg) agg.style.display = 'none';
+  const grd = document.getElementById('diag-btn-guardar-svc'); if (grd) grd.style.display = 'none';
+}
+
+// ---- Fotos ----
 
 // ---- Fotos ----
 function _diagManejarFotos(input) {
@@ -498,12 +585,14 @@ function _diagGuardar() {
                         : (parseFloat(document.getElementById('diag-mano-obra')?.value) || 0);
   const ivaVal  = !esMec && document.getElementById('diag-iva-sel')?.value === '19' ? 19 : 0;
 
+  _diagReps = _diagServicios.flatMap(s => s.repuestos || []);
   ots[idx].motivos[_diagMotoIdx] = {
     ...(ots[idx].motivos[_diagMotoIdx] || {}),
     diagnostico:          texto,
     horas_reparacion:     horas,
     valor_mano_obra:      moVal,
     impuesto:             ivaVal,
+    servicios:            [..._diagServicios],
     repuestos:            [..._diagReps],
     insumos:              [..._diagIns],
     evidencia_diagnostico:[..._diagFotos],
@@ -523,9 +612,10 @@ function _diagGuardar() {
     // Pasar al siguiente pendiente
     const next = ot.motivos.findIndex((m, i) => i > _diagMotoIdx && !m.diagnosticado);
     const pending = next >= 0 ? next : ot.motivos.findIndex(m => !m.diagnosticado);
-    _diagReps  = [];
-    _diagIns   = [];
-    _diagFotos = [];
+  _diagReps       = [];
+  _diagIns        = [];
+  _diagFotos      = [];
+  _diagServicios  = [];
     const sel = document.getElementById('diag-motivo-select');
     if (sel && pending >= 0) sel.value = pending;
     _diagCargarMotivo(pending >= 0 ? pending : _diagMotoIdx, ot);
