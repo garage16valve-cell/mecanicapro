@@ -24,7 +24,13 @@
       "Bash(cd \"C:/Users/camil/Downloads/Gestion de taller\" && rm -f modules/*.bak && git add -A && git commit -m \"chore: limpiar backups temporales post-sincronización\")",
       "Bash(bash /tmp/verify_js.sh)",
       "Bash(cat)",
-      "Bash(bash /tmp/sync_admin.sh)"
+      "Bash(bash /tmp/sync_admin.sh)",
+      "Bash(awk '/id=\"module-taller\"/{flag=1; start=NR} flag && /^      <\\\\/div>/{if\\(NR>start\\){print NR; exit}}' \"C:\\\\Users\\\\camil\\\\Downloads\\\\Gestion de taller\\\\index.html\")",
+      "Bash([ ! -f \"$MODULES_FILE\" ])",
+      "Bash(exit 1)",
+      "Bash([ ! -f \"$INDEX_FILE\" ])",
+      "Bash(python3 \"C:\\\\Users\\\\camil\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\C--Users-camil-Downloads-Gestion-de-taller\\\\36f62601-88b6-4fe8-b6db-c645eef1ca5c\\\\scratchpad\\\\sync_taller.py\")",
+      "Bash(# Crear *)"
     ]
   }
 }

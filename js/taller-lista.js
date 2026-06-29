@@ -1,315 +1,213 @@
-// ─── KANBAN DE OTs ────────────────────────────────────────────────────────────
+// ─── LISTA UNIFICADA DE OTs CON FILTROS POR FASE ────────────────────────────────
 
-const KANBAN_FASES = [
-  { id: 'recepcion',   label: 'RECEPCIÓN',   emoji: '🚶' },
-  { id: 'diagnostico', label: 'DIAGNÓSTICO', emoji: '👁️' },
-  { id: 'repuestos',   label: 'REPUESTOS',   emoji: '🔧' },
-  { id: 'aprobacion',  label: 'APROBACIÓN',  emoji: '✓'  },
-  { id: 'reparacion',  label: 'REPARACIÓN',  emoji: '🔨' },
-  { id: 'control',     label: 'CONTROL',     emoji: '🛡️' },
-  { id: 'entrega',     label: 'ENTREGA',     emoji: '📦' },
-  { id: 'archivado',   label: 'ARCHIVADOS',  emoji: '🗂️' },
+const FASES_OPCIONES = [
+  { id: null,         label: 'Todas',       emoji: '📋' },
+  { id: 'recepcion',  label: 'Recepción',   emoji: '🚶' },
+  { id: 'diagnostico',label: 'Diagnóstico', emoji: '🔍' },
+  { id: 'repuestos',  label: 'Repuestos',   emoji: '📦' },
+  { id: 'reparacion', label: 'Reparación',  emoji: '🔨' },
+  { id: 'control',    label: 'Control',     emoji: '✅' },
+  { id: 'cotizacion', label: 'Cotización',  emoji: '📄' },
+  { id: 'pago',       label: 'Pago',        emoji: '💳' },
+  { id: 'entrega',    label: 'Entrega',     emoji: '🎉' },
+  { id: 'cancelada',  label: 'Cancelada',   emoji: '❌' },
 ];
 
-const SEMAFORO_MAP = {
-  'agendado':       { label: 'AGENDADO',       color: '#92400e', bg: '#fef3c7', border: '#d97706' },
-  'en-proceso':     { label: 'EN PROCESO',     color: '#065f46', bg: '#d1fae5', border: '#10b981' },
-  'sin-repuesto':   { label: 'SIN REPUESTO',   color: '#991b1b', bg: '#fee2e2', border: '#ef4444' },
-  'listo':          { label: 'LISTO',           color: '#1e3a8a', bg: '#dbeafe', border: '#3b82f6' },
-  'pago-pendiente': { label: 'PAGO PENDIENTE', color: '#9a3412', bg: '#ffedd5', border: '#f97316' },
-  'finalizado':     { label: 'FINALIZADO',     color: '#14532d', bg: '#dcfce7', border: '#22c55e' },
-  'cancelado':      { label: 'CANCELADO',      color: '#374151', bg: '#f3f4f6', border: '#9ca3af' },
-  'cotizacion':     { label: 'COTIZACIÓN',     color: '#4c1d95', bg: '#ede9fe', border: '#8b5cf6' },
+const FASE_COLORES = {
+  'recepcion':  { label: 'RECEPCIÓN',   color: '#7c3aed', bg: '#f3e8ff', border: '#a78bfa' },
+  'diagnostico':{ label: 'DIAGNÓSTICO', color: '#0891b2', bg: '#cffafe', border: '#06b6d4' },
+  'repuestos':  { label: 'REPUESTOS',   color: '#ea580c', bg: '#ffedd5', border: '#f97316' },
+  'reparacion': { label: 'REPARACIÓN',  color: '#be123c', bg: '#ffe4e6', border: '#f43f5e' },
+  'control':    { label: 'CONTROL',     color: '#059669', bg: '#d1fae5', border: '#10b981' },
+  'cotizacion': { label: 'COTIZACIÓN',  color: '#7c2d12', bg: '#fed7aa', border: '#d97706' },
+  'pago':       { label: 'PAGO',        color: '#0d47a1', bg: '#dbeafe', border: '#3b82f6' },
+  'entrega':    { label: 'ENTREGA',     color: '#15803d', bg: '#dcfce7', border: '#22c55e' },
+  'cancelada':  { label: 'CANCELADA',   color: '#6b7280', bg: '#f3f4f6', border: '#d1d5db' },
 };
 
-let _kanbanFase = 'recepcion';
-let _kanbanFiltros = { desde: '', hasta: '', q: '' };
+let filtroFaseActivo = null;
+let _filtrosLista = { desde: '', hasta: '', q: '' };
 
 // ─── Init ──────────────────────────────────────────────────────────────────────
 
-function iniciarKanban() {
-  _renderKanbanTabs();
-  renderKanban();
+function iniciarListaOT() {
+  renderListaOTs();
+  actualizarContadoresFiltro();
 }
 
 function _getOTs() {
   return APP.lsGet('ots') || [];
 }
 
-function _contarPorFase(ots) {
-  const c = {};
-  KANBAN_FASES.forEach(f => { c[f.id] = 0; });
-  ots.forEach(ot => {
-    const f = ot.fase || 'recepcion';
-    if (c[f] !== undefined) c[f]++;
-  });
-  return c;
-}
+// ─── Barra de filtros ──────────────────────────────────────────────────────────
 
-// ─── Tabs ──────────────────────────────────────────────────────────────────────
-
-function _renderKanbanTabs() {
+function renderBarraFiltros() {
   const bar = document.getElementById('kanban-tabs-bar');
   if (!bar) return;
-  const counts = _contarPorFase(_getOTs());
-  bar.innerHTML = KANBAN_FASES.map(f => {
-    const n = counts[f.id] || 0;
-    const active = f.id === _kanbanFase;
-    return `<button class="kanban-tab${active ? ' kanban-tab-active' : ''}"
-      onclick="cambiarFaseKanban('${f.id}')">
-      ${f.emoji} ${f.label}
-      <span class="kanban-tab-count">${n}</span>
+
+  const ots = _getOTs();
+  const conteos = {};
+  FASES_OPCIONES.forEach(f => { conteos[f.id] = 0; });
+
+  ots.forEach(ot => {
+    const fase = ot.fase || 'recepcion';
+    if (conteos[fase] !== undefined) conteos[fase]++;
+    if (conteos[null] !== undefined) conteos[null]++;
+  });
+
+  bar.innerHTML = FASES_OPCIONES.map(f => {
+    const n = conteos[f.id] || 0;
+    const active = f.id === filtroFaseActivo;
+    return `<button class="kanban-filtro-btn"
+      id="btn-filtro-${f.id || 'todas'}"
+      onclick="activarFiltroOT(${f.id === null ? 'null' : \"'\" + f.id + \"'\"})"
+      style="display:inline-flex;align-items:center;gap:5px;padding:6px 12px;border:0.5px solid var(--border);border-radius:var(--radius);background:${active ? 'var(--fill-accent)' : 'var(--surface-1)'};color:${active ? '#fff' : 'var(--text-secondary)'};font-size:11px;font-weight:500;cursor:pointer;white-space:nowrap;transition:all .15s">
+      ${f.emoji} ${f.label} <span style="display:inline-flex;align-items:center;justify-content:center;min-width:18px;height:18px;padding:0 4px;border-radius:9px;font-size:10px;font-weight:700;background:${active ? 'rgba(255,255,255,.3)' : 'rgba(0,0,0,.12)'};color:inherit">${n}</span>
     </button>`;
   }).join('');
 }
 
-function cambiarFaseKanban(fase) {
-  _kanbanFase = fase;
-  _renderKanbanTabs();
-  _renderKanbanLista();
+function actualizarContadoresFiltro() {
+  renderBarraFiltros();
 }
 
-// ─── Render lista ──────────────────────────────────────────────────────────────
-
-function renderKanban() {
-  _renderKanbanTabs();
-  _renderKanbanLista();
+function activarFiltroOT(fase) {
+  filtroFaseActivo = fase;
+  renderBarraFiltros();
+  renderListaOTs();
 }
 
-function _renderKanbanLista() {
-  const lista = document.getElementById('kanban-lista');
+// ─── Render lista unificada ────────────────────────────────────────────────────
+
+function renderListaOTs() {
+  const lista = document.getElementById('lista-ots-unificada');
   if (!lista) return;
 
-  const { desde, hasta, q } = _kanbanFiltros;
+  const { desde, hasta, q } = _filtrosLista;
   const qLow = (q || '').toLowerCase().trim();
+  const allOts = _getOTs();
 
-  const ots = _getOTs().filter(ot => {
-    if ((ot.fase || 'recepcion') !== _kanbanFase) return false;
-
+  // Filtrar por búsqueda y fecha
+  let ots = allOts.filter(ot => {
     if (desde || hasta) {
       const ts = ot.fecha_cita || ot.fecha_ingreso || 0;
-      const d  = new Date(ts);
+      const d = new Date(ts);
       if (desde && d < new Date(desde + 'T00:00:00')) return false;
       if (hasta && d > new Date(hasta + 'T23:59:59')) return false;
     }
 
     if (qLow) {
-      const motDesc = (ot.motivos || []).map(m => m.descripcion || m.servicio_nombre || '').join(' ');
       const haystack = [
-        ot.id, ot.patente, ot.cliente_nombre,
-        ot.vehiculo_marca, ot.vehiculo_modelo, ot.vehiculo_anio,
-        ot.tecnico_nombre, motDesc,
-      ].join(' ').toLowerCase();
+        ot.numero,
+        ot.id,
+        ot.patente,
+        ot.cliente_nombre,
+        ot.cliente_apellido,
+        ot.marca || ot.vehiculo_marca,
+        ot.modelo || ot.vehiculo_modelo,
+        ot.tecnico_asignado,
+      ].filter(Boolean).join(' ').toLowerCase();
       if (!haystack.includes(qLow)) return false;
     }
 
     return true;
   });
 
-  // Sort: newer first
-  ots.sort((a, b) => (b.fecha_ingreso || 0) - (a.fecha_ingreso || 0));
+  // Si hay filtro activo: mostrar primero las de esa fase, luego las demás
+  if (filtroFaseActivo !== null) {
+    const otsFase = ots.filter(ot => (ot.fase || 'recepcion') === filtroFaseActivo);
+    const otrasOts = ots.filter(ot => (ot.fase || 'recepcion') !== filtroFaseActivo);
 
-  if (!ots.length) {
-    const faseLabel = KANBAN_FASES.find(f => f.id === _kanbanFase)?.label || _kanbanFase;
-    lista.innerHTML = `<div style="text-align:center;padding:48px 20px;color:var(--text-muted)">
-      <i class="ti ti-inbox" style="font-size:32px;display:block;margin-bottom:10px;opacity:.3"></i>
-      <div style="font-size:13px;font-weight:500">Sin OTs en ${faseLabel}</div>
-      <div style="font-size:11px;margin-top:4px">Las OTs aparecerán aquí al avanzar a esta fase</div>
-    </div>`;
-    return;
+    if (otsFase.length === 0 && otrasOts.length === 0) {
+      lista.innerHTML = `<div style="text-align:center;padding:48px 20px;color:var(--text-muted)">
+        <i class="ti ti-inbox" style="font-size:32px;display:block;margin-bottom:10px;opacity:.3"></i>
+        <div style="font-size:13px;font-weight:500">Sin OTs encontradas</div>
+      </div>`;
+      return;
+    }
+
+    let html = '';
+    if (otsFase.length > 0) {
+      html += `<div style="padding:8px 0;font-size:10px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em">── ${FASE_COLORES[filtroFaseActivo]?.label || 'Fase'} (${otsFase.length}) ──</div>`;
+      html += otsFase.map(ot => _renderFilaOT(ot)).join('');
+    }
+
+    if (otrasOts.length > 0) {
+      html += `<div style="padding:12px 0 8px;font-size:10px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;border-top:0.5px solid var(--border);margin-top:8px">── Otras órdenes (${otrasOts.length}) ──</div>`;
+      html += otrasOts.map(ot => _renderFilaOT(ot)).join('');
+    }
+
+    lista.innerHTML = html;
+  } else {
+    // Sin filtro: mostrar todas
+    if (ots.length === 0) {
+      lista.innerHTML = `<div style="text-align:center;padding:48px 20px;color:var(--text-muted)">
+        <i class="ti ti-inbox" style="font-size:32px;display:block;margin-bottom:10px;opacity:.3"></i>
+        <div style="font-size:13px;font-weight:500">Sin OTs registradas</div>
+      </div>`;
+      return;
+    }
+
+    lista.innerHTML = ots.map(ot => _renderFilaOT(ot)).join('');
   }
-
-  lista.innerHTML = ots.map(ot => _renderOTCard(ot)).join('');
 }
 
-// ─── Card HTML ─────────────────────────────────────────────────────────────────
+// ─── Fila de OT ────────────────────────────────────────────────────────────────
 
-function _renderOTCard(ot) {
-  const sem = SEMAFORO_MAP[ot.estado || 'agendado'] || SEMAFORO_MAP['agendado'];
-  const faseIdx = KANBAN_FASES.findIndex(f => f.id === (ot.fase || 'recepcion'));
-  const puedeRetro  = faseIdx > 0;
-  const puedeAvanzo = faseIdx < KANBAN_FASES.length - 1;
+function _renderFilaOT(ot) {
+  const fase = ot.fase || 'recepcion';
+  const faseInfo = FASE_COLORES[fase] || FASE_COLORES['recepcion'];
 
-  const ts    = ot.fecha_cita || ot.fecha_ingreso;
-  const fecha = ts ? new Date(ts).toLocaleDateString('es-CL', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '—';
-  const hora  = ts ? new Date(ts).toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' }) : '';
+  const fecha = ot.fecha_ingreso
+    ? new Date(ot.fecha_ingreso).toLocaleDateString('es-CL', { day: '2-digit', month: '2-digit', year: '2-digit' })
+    : '—';
 
-  const veh = [ot.vehiculo_marca, ot.vehiculo_modelo, ot.vehiculo_anio, ot.patente ? `[${ot.patente}]` : '']
-    .filter(Boolean).join(' ');
+  const nombreCliente = [ot.cliente_nombre, ot.cliente_apellido].filter(Boolean).join(' ') || '(Sin cliente)';
 
-  const motivosList = (ot.motivos || [])
-    .map(m => m.descripcion || m.servicio_nombre)
-    .filter(Boolean)
-    .slice(0, 3);
-  const motivosStr = motivosList.join(' · ') + (((ot.motivos || []).length > 3) ? ' …' : '');
+  return `<div class="ot-fila-item" data-ot-id="${ot.id}"
+    onclick="togglePanelOT('${ot.id}')"
+    style="display:flex;align-items:center;gap:12px;padding:12px;border:0.5px solid var(--border);border-radius:var(--radius);background:var(--surface-1);margin-bottom:8px;cursor:pointer;transition:all .15s;hover:background:var(--surface-2)">
 
-  const hist    = ot.historial_eventos || [];
-  const lastEvt = hist.length ? hist[hist.length - 1] : null;
-  const lastStr = lastEvt ? (lastEvt.accion || lastEvt.descripcion || '') : '';
-
-  const noFactBadge = ot.facturada
-    ? ''
-    : `<span style="font-size:9px;padding:2px 7px;border-radius:10px;background:#fef9c3;color:#92400e;border:0.5px solid #d97706;font-weight:600">No Facturada</span>`;
-
-  return `<div class="kanban-card" id="kcard-${ot.id}">
-  <div class="kanban-card-top">
-    <div style="display:flex;align-items:center;gap:7px;flex-wrap:wrap">
-      <span style="font-size:12px;font-weight:700;color:var(--text-primary)">#${ot.id}</span>
-      ${noFactBadge}
-      <span style="font-size:10px;padding:2px 9px;border-radius:10px;font-weight:700;
-        border:0.5px solid ${sem.border};color:${sem.color};background:${sem.bg}">
-        ${sem.label}
-      </span>
-      <span style="font-size:10px;color:var(--text-muted);margin-left:auto;white-space:nowrap">
-        ${fecha}${hora ? ' · ' + hora : ''}
-      </span>
-    </div>
-  </div>
-
-  <div class="kanban-card-body">
-    <div style="display:flex;gap:14px;flex-wrap:wrap;align-items:flex-start">
-      <div style="flex:1;min-width:180px">
-        <div style="font-size:13px;font-weight:600;color:var(--text-primary);margin-bottom:1px">
-          ${ot.cliente_nombre || '<span style="color:var(--text-muted)">(Sin cliente)</span>'}
-        </div>
-        <div style="font-size:11px;color:var(--text-secondary);margin-bottom:4px">
-          ${veh || '<span style="color:var(--text-muted)">(Sin vehículo)</span>'}
-        </div>
-        ${motivosStr ? `<div style="font-size:11px;color:var(--text-muted);line-height:1.4">${motivosStr}</div>` : ''}
+    <div style="flex:1;min-width:0">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+        <div style="font-size:13px;font-weight:600;color:var(--text-primary)">#${ot.numero || ot.id}</div>
+        <div style="font-size:10px;padding:2px 8px;border-radius:8px;background:${faseInfo.bg};color:${faseInfo.color};border:0.5px solid ${faseInfo.border};font-weight:600">${faseInfo.label}</div>
       </div>
-      <div style="text-align:right;font-size:11px;color:var(--text-muted);flex-shrink:0">
-        ${ot.tecnico_nombre ? `<div><i class="ti ti-user" style="font-size:10px"></i> ${ot.tecnico_nombre}</div>` : ''}
-        ${lastStr ? `<div style="margin-top:3px;font-size:10px;font-style:italic">${lastStr}</div>` : ''}
+      <div style="font-size:12px;color:var(--text-primary);margin-bottom:2px;font-weight:500">${nombreCliente}</div>
+      <div style="display:flex;gap:16px;font-size:11px;color:var(--text-muted)">
+        <span>${ot.patente || '—'}</span>
+        ${ot.tecnico_asignado ? `<span><i class="ti ti-user" style="font-size:10px"></i> ${ot.tecnico_asignado}</span>` : ''}
+        <span>${fecha}</span>
       </div>
     </div>
-  </div>
 
-  <div class="kanban-card-actions">
-    <button class="btn kanban-btn" title="Retroceder fase"
-      ${puedeRetro ? '' : 'disabled'}
-      onclick="retrocederOT('${ot.id}')">
-      <i class="ti ti-arrow-left"></i> Retroceder
+    <button class="btn" onclick="event.stopPropagation(); abrirHistorialOT('${ot.id}')" style="flex-shrink:0;padding:6px 8px;font-size:11px" title="Ver historial">
+      <i class="ti ti-clock"></i>
     </button>
-
-    <button class="btn kanban-btn" title="WhatsApp cliente"
-      onclick="vistaClienteOT('${ot.id}')" style="color:#25D366;border-color:#25D366">
-      <i class="ti ti-brand-whatsapp"></i>
-    </button>
-    <button class="btn kanban-btn" title="Eliminar OT"
-      onclick="eliminarOT('${ot.id}')"
-      style="color:#dc2626;border-color:#fca5a5">
-      <i class="ti ti-trash"></i>
-    </button>
-    <button class="btn kanban-btn" title="Avanzar fase"
-      ${puedeAvanzo ? '' : 'disabled'}
-      onclick="avanzarOT('${ot.id}')"
-      style="margin-left:auto">
-      Avanzar <i class="ti ti-arrow-right"></i>
-    </button>
-  </div>
-</div>`;
+  </div>`;
 }
 
 // ─── Filtros ───────────────────────────────────────────────────────────────────
 
 function filtrarKanban() {
-  _kanbanFiltros.desde = document.getElementById('kanban-desde')?.value || '';
-  _kanbanFiltros.hasta = document.getElementById('kanban-hasta')?.value || '';
-  _kanbanFiltros.q     = document.getElementById('kanban-q')?.value    || '';
-  _renderKanbanLista();
-}
-
-// ─── Avanzar / Retroceder ──────────────────────────────────────────────────────
-
-function avanzarOT(id) {
-  const ots = _getOTs();
-  const ot  = ots.find(o => o.id === id);
-  if (!ot) return;
-  const idx = KANBAN_FASES.findIndex(f => f.id === (ot.fase || 'recepcion'));
-  if (idx >= KANBAN_FASES.length - 1) return;
-  if (typeof otAvanzarFase === 'function') {
-    otAvanzarFase(id);
-  } else {
-    const nuevaFase = KANBAN_FASES[idx + 1];
-    ot.fase = nuevaFase.id;
-    _logEvento(ot, `Avanzó a ${nuevaFase.label}`);
-    APP.lsSet('ots', ots);
-    renderKanban();
-    showToast(`OT #${id} avanzó a ${nuevaFase.label}`);
-  }
-}
-
-function retrocederOT(id) {
-  const ots = _getOTs();
-  const ot  = ots.find(o => o.id === id);
-  if (!ot) return;
-  const idx = KANBAN_FASES.findIndex(f => f.id === (ot.fase || 'recepcion'));
-  if (idx <= 0) return;
-  const nuevaFase = KANBAN_FASES[idx - 1];
-  ot.fase = nuevaFase.id;
-  _logEvento(ot, `Retrocedió a ${nuevaFase.label}`);
-  APP.lsSet('ots', ots);
-  renderKanban();
-  showToast(`OT #${id} retrocedió a ${nuevaFase.label}`);
-}
-
-function _logEvento(ot, accion) {
-  ot.historial_eventos = ot.historial_eventos || [];
-  ot.historial_eventos.push({
-    fecha: Date.now(),
-    fase: ot.fase,
-    accion,
-    usuario: 'Sistema',
-    descripcion: '',
-  });
-}
-
-// ─── Eliminar ──────────────────────────────────────────────────────────────────
-
-function eliminarOT(id) {
-  if (!confirm(`¿Eliminar OT #${id}?\nEsta acción no se puede deshacer.`)) return;
-  APP.lsSet('ots', _getOTs().filter(o => o.id !== id));
-  renderKanban();
-  showToast('OT eliminada');
-  if (typeof updateAllBadges === 'function') updateAllBadges();
-}
-
-// ─── Editar / Vista cliente ────────────────────────────────────────────────────
-
-function editarOTKanban(id) {
-  if (typeof abrirDetalleOT === 'function') {
-    abrirDetalleOT(id);
-    setTimeout(() => {
-      if (typeof toggleEditarOT === 'function') toggleEditarOT();
-    }, 80);
-  }
-}
-
-function vistaClienteOT(id) {
-  const ot = _getOTs().find(o => o.id === id);
-  if (!ot) return;
-  const wz = ot.cliente_wz || ot.cliente_whatsapp || '';
-  const msg = encodeURIComponent(
-    `Hola ${ot.cliente_nombre || ''}, le informamos que su vehículo ` +
-    `${[ot.vehiculo_marca, ot.vehiculo_modelo, ot.patente].filter(Boolean).join(' ')} ` +
-    `(OT #${ot.id}) está siendo atendido. Cualquier novedad le avisamos.`
-  );
-  if (wz) {
-    window.open(`https://wa.me/${wz.replace(/\D/g, '')}?text=${msg}`, '_blank');
-  } else {
-    showToast('Este cliente no tiene WhatsApp registrado');
-  }
+  _filtrosLista.desde = document.getElementById('kanban-desde')?.value || '';
+  _filtrosLista.hasta = document.getElementById('kanban-hasta')?.value || '';
+  _filtrosLista.q = document.getElementById('kanban-q')?.value || '';
+  renderListaOTs();
 }
 
 // ─── Compat con código existente ───────────────────────────────────────────────
 
-function renderListaOTs(q) {
-  _kanbanFiltros.q = q || '';
-  renderKanban();
+function renderKanban() {
+  renderListaOTs();
+}
+
+function cambiarFaseKanban(fase) {
+  activarFiltroOT(fase);
 }
 
 // ─── Auto-init cuando carga el módulo ─────────────────────────────────────────
 
 document.addEventListener('DOMContentLoaded', () => {
-  if (document.getElementById('kanban-tabs-bar')) iniciarKanban();
+  if (document.getElementById('kanban-tabs-bar')) iniciarListaOT();
 });

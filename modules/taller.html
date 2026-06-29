@@ -17,11 +17,12 @@
 <!-- ÓRDENES DE TRABAJO -->
 <div class="page active" id="pg-ot">
 
-  <!-- Vista principal: Kanban -->
+  <!-- Vista principal: Lista unificada con filtros por fase -->
   <div id="ot-listado">
-    <!-- Pestañas por fase -->
+    <!-- Barra de filtros por fase -->
     <div id="kanban-tabs-bar" style="display:flex;gap:4px;overflow-x:auto;padding-bottom:8px;margin-bottom:8px;border-bottom:0.5px solid var(--border)"></div>
-    <!-- Filtros -->
+
+    <!-- Filtros de búsqueda y fecha -->
     <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:10px">
       <div style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text-muted)">
         Desde
@@ -37,8 +38,9 @@
       </div>
       <button class="btn" onclick="filtrarKanban()"><i class="ti ti-filter"></i> Filtrar</button>
     </div>
-    <!-- Lista de OTs del estado activo -->
-    <div id="kanban-lista"></div>
+
+    <!-- Lista unificada de OTs -->
+    <div id="lista-ots-unificada"></div>
   </div>
 
   <!-- ===== FORMULARIO NUEVA OT (REDISEÑADO) ===== -->
