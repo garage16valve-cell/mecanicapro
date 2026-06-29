@@ -13,6 +13,7 @@ function init_taller() {
   }
   renderListaOTs();
   renderClientes();
+  renderVehiculos();
   _ssInitTodos();
   // ESC cierra modales de OT y también los dropdowns abiertos
   document.addEventListener('keydown', e => {
@@ -390,6 +391,33 @@ function renderClientes(filtro = '') {
         <tbody>${otRows}</tbody></table>` : ''}
     </div>`;
   }).join('');
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// VEHÍCULOS
+// ═══════════════════════════════════════════════════════════════════
+
+function renderVehiculos() {
+  const container = document.getElementById('vehiculos-grid');
+  if (!container) return;
+  const vehiculos = APP.lsGet('vehiculos') || [];
+  const count = document.getElementById('veh-count');
+
+  if (vehiculos.length === 0) {
+    container.innerHTML = '<div style="grid-column:1/-1;text-align:center;color:var(--text-muted);padding:32px;font-size:12px"><i class="ti ti-car" style="font-size:28px;display:block;margin-bottom:8px;opacity:.3"></i>Sin vehículos registrados.</div>';
+    if (count) count.textContent = '0 vehículos';
+    return;
+  }
+
+  container.innerHTML = vehiculos.map(v =>
+    '<div class="card">' +
+      '<div style="font-weight:500">' + v.marca + ' ' + v.modelo + ' (' + v.año + ')</div>' +
+      '<div style="font-size:12px;color:var(--text-muted);margin-top:4px">Patente: <strong>' + v.patente + '</strong></div>' +
+      '<div style="font-size:12px;color:var(--text-muted)">Color: ' + (v.color || '—') + ' · KM: ' + (v.km || 0).toLocaleString('es-CL') + '</div>' +
+      '<div style="font-size:12px;color:var(--text-muted)">Cliente: ' + (v.cliente_nombre || '—') + '</div>' +
+    '</div>'
+  ).join('');
+  if (count) count.textContent = vehiculos.length + ' vehículos';
 }
 
 // Pre-cotizaciones por marca

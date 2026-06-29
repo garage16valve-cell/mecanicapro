@@ -777,3 +777,27 @@ function _fmtM(n) {
 function _admEsc(str) {
   return (str == null ? '' : String(str)).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
+
+// ═══════════════════════════════════════════════════════════════════
+// REPORTES — Renderizado desde datos reales
+// ═══════════════════════════════════════════════════════════════════
+
+function adminRenderReportes() {
+  const ots = APP.lsGet('ots') || [];
+  const clientes = APP.lsGet('clientes') || [];
+  const flujo = APP.lsGet('finanzas_flujo_caja') || [];
+
+  const totalOts = ots.length;
+  const otsCompletadas = ots.filter(o => o.estado === 'completada' || o.estado === 'completado').length;
+  const ingresos = flujo.filter(m => m.tipo === 'ingreso').reduce((sum, m) => sum + (m.monto || 0), 0);
+  const totalClientes = clientes.length;
+
+  const set = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+  set('adm-kpi-ots', totalOts);
+  set('adm-kpi-ots-sub', otsCompletadas + ' completadas');
+  set('adm-kpi-ingresos', '$' + ingresos.toLocaleString('es-CL'));
+  set('adm-kpi-clientes', totalClientes);
+
+  // También intentar usar el motor existente con datos legacy
+  if (typeof _admKPIs === 'function') _admKPIs();
+}

@@ -85,6 +85,15 @@ function nav(page, el) {
   }
 
   currentPage = page;
+
+  // Renderizar páginas específicas al navegar dentro de un módulo ya inicializado
+  if (page === 'clientes') {
+    if (typeof renderClientes === 'function') renderClientes();
+    if (typeof renderVehiculos === 'function') renderVehiculos();
+  }
+  if (page === 'reportes' && typeof adminRenderReportes === 'function') adminRenderReportes();
+  if (page === 'finanzas' && typeof finCargar === 'function') finCargar();
+
   if (typeof updateAllBadges === 'function') updateAllBadges();
 }
 
@@ -424,6 +433,25 @@ function initExampleData() {
         { nombre: 'Utilidad líquida dueño', descripcion: 'Retiro directo', porcentaje: 20, color: '#FFD93D' }
       ]
     });
+  }
+
+  // Sincronizar datos nuevos → legacy keys (compatibilidad)
+  if (APP.lsGet('ots') && APP.lsGet('ots').length && (!APP.lsGet('mp_ots') || !APP.lsGet('mp_ots').length)) {
+    APP.lsSet('mp_ots', APP.lsGet('ots'));
+  }
+  if (APP.lsGet('clientes') && APP.lsGet('clientes').length && (!APP.lsGet('mp_clientes') || !APP.lsGet('mp_clientes').length)) {
+    APP.lsSet('mp_clientes', APP.lsGet('clientes'));
+  }
+  if (APP.lsGet('repuestos') && APP.lsGet('repuestos').length && (!APP.lsGet('mp_inventario') || !APP.lsGet('mp_inventario').length)) {
+    const inv = APP.lsGet('repuestos').map(r => ({
+      c: r.codigo || '', n: r.nombre, m: r.marca || '', ub: r.ubicacion || '',
+      st: r.stock, mn: r.stock_minimo || 5, p: '$' + (r.precio_venta || 0).toLocaleString('es-CL'),
+      e: r.stock < (r.stock_minimo || 5) ? 's-crit' : 's-done', et: r.stock < (r.stock_minimo || 5) ? 'Crítico' : 'OK'
+    }));
+    APP.lsSet('mp_inventario', inv);
+  }
+  if (APP.lsGet('proveedores') && APP.lsGet('proveedores').length && (!APP.lsGet('mp_proveedores') || !APP.lsGet('mp_proveedores').length)) {
+    APP.lsSet('mp_proveedores', APP.lsGet('proveedores'));
   }
 
   console.log('✅ Datos de ejemplo inicializados correctamente');
