@@ -188,6 +188,10 @@ function svcGetPermitidosPara(idOperario) {
 }
 
 // ===== OPERARIOS CRUD =====
+let _svcOpEditId = null;
+let _svcOpCerts  = [];
+let _svcCertEditIdx = null;
+
 function svcOpRender() {
   const el = document.getElementById('svc-op-lista');
   if (!el) return;
@@ -203,28 +207,52 @@ function svcOpRender() {
       <th style="text-align:left;padding:6px 8px;border-bottom:0.5px solid var(--border);font-size:10px;color:var(--text-muted);font-weight:500">Apellido</th>
       <th style="text-align:left;padding:6px 8px;border-bottom:0.5px solid var(--border);font-size:10px;color:var(--text-muted);font-weight:500">RUT</th>
       <th style="text-align:left;padding:6px 8px;border-bottom:0.5px solid var(--border);font-size:10px;color:var(--text-muted);font-weight:500">WhatsApp</th>
+      <th style="text-align:left;padding:6px 8px;border-bottom:0.5px solid var(--border);font-size:10px;color:var(--text-muted);font-weight:500">Nivel</th>
       <th style="text-align:center;padding:6px 8px;border-bottom:0.5px solid var(--border);font-size:10px;color:var(--text-muted);font-weight:500;width:80px">Acción</th>
     </tr></thead>
-    <tbody>${ops.map((u, i) => `<tr>
-      <td style="padding:4px 8px;border-bottom:0.5px solid var(--border-light)">${_esc(u.nombre || '')}</td>
-      <td style="padding:4px 8px;border-bottom:0.5px solid var(--border-light)">${_esc(u.apellido || '')}</td>
-      <td style="padding:4px 8px;border-bottom:0.5px solid var(--border-light);font-family:var(--font-mono);font-size:11px">${_esc(u.rut || '—')}</td>
-      <td style="padding:4px 8px;border-bottom:0.5px solid var(--border-light)">${_esc(u.whatsapp || u.wz || '—')}</td>
-      <td style="padding:4px 8px;border-bottom:0.5px solid var(--border-light);text-align:center">
-        <button onclick="svcOpEditar('${_esc(u.id)}')" style="background:none;border:none;cursor:pointer;color:var(--text-accent);font-size:13px;padding:2px 6px" title="Editar">✎</button>
-        <button onclick="svcOpEliminar('${_esc(u.id)}')" style="background:none;border:none;cursor:pointer;color:var(--text-danger);font-size:13px;padding:2px 6px" title="Eliminar">×</button>
-      </td>
-    </tr>`).join('')}</tbody>
+    <tbody>${ops.map((u, i) => {
+      const nivelLabel = { sin_estudios:'—', tecnico:'Técnico', profesional:'Profesional', especialista:'Especialista' };
+      return `<tr>
+        <td style="padding:4px 8px;border-bottom:0.5px solid var(--border-light)">${_esc(u.nombre || '')}</td>
+        <td style="padding:4px 8px;border-bottom:0.5px solid var(--border-light)">${_esc(u.apellido || '')}</td>
+        <td style="padding:4px 8px;border-bottom:0.5px solid var(--border-light);font-family:var(--font-mono);font-size:11px">${_esc(u.rut || '—')}</td>
+        <td style="padding:4px 8px;border-bottom:0.5px solid var(--border-light)">${_esc(u.whatsapp || u.wz || '—')}</td>
+        <td style="padding:4px 8px;border-bottom:0.5px solid var(--border-light);font-size:11px">${nivelLabel[u.formacion?.nivel] || '—'}</td>
+        <td style="padding:4px 8px;border-bottom:0.5px solid var(--border-light);text-align:center">
+          <button onclick="svcOpEditar('${_esc(u.id)}')" style="background:none;border:none;cursor:pointer;color:var(--text-accent);font-size:13px;padding:2px 6px" title="Editar">✎</button>
+          <button onclick="svcOpEliminar('${_esc(u.id)}')" style="background:none;border:none;cursor:pointer;color:var(--text-danger);font-size:13px;padding:2px 6px" title="Eliminar">×</button>
+        </td>
+      </tr>`;
+    }).join('')}</tbody>
   </table>`;
 }
 
-let _svcOpEditId = null;
+function _svcOpLimpiarForm() {
+  const ids = ['svc-op-f-nombre','svc-op-f-apellido','svc-op-f-rut','svc-op-f-wz',
+    'svc-op-f-carrera','svc-op-f-institucion','svc-op-f-ano-egreso','svc-op-f-exp-anos','svc-op-f-exp-desc'];
+  ids.forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+  const sel = document.getElementById('svc-op-f-nivel');
+  if (sel) sel.value = 'sin_estudios';
+  const chk = document.getElementById('svc-op-f-titulo-val');
+  if (chk) chk.checked = false;
+  svcOpToggleFormacion();
+  _svcOpCerts = [];
+  _svcCertEditIdx = null;
+  svcCertCerrarPanel();
+  svcCertRender();
+  const tPrev = document.getElementById('svc-op-doc-titulo-preview');
+  if (tPrev) tPrev.innerHTML = '';
+  const cPrev = document.getElementById('svc-op-doc-cv-preview');
+  if (cPrev) cPrev.innerHTML = '';
+  const tFile = document.getElementById('svc-op-f-doc-titulo');
+  if (tFile) tFile.value = '';
+  const cFile = document.getElementById('svc-op-f-doc-cv');
+  if (cFile) cFile.value = '';
+}
 
 function svcOpNuevo() {
   _svcOpEditId = null;
-  ['svc-op-f-nombre','svc-op-f-apellido','svc-op-f-rut','svc-op-f-wz'].forEach(id => {
-    const el = document.getElementById(id); if (el) el.value = '';
-  });
+  _svcOpLimpiarForm();
   const t = document.getElementById('svc-op-titulo');
   if (t) t.textContent = 'Nuevo operario';
   const m = document.getElementById('svc-op-modal');
@@ -236,11 +264,39 @@ function svcOpEditar(id) {
   const u = usuarios.find(x => String(x.id) === String(id));
   if (!u) return;
   _svcOpEditId = id;
+  _svcOpLimpiarForm();
   const s = (elId, v) => { const el = document.getElementById(elId); if (el) el.value = v || ''; };
+  const c = (elId, v) => { const el = document.getElementById(elId); if (el) el.checked = !!v; };
   s('svc-op-f-nombre',   u.nombre);
   s('svc-op-f-apellido', u.apellido);
   s('svc-op-f-rut',      u.rut);
   s('svc-op-f-wz',       u.whatsapp || u.wz || '');
+
+  const f = u.formacion || {};
+  const niv = document.getElementById('svc-op-f-nivel');
+  if (niv) niv.value = f.nivel || 'sin_estudios';
+  svcOpToggleFormacion();
+  s('svc-op-f-carrera',     f.especialidad);
+  s('svc-op-f-institucion', f.institucion);
+  s('svc-op-f-ano-egreso',  f.año_egreso);
+  c('svc-op-f-titulo-val',  f.titulo_validado);
+
+  _svcOpCerts = (u.certificaciones || []).map(c => ({ ...c }));
+  svcCertRender();
+
+  s('svc-op-f-exp-anos', u.experiencia?.años);
+  s('svc-op-f-exp-desc', u.experiencia?.especialidades);
+
+  const docs = u.documentos || {};
+  if (docs.titulo_base64) {
+    const tp = document.getElementById('svc-op-doc-titulo-preview');
+    if (tp) tp.innerHTML = _svcOpDocPreviewHtml(docs.titulo_base64, 'titulo');
+  }
+  if (docs.cv_base64) {
+    const cp = document.getElementById('svc-op-doc-cv-preview');
+    if (cp) cp.innerHTML = _svcOpDocPreviewHtml(docs.cv_base64, 'cv');
+  }
+
   const t = document.getElementById('svc-op-titulo');
   if (t) t.textContent = 'Editar: ' + (u.nombre || '') + ' ' + (u.apellido || '');
   const m = document.getElementById('svc-op-modal');
@@ -252,8 +308,43 @@ function svcOpGuardar() {
   const nombre   = g('svc-op-f-nombre');
   const apellido = g('svc-op-f-apellido');
   if (!nombre && !apellido) { APP.toast.show('⚠️ Ingresa al menos el nombre.', 'warning'); return; }
+
+  const anoAct = new Date().getFullYear();
+  const anoEg = parseInt(g('svc-op-f-ano-egreso'));
+  if (anoEg > anoAct) { APP.toast.show('⚠️ Año de egreso no puede ser mayor a ' + anoAct, 'warning'); return; }
+
+  const formacion = {
+    nivel: document.getElementById('svc-op-f-nivel')?.value || 'sin_estudios',
+    especialidad: g('svc-op-f-carrera'),
+    institucion: g('svc-op-f-institucion'),
+    año_egreso: anoEg || null,
+    titulo_validado: document.getElementById('svc-op-f-titulo-val')?.checked || false,
+  };
+
+  _svcOpCerts.forEach(c => {
+    if (c.año_vencimiento && c.año_obtencion && c.año_vencimiento < c.año_obtencion) {
+      APP.toast.show('⚠️ En ' + c.nombre + ' el año de vencimiento es anterior al de obtención.', 'warning');
+      return;
+    }
+  });
+
   let usuarios = APP.lsGet('usuarios', []);
-  const dato = { nombre, apellido, rut: g('svc-op-f-rut'), wz: g('svc-op-f-wz'), rol: 'mecanico' };
+  const dato = {
+    nombre, apellido, rut: g('svc-op-f-rut'), wz: g('svc-op-f-wz'), rol: 'mecanico',
+    formacion,
+    certificaciones: _svcOpCerts,
+    experiencia: {
+      años: parseInt(g('svc-op-f-exp-anos')) || 0,
+      especialidades: g('svc-op-f-exp-desc'),
+    },
+  };
+
+  const docTitulo = document.getElementById('svc-op-doc-titulo-preview')?.dataset?.base64;
+  const docCv     = document.getElementById('svc-op-doc-cv-preview')?.dataset?.base64;
+  dato.documentos = {};
+  if (docTitulo) dato.documentos.titulo_base64 = docTitulo;
+  if (docCv)     dato.documentos.cv_base64 = docCv;
+
   if (_svcOpEditId) {
     const idx = usuarios.findIndex(x => String(x.id) === String(_svcOpEditId));
     if (idx >= 0) { usuarios[idx] = { ...usuarios[idx], ...dato, whatsapp: dato.wz, wz: dato.wz }; }
@@ -280,6 +371,159 @@ function svcOpCerrar() {
   const m = document.getElementById('svc-op-modal');
   if (m) m.style.display = 'none';
   _svcOpEditId = null;
+  _svcOpCerts = [];
+  svcCertCerrarPanel();
+}
+
+// ===== FORMACIÓN TOGGLE =====
+function svcOpToggleFormacion() {
+  const nivel = document.getElementById('svc-op-f-nivel')?.value;
+  const det   = document.getElementById('svc-op-formacion-detalle');
+  const chk   = document.getElementById('svc-op-f-titulo-val');
+  if (!det) return;
+  if (nivel === 'profesional' || nivel === 'especialista') {
+    det.style.display = '';
+    document.getElementById('svc-op-lbl-carrera')?.textContent === 'Carrera/Especialidad';
+    document.getElementById('svc-op-lbl-institucion')?.textContent === 'Universidad/Instituto';
+    if (chk) chk.parentElement.style.display = '';
+  } else if (nivel === 'tecnico') {
+    det.style.display = '';
+    document.getElementById('svc-op-lbl-carrera')?.textContent === 'Especialidad técnica';
+    document.getElementById('svc-op-lbl-institucion')?.textContent === 'Instituto técnico';
+    if (chk) chk.parentElement.style.display = 'none';
+  } else {
+    det.style.display = 'none';
+  }
+}
+
+// ===== CERTIFICACIONES =====
+function svcCertRender() {
+  const el = document.getElementById('svc-op-cert-tabla');
+  if (!el) return;
+  if (!_svcOpCerts.length) {
+    el.innerHTML = '<div style="font-size:11px;color:var(--text-muted);padding:8px 0">Sin certificaciones registradas.</div>';
+    return;
+  }
+  el.innerHTML = `<table style="width:100%;border-collapse:collapse;font-size:11px">
+    <thead><tr>
+      <th style="text-align:left;padding:4px 6px;border-bottom:0.5px solid var(--border);font-size:10px;color:var(--text-muted);font-weight:500">Certificación</th>
+      <th style="text-align:left;padding:4px 6px;border-bottom:0.5px solid var(--border);font-size:10px;color:var(--text-muted);font-weight:500">Institución</th>
+      <th style="text-align:center;padding:4px 6px;border-bottom:0.5px solid var(--border);font-size:10px;color:var(--text-muted);font-weight:500">Año</th>
+      <th style="text-align:center;padding:4px 6px;border-bottom:0.5px solid var(--border);font-size:10px;color:var(--text-muted);font-weight:500">Vigencia</th>
+      <th style="text-align:center;padding:4px 6px;border-bottom:0.5px solid var(--border);font-size:10px;color:var(--text-muted);font-weight:500;width:70px">Acción</th>
+    </tr></thead>
+    <tbody>${_svcOpCerts.map((c, i) => `<tr>
+      <td style="padding:4px 6px;border-bottom:0.5px solid var(--border-light)">${_esc(c.nombre)}</td>
+      <td style="padding:4px 6px;border-bottom:0.5px solid var(--border-light)">${_esc(c.institucion || '—')}</td>
+      <td style="padding:4px 6px;border-bottom:0.5px solid var(--border-light);text-align:center">${c.año_obtencion || '—'}</td>
+      <td style="padding:4px 6px;border-bottom:0.5px solid var(--border-light);text-align:center">${c.vigente ? '<span class="st s-done" style="font-size:9px"><span class="dot"></span>Vigente</span>' : c.año_vencimiento || '—'}</td>
+      <td style="padding:4px 6px;border-bottom:0.5px solid var(--border-light);text-align:center">
+        <button onclick="svcCertEditar(${i})" style="background:none;border:none;cursor:pointer;color:var(--text-accent);font-size:12px;padding:2px 5px" title="Editar">✎</button>
+        <button onclick="svcCertEliminar(${i})" style="background:none;border:none;cursor:pointer;color:var(--text-danger);font-size:12px;padding:2px 5px" title="Eliminar">×</button>
+      </td>
+    </tr>`).join('')}</tbody>
+  </table>`;
+}
+
+function svcCertAbrirModal() {
+  _svcCertEditIdx = null;
+  document.getElementById('svc-cert-panel-titulo').textContent = 'Nueva certificación';
+  ['svc-cert-f-nombre','svc-cert-f-institucion','svc-cert-f-ano-obt','svc-cert-f-ano-venc'].forEach(id => {
+    const el = document.getElementById(id); if (el) el.value = '';
+  });
+  const chk = document.getElementById('svc-cert-f-vigente');
+  if (chk) chk.checked = false;
+  const p = document.getElementById('svc-cert-panel');
+  if (p) p.style.display = '';
+}
+
+function svcCertEditar(idx) {
+  const c = _svcOpCerts[idx];
+  if (!c) return;
+  _svcCertEditIdx = idx;
+  document.getElementById('svc-cert-panel-titulo').textContent = 'Editar certificación';
+  const s = (id, v) => { const el = document.getElementById(id); if (el) el.value = v || ''; };
+  const ck = (id, v) => { const el = document.getElementById(id); if (el) el.checked = !!v; };
+  s('svc-cert-f-nombre',       c.nombre);
+  s('svc-cert-f-institucion',  c.institucion);
+  s('svc-cert-f-ano-obt',      c.año_obtencion);
+  s('svc-cert-f-ano-venc',     c.año_vencimiento);
+  ck('svc-cert-f-vigente',     c.vigente);
+  const p = document.getElementById('svc-cert-panel');
+  if (p) p.style.display = '';
+}
+
+function svcCertGuardar() {
+  const g = id => (document.getElementById(id)?.value || '').trim();
+  const nombre = g('svc-cert-f-nombre');
+  if (!nombre) { APP.toast.show('⚠️ Ingresa el nombre de la certificación.', 'warning'); return; }
+  const anoObt = parseInt(g('svc-cert-f-ano-obt'));
+  const anoVenc = parseInt(g('svc-cert-f-ano-venc'));
+  const dato = {
+    id: 'cert-' + Date.now(),
+    nombre,
+    institucion: g('svc-cert-f-institucion'),
+    año_obtencion: anoObt || null,
+    año_vencimiento: anoVenc || null,
+    vigente: document.getElementById('svc-cert-f-vigente')?.checked || false,
+  };
+  if (dato.año_vencimiento && dato.año_obtencion && dato.año_vencimiento < dato.año_obtencion) {
+    APP.toast.show('⚠️ Año vencimiento no puede ser anterior a año obtención.', 'warning'); return;
+  }
+  if (_svcCertEditIdx !== null) {
+    _svcOpCerts[_svcCertEditIdx] = { ..._svcOpCerts[_svcCertEditIdx], ...dato, id: _svcOpCerts[_svcCertEditIdx].id };
+  } else {
+    _svcOpCerts.push(dato);
+  }
+  svcCertCerrarPanel();
+  svcCertRender();
+}
+
+function svcCertEliminar(idx) {
+  if (!confirm('¿Eliminar esta certificación?')) return;
+  _svcOpCerts.splice(idx, 1);
+  svcCertRender();
+}
+
+function svcCertCerrarPanel() {
+  const p = document.getElementById('svc-cert-panel');
+  if (p) p.style.display = 'none';
+  _svcCertEditIdx = null;
+}
+
+// ===== DOCUMENTOS =====
+function _svcOpDocPreviewHtml(base64, tipo) {
+  const isImg = base64.startsWith('data:image/');
+  if (isImg) {
+    return '<div style="display:flex;align-items:center;gap:8px;margin-top:4px">' +
+      '<img src="' + base64 + '" style="max-width:80px;max-height:60px;border-radius:4px;border:0.5px solid var(--border)">' +
+      '<button class="btn" onclick="svcOpDocEliminar(\'' + tipo + '\')" style="font-size:10px;padding:2px 6px;color:var(--text-danger)">× Eliminar</button></div>';
+  }
+  return '<div style="display:flex;align-items:center;gap:8px;margin-top:4px;font-size:11px;color:var(--text-muted)">' +
+    '<i class="ti ti-file-text" style="font-size:18px"></i> PDF cargado' +
+    '<button class="btn" onclick="svcOpDocEliminar(\'' + tipo + '\')" style="font-size:10px;padding:2px 6px;color:var(--text-danger)">× Eliminar</button></div>';
+}
+
+function svcOpDocPreview(input, previewId) {
+  const preview = document.getElementById(previewId);
+  if (!preview) return;
+  const file = input.files && input.files[0];
+  if (!file) { preview.innerHTML = ''; return; }
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    const base64 = e.target.result;
+    preview.dataset.base64 = base64;
+    const tipo = previewId.includes('titulo') ? 'titulo' : 'cv';
+    preview.innerHTML = _svcOpDocPreviewHtml(base64, tipo);
+  };
+  reader.readAsDataURL(file);
+}
+
+function svcOpDocEliminar(tipo) {
+  const preview = document.getElementById(tipo === 'titulo' ? 'svc-op-doc-titulo-preview' : 'svc-op-doc-cv-preview');
+  if (preview) { preview.innerHTML = ''; delete preview.dataset.base64; }
+  const input = document.getElementById(tipo === 'titulo' ? 'svc-op-f-doc-titulo' : 'svc-op-f-doc-cv');
+  if (input) input.value = '';
 }
 
 // ===== GESTIÓN DE PROVEEDORES =====
