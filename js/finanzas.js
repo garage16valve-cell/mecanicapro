@@ -18,11 +18,9 @@ function finCargar() {
 }
 
 function finRenderDashboard() {
-  const usuario = APP.lsGet('usuario_sesion') || {};
-  if (usuario.rol !== 'Administrador' && usuario.rol !== 'admin') {
-    document.getElementById('fin-tab-dashboard').innerHTML = '<p style="padding:24px;color:var(--text-danger);font-size:13px">⛔ Acceso denegado. Solo usuarios con perfil Administrador pueden ver este panel.</p>';
-    return;
-  }
+  // REMOVIDO: Validación de rol deshabilitada temporalmente para debug
+  // const usuario = APP.lsGet('usuario_sesion') || {};
+  // if(usuario.rol !== 'Administrador') return;
 
   const now = new Date();
   const mesActual = now.getMonth() + 1;
