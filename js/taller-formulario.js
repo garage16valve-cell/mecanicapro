@@ -328,7 +328,7 @@ function nfBuscarServicio(q) {
   const drop = document.getElementById('nf-svc-drop');
   if (!drop) return;
   if (!q || q.length < 1) { nfCerrarDropServicio(); return; }
-  let servicios = APP.lsGet('servicios') || [];
+  let servicios = APP.lsGet('mp_servicios') || [];
   // Filtrar por permisos del técnico seleccionado
   if (typeof svcGetPermitidosPara === 'function') {
     const tecId = (document.getElementById('nf-tecnico')?.value || '');
@@ -346,8 +346,8 @@ function nfBuscarServicio(q) {
     return;
   }
   drop.innerHTML = matches.map(s => {
-    const precio = s.valor || s.precioFijo || 0;
-    const horas = s.horas || s.horasEst || 0;
+    const precio = s.valor || s.precioFijo || s.precio_venta || 0;
+    const horas = s.horas || s.horasEst || s.horas_estimadas || 0;
     return `<div onclick="nfSelServicio('${_nfEsc(s.nombre)}',${horas},${precio})"
       style="padding:8px 12px;cursor:pointer;border-bottom:0.5px solid var(--border);font-size:12px">
       <div style="font-weight:500">${_nfEsc(s.nombre)}</div>
@@ -358,12 +358,12 @@ function nfBuscarServicio(q) {
 
 function nfSelServicio(nombre, horas, valor) {
   document.getElementById('nf-svc-nombre').value = nombre;
-  document.getElementById('nf-svc-horas').value = horas || '';
-  document.getElementById('nf-svc-valor').value = valor || '';
+  document.getElementById('nf-svc-horas').value = horas != null ? horas : '';
+  document.getElementById('nf-svc-valor').value = valor != null ? valor : '';
   nfCerrarDropServicio();
   nfMostrarBotonAgregar();
   // Cargar repuestos sugeridos del catálogo
-  const servicios = APP.lsGet('servicios') || [];
+  const servicios = APP.lsGet('mp_servicios') || [];
   const svc = servicios.find(s => (s.nombre || '').toLowerCase() === nombre.toLowerCase());
   if (svc && (svc.repuestos || svc.repuestosSugeridos)) {
     const reps = svc.repuestos || svc.repuestosSugeridos || [];
