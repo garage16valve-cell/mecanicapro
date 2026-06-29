@@ -192,24 +192,34 @@ function admGuardarConfigRepuestos() {
 
 // ===== INIT =====
 function init_admin() {
-  if (typeof tallerCargarDatos === 'function') tallerCargarDatos();
-  if (typeof adminRenderUsuarios === 'function') adminRenderUsuarios();
+  admSetTab('reportes');
 }
 
 // ===== PESTAÑAS =====
 function admSetTab(tab) {
-  document.getElementById('adm-tab-usuarios').style.display = tab === 'usuarios' ? '' : 'none';
-  document.getElementById('adm-tab-config').style.display = tab === 'config' ? '' : 'none';
-  const setBtn = (id, active) => {
-    const b = document.getElementById(id);
-    if (!b) return;
-    b.style.borderBottomColor = active ? 'var(--fill-accent)' : 'transparent';
-    b.style.color = active ? 'var(--text-accent)' : 'var(--text-secondary)';
-  };
-  setBtn('adm-tab-btn-usuarios', tab === 'usuarios');
-  setBtn('adm-tab-btn-config', tab === 'config');
+  const reportesPage = document.getElementById('pg-reportes');
+  const tabUsuarios = document.getElementById('adm-tab-usuarios');
+  const tabConfig = document.getElementById('adm-tab-config');
+  if (reportesPage) reportesPage.style.display = tab === 'reportes' ? '' : 'none';
+  if (tabUsuarios) tabUsuarios.style.display = tab === 'usuarios' ? '' : 'none';
+  if (tabConfig) tabConfig.style.display = tab === 'config' ? '' : 'none';
+  const tabs = ['reportes', 'config', 'usuarios'];
+  tabs.forEach(t => {
+    const btn = document.getElementById('adm-tab-btn-' + t);
+    if (!btn) return;
+    const active = t === tab;
+    btn.style.borderBottomColor = active ? 'var(--fill-accent)' : 'transparent';
+    btn.style.color = active ? 'var(--text-accent)' : 'var(--text-secondary)';
+  });
   if (tab === 'usuarios' && typeof adminRenderUsuarios === 'function') adminRenderUsuarios();
   if (tab === 'config' && typeof tallerCargarDatos === 'function') tallerCargarDatos();
+  if (tab === 'reportes') {
+    if (typeof _admKPIs === 'function') _admKPIs();
+    if (typeof _admGraficoMensual === 'function') _admGraficoMensual();
+    if (typeof _admTablaServicios === 'function') _admTablaServicios();
+    if (typeof _admTablaMecanicos === 'function') _admTablaMecanicos();
+    if (typeof _admFrecuencia === 'function') _admFrecuencia();
+  }
 }
 
 // ===== USUARIOS =====

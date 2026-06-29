@@ -53,6 +53,8 @@
       <div class="ni" onclick="nav('reportes',this)"><i class="ti ti-chart-bar"></i>Reportes</div>
       <div class="ni" onclick="nav('config',this)"><i class="ti ti-settings"></i>Configuración</div>
       <div class="ni" onclick="nav('usuarios',this)"><i class="ti ti-users"></i>Usuarios y roles</div>
+      <div class="ni" onclick="nav('config',this)"><i class="ti ti-settings"></i>Configuración</div>
+      <div class="ni" onclick="nav('usuarios',this)"><i class="ti ti-users"></i>Usuarios y roles</div>
     </nav>
 
     <div class="sf">
@@ -2419,19 +2421,224 @@
 
       <!-- ===== MÓDULO: ADMIN ===== -->
       <div id="module-admin" class="module-wrap">
-  
-  <!-- Botones de pestaña -->
+
+  <!-- Sub-navegación -->
   <div style="display:flex;gap:0;margin-bottom:20px;border-bottom:0.5px solid var(--border)">
-    <button id="adm-tab-btn-usuarios" class="btn" onclick="admSetTab('usuarios')" style="border:none;border-radius:0;border-bottom:2px solid var(--fill-accent);color:var(--text-accent);font-size:12px;padding:8px 16px">
-      👤 Usuarios y roles
-    </button>
-    <button id="adm-tab-btn-config" class="btn" onclick="admSetTab('config')" style="border:none;border-radius:0;border-bottom:2px solid transparent;color:var(--text-secondary);font-size:12px;padding:8px 16px">
-      ⚙️ Configuración
-    </button>
+    <button id="adm-tab-btn-reportes" class="adm-tab-btn" onclick="admSetTab('reportes')" style="border:none;border-radius:0;border-bottom:2px solid var(--fill-accent);color:var(--text-accent);font-size:12px;padding:8px 16px;background:transparent;cursor:pointer">📊 Reportes</button>
+    <button id="adm-tab-btn-config" class="adm-tab-btn" onclick="admSetTab('config')" style="border:none;border-radius:0;border-bottom:2px solid transparent;color:var(--text-secondary);font-size:12px;padding:8px 16px;background:transparent;cursor:pointer">⚙️ Configuración</button>
+    <button id="adm-tab-btn-usuarios" class="adm-tab-btn" onclick="admSetTab('usuarios')" style="border:none;border-radius:0;border-bottom:2px solid transparent;color:var(--text-secondary);font-size:12px;padding:8px 16px;background:transparent;cursor:pointer">👤 Usuarios</button>
   </div>
 
-  <!-- TAB 1: USUARIOS Y ROLES -->
-  <div id="adm-tab-usuarios">
+  <!-- ════════════════════════════════════════ -->
+  <!-- PAGE: REPORTES                          -->
+  <!-- ════════════════════════════════════════ -->
+  <div id="pg-reportes">
+
+    <!-- Selector de período -->
+    <div style="display:flex;gap:6px;align-items:center;margin-bottom:20px">
+      <button id="adm-per-sem" class="btn" onclick="admSetPeriodo('semana')" style="font-size:11px;padding:4px 12px">Semana</button>
+      <button id="adm-per-mes" class="btn" onclick="admSetPeriodo('mes')" style="font-size:11px;padding:4px 12px;background:var(--fill-accent);color:#fff;font-weight:600">Mes</button>
+      <button id="adm-per-ano" class="btn" onclick="admSetPeriodo('año')" style="font-size:11px;padding:4px 12px">Año</button>
+      <span id="adm-periodo-label" style="font-size:11px;color:var(--text-muted);margin-left:4px"></span>
+      <span style="flex:1"></span>
+      <button class="btn" onclick="admExportarPDF()" style="font-size:10px;padding:4px 10px"><i class="ti ti-file-pdf"></i> PDF</button>
+      <button class="btn" onclick="admExportarExcel()" style="font-size:10px;padding:4px 10px"><i class="ti ti-file-spreadsheet"></i> Excel</button>
+    </div>
+
+    <!-- KPIs -->
+    <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:24px">
+      <div style="background:var(--surface-1);padding:14px;border-radius:8px;text-align:center">
+        <div style="font-size:22px;font-weight:700" id="adm-kpi-ots">0</div>
+        <div style="font-size:11px;color:var(--text-muted)" id="adm-kpi-ots-sub">completadas</div>
+      </div>
+      <div style="background:var(--surface-1);padding:14px;border-radius:8px;text-align:center">
+        <div style="font-size:22px;font-weight:700;color:var(--text-success)" id="adm-kpi-ingresos">$0</div>
+        <div style="font-size:11px;color:var(--text-muted)" id="adm-kpi-ing-sub">h facturadas</div>
+      </div>
+      <div style="background:var(--surface-1);padding:14px;border-radius:8px;text-align:center">
+        <div style="font-size:22px;font-weight:700" id="adm-kpi-clientes">0</div>
+        <div style="font-size:11px;color:var(--text-muted)" id="adm-kpi-cli-sub">nuevos clientes</div>
+      </div>
+      <div style="background:var(--surface-1);padding:14px;border-radius:8px;text-align:center">
+        <div style="font-size:22px;font-weight:700;color:var(--text-accent)" id="adm-kpi-renth">—</div>
+        <div style="font-size:11px;color:var(--text-muted)" id="adm-kpi-renth-sub">rentabilidad/h</div>
+      </div>
+      <div style="background:var(--surface-1);padding:14px;border-radius:8px;text-align:center">
+        <div style="font-size:22px;font-weight:700;color:#f59e0b" id="adm-kpi-sat">—</div>
+        <div style="font-size:11px;color:var(--text-muted)" id="adm-kpi-sat-sub">satisfacción</div>
+      </div>
+    </div>
+
+    <!-- Gráfico mensual -->
+    <div style="background:var(--surface-1);padding:16px;border-radius:8px;margin-bottom:20px">
+      <div style="font-size:12px;font-weight:600;margin-bottom:10px">Tendencia mensual (OTs completadas)</div>
+      <div id="adm-grafico-svg"></div>
+    </div>
+
+    <!-- Tablas lado a lado -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px">
+
+      <!-- Tabla: Rendimiento por servicio -->
+      <div style="background:var(--surface-1);padding:16px;border-radius:8px">
+        <div style="font-size:12px;font-weight:600;margin-bottom:10px">Rendimiento por servicio</div>
+        <div style="overflow-x:auto">
+          <table style="width:100%;border-collapse:collapse;font-size:11px">
+            <thead>
+              <tr style="border-bottom:0.5px solid var(--border)">
+                <th style="text-align:left;padding:6px">Servicio</th>
+                <th style="text-align:center;padding:6px">#</th>
+                <th style="text-align:center;padding:6px">Est.</th>
+                <th style="text-align:center;padding:6px">Real</th>
+                <th style="text-align:center;padding:6px">Efic.</th>
+                <th style="text-align:right;padding:6px">Ingresos</th>
+                <th style="text-align:right;padding:6px">$/h</th>
+              </tr>
+            </thead>
+            <tbody id="adm-tbody-svc"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Tabla: Rendimiento por mecánico -->
+      <div style="background:var(--surface-1);padding:16px;border-radius:8px">
+        <div style="font-size:12px;font-weight:600;margin-bottom:10px">Rendimiento por mecánico</div>
+        <div style="overflow-x:auto">
+          <table style="width:100%;border-collapse:collapse;font-size:11px">
+            <thead>
+              <tr style="border-bottom:0.5px solid var(--border)">
+                <th style="text-align:left;padding:6px">Mecánico</th>
+                <th style="text-align:center;padding:6px">OTs</th>
+                <th style="text-align:center;padding:6px">Horas</th>
+                <th style="text-align:center;padding:6px">Efic.</th>
+                <th style="text-align:right;padding:6px">Ingresos</th>
+              </tr>
+            </thead>
+            <tbody id="adm-tbody-mec"></tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Frecuencia vehículos + Stock sugerido -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px">
+
+      <div style="background:var(--surface-1);padding:16px;border-radius:8px">
+        <div style="font-size:12px;font-weight:600;margin-bottom:10px">Marcas más frecuentes</div>
+        <table style="width:100%;border-collapse:collapse;font-size:11px">
+          <thead><tr style="border-bottom:0.5px solid var(--border)">
+            <th style="text-align:left;padding:6px">Marca</th>
+            <th style="text-align:center;padding:6px">OTs</th>
+            <th style="text-align:left;padding:6px">Modelo top</th>
+            <th style="text-align:left;padding:6px">Servicio top</th>
+          </tr></thead>
+          <tbody id="adm-frecuencia-tbody"></tbody>
+        </table>
+      </div>
+
+      <div style="background:var(--surface-1);padding:16px;border-radius:8px">
+        <div style="font-size:12px;font-weight:600;margin-bottom:10px">Stock sugerido (alta rotación)</div>
+        <table style="width:100%;border-collapse:collapse;font-size:11px">
+          <thead><tr style="border-bottom:0.5px solid var(--border)">
+            <th style="text-align:left;padding:6px">Repuesto</th>
+            <th style="text-align:center;padding:6px">Usos</th>
+            <th style="text-align:center;padding:6px">Alerta</th>
+          </tr></thead>
+          <tbody id="adm-stock-tbody"></tbody>
+        </table>
+      </div>
+
+    </div>
+
+  </div><!-- /pg-reportes -->
+
+  <!-- ════════════════════════════════════════ -->
+  <!-- TAB: CONFIGURACIÓN                      -->
+  <!-- ════════════════════════════════════════ -->
+  <div id="adm-tab-config" style="display:none">
+
+    <h2 style="margin-bottom:20px">Configuración</h2>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
+
+      <!-- Columna izquierda: Datos del Taller -->
+      <div>
+        <h3 style="margin-bottom:14px">Datos del Taller</h3>
+        <div style="background:var(--surface-1);padding:20px;border-radius:8px">
+          <div style="margin-bottom:14px">
+            <label style="display:block;font-size:12px;color:var(--text-muted);margin-bottom:4px">Nombre del taller</label>
+            <input type="text" id="taller-nombre-fantasia" placeholder="Integral Automotriz Spa" style="width:100%;padding:10px;border:0.5px solid var(--border);border-radius:4px;box-sizing:border-box;background:var(--surface-2);color:var(--text-primary)">
+          </div>
+          <div style="margin-bottom:14px">
+            <label style="display:block;font-size:12px;color:var(--text-muted);margin-bottom:4px">RUT</label>
+            <input type="text" id="taller-rut" placeholder="76.543.210-8" style="width:100%;padding:10px;border:0.5px solid var(--border);border-radius:4px;box-sizing:border-box;background:var(--surface-2);color:var(--text-primary)">
+          </div>
+          <div style="margin-bottom:14px">
+            <label style="display:block;font-size:12px;color:var(--text-muted);margin-bottom:4px">Dirección</label>
+            <input type="text" id="taller-direccion" placeholder="Valparaíso, Chile" style="width:100%;padding:10px;border:0.5px solid var(--border);border-radius:4px;box-sizing:border-box;background:var(--surface-2);color:var(--text-primary)">
+          </div>
+          <div style="margin-bottom:14px">
+            <label style="display:block;font-size:12px;color:var(--text-muted);margin-bottom:4px">Teléfono</label>
+            <input type="text" id="taller-telefono" placeholder="+56 9 5165 5331" style="width:100%;padding:10px;border:0.5px solid var(--border);border-radius:4px;box-sizing:border-box;background:var(--surface-2);color:var(--text-primary)">
+          </div>
+          <div style="margin-bottom:14px">
+            <label style="display:block;font-size:12px;color:var(--text-muted);margin-bottom:4px">Link de agendamiento</label>
+            <input type="text" id="taller-link-agenda" placeholder="plataforma.cl/agenda/..." style="width:100%;padding:10px;border:0.5px solid var(--border);border-radius:4px;box-sizing:border-box;background:var(--surface-2);color:var(--text-primary)">
+          </div>
+          <div style="margin-bottom:14px">
+            <label style="font-weight:500;display:block;margin-bottom:10px">Logo del Taller</label>
+            <div id="taller-logo-preview" style="width:100px;height:100px;background:var(--surface-2);border:2px dashed var(--border);border-radius:8px;display:flex;align-items:center;justify-content:center;margin-bottom:10px;overflow:hidden">
+              <span id="taller-logo-text" style="color:var(--text-muted);text-align:center;font-size:12px">Sin logo</span>
+              <img id="taller-logo-img" style="display:none;max-width:100%;max-height:100%;object-fit:contain">
+            </div>
+            <input type="file" id="taller-logo-upload" accept="image/*" onchange="tallerCargarLogo()" style="margin-bottom:8px">
+            <p style="font-size:11px;color:var(--text-muted);margin-bottom:8px">PNG o JPG, máximo 500KB</p>
+            <button onclick="tallerEliminarLogo()" style="background:#dc2626;color:white;padding:6px 12px;border:none;border-radius:4px;cursor:pointer;font-size:12px">Eliminar logo</button>
+          </div>
+          <div style="margin-top:20px">
+            <button onclick="tallerGuardarDatos()" style="background:#2563eb;color:white;padding:12px 20px;border:none;border-radius:4px;cursor:pointer;font-weight:500;width:100%">💾 Guardar datos del taller</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Columna derecha: Configuración Operativa -->
+      <div>
+        <h3 style="margin-bottom:14px">Configuración operativa</h3>
+        <div style="background:var(--surface-1);padding:20px;border-radius:8px">
+          <div style="margin-bottom:14px">
+            <label style="display:block;font-size:12px;color:var(--text-muted);margin-bottom:4px">Hora inicio jornada</label>
+            <input type="time" id="taller-hora-inicio" style="width:100%;padding:10px;border:0.5px solid var(--border);border-radius:4px;box-sizing:border-box;background:var(--surface-2);color:var(--text-primary)">
+          </div>
+          <div style="margin-bottom:14px">
+            <label style="display:block;font-size:12px;color:var(--text-muted);margin-bottom:4px">Hora fin jornada</label>
+            <input type="time" id="taller-hora-fin" style="width:100%;padding:10px;border:0.5px solid var(--border);border-radius:4px;box-sizing:border-box;background:var(--surface-2);color:var(--text-primary)">
+          </div>
+          <div style="margin-bottom:14px">
+            <label style="display:block;font-size:12px;color:var(--text-muted);margin-bottom:4px">Capacidad máxima (hora/día)</label>
+            <input type="number" id="taller-capacidad-maxima" placeholder="8" style="width:100%;padding:10px;border:0.5px solid var(--border);border-radius:4px;box-sizing:border-box;background:var(--surface-2);color:var(--text-primary)">
+            <p style="font-size:11px;color:var(--text-muted);margin-top:4px">Afecta al semáforo de capacidad en Agenda</p>
+          </div>
+          <div style="margin-bottom:14px">
+            <label style="display:block;font-size:12px;color:var(--text-muted);margin-bottom:4px">Precio mínimo por hora (Mano de obra)</label>
+            <input type="number" id="taller-precio-minimo-hora" placeholder="25000" style="width:100%;padding:10px;border:0.5px solid var(--border);border-radius:4px;box-sizing:border-box;background:var(--surface-2);color:var(--text-primary)">
+          </div>
+          <div style="margin-bottom:14px">
+            <label style="display:block;font-size:12px;color:var(--text-muted);margin-bottom:4px">Descanso inicio</label>
+            <input type="time" id="taller-descanso-inicio" style="width:100%;padding:10px;border:0.5px solid var(--border);border-radius:4px;box-sizing:border-box;background:var(--surface-2);color:var(--text-primary)">
+          </div>
+          <div style="margin-bottom:14px">
+            <label style="display:block;font-size:12px;color:var(--text-muted);margin-bottom:4px">Descanso fin</label>
+            <input type="time" id="taller-descanso-fin" style="width:100%;padding:10px;border:0.5px solid var(--border);border-radius:4px;box-sizing:border-box;background:var(--surface-2);color:var(--text-primary)">
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div><!-- /adm-tab-config -->
+
+  <!-- ════════════════════════════════════════ -->
+  <!-- TAB: USUARIOS                           -->
+  <!-- ════════════════════════════════════════ -->
+  <div id="adm-tab-usuarios" style="display:none">
     <h2 style="margin-bottom:14px">Usuarios y roles</h2>
     <div style="margin-bottom:14px">
       <button class="btn bpa" onclick="adminNuevoUsuario()" style="font-size:11px"><i class="ti ti-plus"></i> Nuevo usuario</button>
@@ -2451,155 +2658,18 @@
       </thead>
       <tbody id="admin-usuarios-tabla"></tbody>
     </table>
-  </div>
-
-  <!-- TAB 2: CONFIGURACIÓN -->
-  <div id="adm-tab-config" style="display:none">
-    <h2 style="margin-bottom:20px">Configuración</h2>
-    
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
-      
-      <!-- COLUMNA IZQUIERDA: Datos del Taller -->
-      <div>
-        <h3 style="margin-bottom:14px">Datos del Taller</h3>
-        
-        <div style="background:var(--surface-1);padding:20px;border-radius:8px">
-          
-          <!-- Nombre del taller -->
-          <div style="margin-bottom:14px">
-            <label style="display:block;font-size:12px;color:var(--text-muted);margin-bottom:4px">Nombre del taller</label>
-            <input type="text" id="taller-nombre-fantasia" placeholder="Integral Automotriz Spa" style="width:100%;padding:10px;border:0.5px solid var(--border);border-radius:4px;box-sizing:border-box;background:var(--surface-2);color:var(--text-primary)">
-          </div>
-
-          <!-- RUT -->
-          <div style="margin-bottom:14px">
-            <label style="display:block;font-size:12px;color:var(--text-muted);margin-bottom:4px">RUT</label>
-            <input type="text" id="taller-rut" placeholder="76.543.210-8" style="width:100%;padding:10px;border:0.5px solid var(--border);border-radius:4px;box-sizing:border-box;background:var(--surface-2);color:var(--text-primary)">
-          </div>
-
-          <!-- Dirección -->
-          <div style="margin-bottom:14px">
-            <label style="display:block;font-size:12px;color:var(--text-muted);margin-bottom:4px">Dirección</label>
-            <input type="text" id="taller-direccion" placeholder="Valparaíso, Chile" style="width:100%;padding:10px;border:0.5px solid var(--border);border-radius:4px;box-sizing:border-box;background:var(--surface-2);color:var(--text-primary)">
-          </div>
-
-          <!-- Teléfono -->
-          <div style="margin-bottom:14px">
-            <label style="display:block;font-size:12px;color:var(--text-muted);margin-bottom:4px">Teléfono</label>
-            <input type="text" id="taller-telefono" placeholder="+56 9 5165 5331" style="width:100%;padding:10px;border:0.5px solid var(--border);border-radius:4px;box-sizing:border-box;background:var(--surface-2);color:var(--text-primary)">
-          </div>
-
-          <!-- Link de agendamiento -->
-          <div style="margin-bottom:14px">
-            <label style="display:block;font-size:12px;color:var(--text-muted);margin-bottom:4px">Link de agendamiento</label>
-            <input type="text" id="taller-link-agenda" placeholder="plataforma.cl/agenda/..." style="width:100%;padding:10px;border:0.5px solid var(--border);border-radius:4px;box-sizing:border-box;background:var(--surface-2);color:var(--text-primary)">
-          </div>
-
-          <!-- Logo del Taller -->
-          <div style="margin-bottom:14px">
-            <label style="font-weight:500;display:block;margin-bottom:10px">Logo del Taller</label>
-            <div id="taller-logo-preview" style="width:100px;height:100px;background:var(--surface-2);border:2px dashed var(--border);border-radius:8px;display:flex;align-items:center;justify-content:center;margin-bottom:10px;overflow:hidden">
-              <span id="taller-logo-text" style="color:var(--text-muted);text-align:center;font-size:12px">Sin logo</span>
-              <img id="taller-logo-img" style="display:none;max-width:100%;max-height:100%;object-fit:contain">
-            </div>
-            <input type="file" id="taller-logo-upload" accept="image/*" onchange="tallerCargarLogo()" style="margin-bottom:8px">
-            <p style="font-size:11px;color:var(--text-muted);margin-bottom:8px">PNG o JPG, máximo 500KB</p>
-            <button onclick="tallerEliminarLogo()" style="background:#dc2626;color:white;padding:6px 12px;border:none;border-radius:4px;cursor:pointer;font-size:12px">Eliminar logo</button>
-          </div>
-
-          <!-- Botón guardar -->
-          <div style="margin-top:20px">
-            <button onclick="tallerGuardarDatos()" style="background:#2563eb;color:white;padding:12px 20px;border:none;border-radius:4px;cursor:pointer;font-weight:500;width:100%">💾 Guardar datos del taller</button>
-          </div>
-
-        </div>
-      </div>
-
-      <!-- COLUMNA DERECHA: Configuración Operativa -->
-      <div>
-        <h3 style="margin-bottom:14px">Configuración operativa</h3>
-        
-        <div style="background:var(--surface-1);padding:20px;border-radius:8px">
-          
-          <!-- Hora inicio jornada -->
-          <div style="margin-bottom:14px">
-            <label style="display:block;font-size:12px;color:var(--text-muted);margin-bottom:4px">Hora inicio jornada</label>
-            <input type="time" id="taller-hora-inicio" style="width:100%;padding:10px;border:0.5px solid var(--border);border-radius:4px;box-sizing:border-box;background:var(--surface-2);color:var(--text-primary)">
-          </div>
-
-          <!-- Hora fin jornada -->
-          <div style="margin-bottom:14px">
-            <label style="display:block;font-size:12px;color:var(--text-muted);margin-bottom:4px">Hora fin jornada</label>
-            <input type="time" id="taller-hora-fin" style="width:100%;padding:10px;border:0.5px solid var(--border);border-radius:4px;box-sizing:border-box;background:var(--surface-2);color:var(--text-primary)">
-          </div>
-
-          <!-- Capacidad máxima -->
-          <div style="margin-bottom:14px">
-            <label style="display:block;font-size:12px;color:var(--text-muted);margin-bottom:4px">Capacidad máxima (hora/día)</label>
-            <input type="number" id="taller-capacidad-maxima" placeholder="8" style="width:100%;padding:10px;border:0.5px solid var(--border);border-radius:4px;box-sizing:border-box;background:var(--surface-2);color:var(--text-primary)">
-            <p style="font-size:11px;color:var(--text-muted);margin-top:4px">Afecta al semáforo de capacidad en Agenda</p>
-          </div>
-
-          <!-- Precio mínimo por hora -->
-          <div style="margin-bottom:14px">
-            <label style="display:block;font-size:12px;color:var(--text-muted);margin-bottom:4px">Precio mínimo por hora (Mano de obra)</label>
-            <input type="number" id="taller-precio-minimo-hora" placeholder="25000" style="width:100%;padding:10px;border:0.5px solid var(--border);border-radius:4px;box-sizing:border-box;background:var(--surface-2);color:var(--text-primary)">
-          </div>
-
-          <!-- Descanso inicio -->
-          <div style="margin-bottom:14px">
-            <label style="display:block;font-size:12px;color:var(--text-muted);margin-bottom:4px">Descanso inicio</label>
-            <input type="time" id="taller-descanso-inicio" style="width:100%;padding:10px;border:0.5px solid var(--border);border-radius:4px;box-sizing:border-box;background:var(--surface-2);color:var(--text-primary)">
-          </div>
-
-          <!-- Descanso fin -->
-          <div style="margin-bottom:14px">
-            <label style="display:block;font-size:12px;color:var(--text-muted);margin-bottom:4px">Descanso fin</label>
-            <input type="time" id="taller-descanso-fin" style="width:100%;padding:10px;border:0.5px solid var(--border);border-radius:4px;box-sizing:border-box;background:var(--surface-2);color:var(--text-primary)">
-          </div>
-
-        </div>
-      </div>
-
-    </div>
-  </div>
+  </div><!-- /adm-tab-usuarios -->
 
   <!-- MODAL EDITAR USUARIO -->
   <div id="modal-editar-usuario" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:1000;overflow:auto">
     <div style="background:var(--surface-0);margin:50px auto;padding:20px;border-radius:8px;width:90%;max-width:600px">
       <h3>Editar Usuario</h3>
-      <div style="margin-bottom:14px">
-        <label>Nombre:</label>
-        <input type="text" id="modal-user-nombre" style="width:100%;padding:8px;margin-top:4px;border:0.5px solid var(--border);border-radius:4px;box-sizing:border-box;background:var(--surface-1);color:var(--text-primary)">
-      </div>
-      <div style="margin-bottom:14px">
-        <label>Apellido:</label>
-        <input type="text" id="modal-user-apellido" style="width:100%;padding:8px;margin-top:4px;border:0.5px solid var(--border);border-radius:4px;box-sizing:border-box;background:var(--surface-1);color:var(--text-primary)">
-      </div>
-      <div style="margin-bottom:14px">
-        <label>RUT:</label>
-        <input type="text" id="modal-user-rut" style="width:100%;padding:8px;margin-top:4px;border:0.5px solid var(--border);border-radius:4px;box-sizing:border-box;background:var(--surface-1);color:var(--text-primary)">
-      </div>
-      <div style="margin-bottom:14px">
-        <label>WhatsApp:</label>
-        <input type="text" id="modal-user-whatsapp" style="width:100%;padding:8px;margin-top:4px;border:0.5px solid var(--border);border-radius:4px;box-sizing:border-box;background:var(--surface-1);color:var(--text-primary)">
-      </div>
-      <div style="margin-bottom:14px">
-        <label>Rol:</label>
-        <select id="modal-user-rol" style="width:100%;padding:8px;margin-top:4px;border:0.5px solid var(--border);border-radius:4px;box-sizing:border-box;background:var(--surface-1);color:var(--text-primary)">
-          <option value="mecanico">Mecánico</option>
-          <option value="Administrador">Administrador</option>
-          <option value="Recepcionista">Recepcionista</option>
-          <option value="Contador">Contador</option>
-        </select>
-      </div>
-      <div style="margin-bottom:14px">
-        <label>Estado:</label>
-        <select id="modal-user-estado" style="width:100%;padding:8px;margin-top:4px;border:0.5px solid var(--border);border-radius:4px;box-sizing:border-box;background:var(--surface-1);color:var(--text-primary)">
-          <option value="activo">Activo</option>
-          <option value="inactivo">Inactivo</option>
-        </select>
-      </div>
+      <div style="margin-bottom:14px"><label>Nombre:</label><input type="text" id="modal-user-nombre" style="width:100%;padding:8px;margin-top:4px;border:0.5px solid var(--border);border-radius:4px;box-sizing:border-box;background:var(--surface-1);color:var(--text-primary)"></div>
+      <div style="margin-bottom:14px"><label>Apellido:</label><input type="text" id="modal-user-apellido" style="width:100%;padding:8px;margin-top:4px;border:0.5px solid var(--border);border-radius:4px;box-sizing:border-box;background:var(--surface-1);color:var(--text-primary)"></div>
+      <div style="margin-bottom:14px"><label>RUT:</label><input type="text" id="modal-user-rut" style="width:100%;padding:8px;margin-top:4px;border:0.5px solid var(--border);border-radius:4px;box-sizing:border-box;background:var(--surface-1);color:var(--text-primary)"></div>
+      <div style="margin-bottom:14px"><label>WhatsApp:</label><input type="text" id="modal-user-whatsapp" style="width:100%;padding:8px;margin-top:4px;border:0.5px solid var(--border);border-radius:4px;box-sizing:border-box;background:var(--surface-1);color:var(--text-primary)"></div>
+      <div style="margin-bottom:14px"><label>Rol:</label><select id="modal-user-rol" style="width:100%;padding:8px;margin-top:4px;border:0.5px solid var(--border);border-radius:4px;box-sizing:border-box;background:var(--surface-1);color:var(--text-primary)"><option value="mecanico">Mecánico</option><option value="Administrador">Administrador</option><option value="Recepcionista">Recepcionista</option><option value="Contador">Contador</option></select></div>
+      <div style="margin-bottom:14px"><label>Estado:</label><select id="modal-user-estado" style="width:100%;padding:8px;margin-top:4px;border:0.5px solid var(--border);border-radius:4px;box-sizing:border-box;background:var(--surface-1);color:var(--text-primary)"><option value="activo">Activo</option><option value="inactivo">Inactivo</option></select></div>
       <div style="display:flex;gap:10px;margin-top:20px">
         <button onclick="adminGuardarUsuario()" style="flex:1;padding:10px;background:#16a34a;color:white;border:none;border-radius:4px;cursor:pointer;font-weight:500">💾 Guardar</button>
         <button onclick="adminCerrarModalUsuario()" style="flex:1;padding:10px;background:#6b7280;color:white;border:none;border-radius:4px;cursor:pointer">Cancelar</button>

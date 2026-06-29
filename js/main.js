@@ -84,9 +84,8 @@ function nav(page, el) {
     if (targetPage) targetPage.classList.add('active');
   }
   // Admin tabs switching
-  if (moduleName === 'admin') {
-    if (page === 'config' && typeof admSetTab === 'function') admSetTab('config');
-    if (page === 'usuarios' && typeof admSetTab === 'function') admSetTab('usuarios');
+  if (moduleName === 'admin' && typeof admSetTab === 'function') {
+    admSetTab(page === 'reportes' ? 'reportes' : page === 'config' ? 'config' : page === 'usuarios' ? 'usuarios' : 'reportes');
   }
 
   currentPage = page;
