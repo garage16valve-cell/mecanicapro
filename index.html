@@ -2598,117 +2598,35 @@
 <!-- CONFIGURACIÓN -->
 <div class="page" id="pg-config">
 
-  <!-- Datos del taller — formulario completo -->
-  <div style="background:var(--surface-1);padding:20px;border-radius:8px;margin-bottom:14px">
-    <h3 style="font-size:14px;font-weight:600;margin:0 0 16px">Datos del Taller</h3>
+  <h3 style="font-size:14px;font-weight:600;margin:0 0 16px">Configuración</h3>
 
+  <div style="background:var(--surface-1);padding:20px;border-radius:8px;max-width:500px">
+
+    <!-- Logo del Taller -->
     <div style="margin-bottom:20px">
-      <label style="font-weight:500;display:block;margin-bottom:8px;font-size:12px">Logo del Taller</label>
-      <div id="taller-logo-preview" style="width:140px;height:140px;background:var(--surface-2);border:2px dashed var(--border-strong);border-radius:8px;display:flex;align-items:center;justify-content:center;margin-bottom:10px;overflow:hidden">
+      <label style="font-weight:500;display:block;margin-bottom:10px;font-size:12px">Logo del Taller</label>
+      <div id="taller-logo-preview" style="width:150px;height:150px;background:var(--surface-2);border:2px dashed var(--border-strong);border-radius:8px;display:flex;align-items:center;justify-content:center;margin-bottom:10px;overflow:hidden">
         <span id="taller-logo-text" style="color:var(--text-muted);text-align:center;font-size:11px">Sin logo</span>
         <img id="taller-logo-img" style="display:none;max-width:100%;max-height:100%;object-fit:contain">
       </div>
-      <input type="file" id="taller-logo-upload" accept="image/png,image/jpeg" style="margin-bottom:6px;font-size:12px" onchange="tallerCargarLogo()">
+      <input type="file" id="taller-logo-upload" accept="image/*" onchange="tallerCargarLogo()" style="margin-bottom:6px;font-size:12px">
       <div style="font-size:10px;color:var(--text-muted);margin-bottom:8px">PNG o JPG, máximo 500KB</div>
       <button class="btn" onclick="tallerEliminarLogo()" style="font-size:11px;color:var(--text-danger)"><i class="ti ti-trash"></i> Eliminar logo</button>
     </div>
 
-    <div class="fgrid2">
-      <div class="fg"><label>Nombre de Fantasía</label><input id="taller-nombre-fantasia" placeholder="Ej: Garage 16 Valve"></div>
-      <div class="fg"><label>RUT</label><input id="taller-rut" placeholder="76.123.456-7"></div>
-    </div>
-    <div class="fgrid2">
-      <div class="fg"><label>Teléfono</label><input id="taller-telefono" placeholder="+56951234567"></div>
-      <div class="fg"><label>Email</label><input id="taller-email" type="email" placeholder="info@example.com"></div>
-    </div>
-    <div class="fg"><label>Dirección</label><input id="taller-direccion" placeholder="Avenida Brasil 2543"></div>
-    <div class="fgrid2">
-      <div class="fg"><label>Ciudad</label><input id="taller-ciudad" placeholder="Valparaíso"></div>
-      <div class="fg"><label>Región</label>
-        <select id="taller-region" style="width:100%">
-          <option value="">Selecciona región</option>
-          <option value="Arica y Parinacota">Arica y Parinacota</option>
-          <option value="Tarapacá">Tarapacá</option>
-          <option value="Antofagasta">Antofagasta</option>
-          <option value="Atacama">Atacama</option>
-          <option value="Coquimbo">Coquimbo</option>
-          <option value="Valparaíso">Valparaíso</option>
-          <option value="Metropolitana">Metropolitana de Santiago</option>
-          <option value="Del Libertador General Bernardo O'Higgins">O'Higgins</option>
-          <option value="Del Maule">Maule</option>
-          <option value="Ñuble">Ñuble</option>
-          <option value="Biobío">Biobío</option>
-          <option value="La Araucanía">La Araucanía</option>
-          <option value="Los Ríos">Los Ríos</option>
-          <option value="Los Lagos">Los Lagos</option>
-          <option value="Aysén">Aysén</option>
-          <option value="Magallanes">Magallanes</option>
-        </select>
-      </div>
-    </div>
-
-    <h4 style="font-size:13px;font-weight:600;margin:18px 0 10px">Horario Operativo</h4>
-    <div class="fgrid2">
-      <div class="fg"><label>Hora inicio</label><input type="time" id="taller-hora-inicio"></div>
-      <div class="fg"><label>Hora fin</label><input type="time" id="taller-hora-fin"></div>
-    </div>
-    <div class="fgrid2">
-      <div class="fg"><label>Descanso inicio</label><input type="time" id="taller-descanso-inicio"></div>
-      <div class="fg"><label>Descanso fin</label><input type="time" id="taller-descanso-fin"></div>
-    </div>
-
+    <!-- Nombre de Fantasía -->
     <div style="margin-bottom:14px">
-      <label style="display:block;font-weight:500;margin-bottom:6px;font-size:12px">Días Laborales</label>
-      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:6px;font-size:12px">
-        <label style="display:flex;align-items:center;gap:6px;cursor:pointer"><input type="checkbox" class="taller-dias-check" value="Lunes"> Lunes</label>
-        <label style="display:flex;align-items:center;gap:6px;cursor:pointer"><input type="checkbox" class="taller-dias-check" value="Martes"> Martes</label>
-        <label style="display:flex;align-items:center;gap:6px;cursor:pointer"><input type="checkbox" class="taller-dias-check" value="Miércoles"> Miércoles</label>
-        <label style="display:flex;align-items:center;gap:6px;cursor:pointer"><input type="checkbox" class="taller-dias-check" value="Jueves"> Jueves</label>
-        <label style="display:flex;align-items:center;gap:6px;cursor:pointer"><input type="checkbox" class="taller-dias-check" value="Viernes"> Viernes</label>
-        <label style="display:flex;align-items:center;gap:6px;cursor:pointer"><input type="checkbox" class="taller-dias-check" value="Sábado"> Sábado</label>
-        <label style="display:flex;align-items:center;gap:6px;cursor:pointer"><input type="checkbox" class="taller-dias-check" value="Domingo"> Domingo</label>
-      </div>
+      <label style="display:block;font-weight:500;margin-bottom:4px;font-size:12px">Nombre de Fantasía</label>
+      <input type="text" id="taller-nombre-fantasia" placeholder="Ej: Garage 16 Valve" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:4px;box-sizing:border-box;background:var(--surface-0);color:var(--text-primary);font-size:12px">
     </div>
 
-    <div class="fg"><label>Descripción</label><textarea id="taller-descripcion" rows="3" placeholder="Descripción del taller..."></textarea></div>
-
-    <button class="btn bpa" style="margin-top:16px" onclick="tallerGuardarDatos()">
-      <i class="ti ti-device-floppy"></i> Guardar datos del taller
-    </button>
-  </div>
-
-  <!-- Col derecha: Config operativa + Integraciones -->
-  <div>
-    <div class="card" style="margin-bottom:14px">
-      <div class="ch"><span class="ct"><i class="ti ti-settings" style="font-size:13px"></i> Configuración operativa</span></div>
-      <div class="fgrid2">
-        <div class="fg"><label>Hora inicio jornada</label><input type="time" id="cfg-op-inicio" oninput="admGuardarConfigOperativa()"></div>
-        <div class="fg"><label>Hora fin jornada</label><input type="time" id="cfg-op-fin" oninput="admGuardarConfigOperativa()"></div>
-        <div class="fg">
-          <label>Capacidad máxima (horas/día)</label>
-          <input type="number" id="cfg-op-cap" min="1" max="24" step="0.5" placeholder="8" oninput="admGuardarConfigOperativa()">
-          <div style="font-size:10px;color:var(--text-muted);margin-top:2px">Afecta al semáforo de capacidad en Agenda</div>
-        </div>
-        <div class="fg">
-          <label>Precio mínimo por hora ($)</label>
-          <input type="number" id="cfg-op-precio-min" min="0" step="1000" placeholder="25000" oninput="admGuardarConfigOperativa()">
-          <div style="font-size:10px;color:var(--text-muted);margin-top:2px">Alerta si un servicio rinde menos que esto</div>
-        </div>
-      </div>
+    <!-- Botón guardar -->
+    <div style="margin-top:20px">
+      <button class="btn bpa" onclick="tallerGuardarDatos()" style="width:100%">
+        <i class="ti ti-device-floppy"></i> Guardar Cambios
+      </button>
     </div>
 
-    <div class="card">
-      <div class="ch"><span class="ct">Integraciones API</span></div>
-      <div id="adm-integraciones" style="display:flex;flex-direction:column;gap:6px"></div>
-      <!-- Google Calendar detalle -->
-      <div id="adm-gcal-det" style="display:none;margin-top:10px;padding-top:10px;border-top:0.5px solid var(--border)">
-        <div class="fgrid2">
-          <div class="fg"><label style="font-size:10px">Google Client ID</label><input id="cfg-gcal-clientid" placeholder="XXXX.apps.googleusercontent.com" oninput="admGuardarGCalConfig()"></div>
-          <div class="fg"><label style="font-size:10px">Calendar ID</label><input id="cfg-gcal-calid" placeholder="primary" oninput="admGuardarGCalConfig()"></div>
-        </div>
-        <div style="font-size:10px;color:var(--text-muted);margin-top:4px">Estado OAuth: <span id="cfg-gcal-estado">desconectado</span></div>
-      </div>
-    </div>
   </div>
 
 
