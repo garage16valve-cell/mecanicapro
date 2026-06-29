@@ -646,17 +646,26 @@ function resCargarRegistros() {
     const color = colores[r.tipo] || 'var(--bg-info)';
     const estadoClass = r.estado === 'programado' ? 's-prog' : r.estado === 'retirado' ? 's-done' : 's-crit';
     const estadoLabel = r.estado === 'programado' ? 'Programado' : r.estado === 'retirado' ? 'Retirado' : 'Sin contrato';
+    const docHtml = r.documento
+      ? `<button class="btn" style="font-size:10px;padding:3px 6px" title="${r.documento.nombre}" onclick="resVerArchivo('${r.id}')"><i class="ti ti-paperclip"></i> ${r.documento.nombre.substring(0,15)}</button>`
+      : '<span style="color:var(--text-muted)">—</span>';
 
     return `
-      <div class="eco-bar">
-        <div style="width:28px;height:28px;border-radius:6px;background:${color};display:flex;align-items:center;justify-content:center;flex-shrink:0">
-          ${icono}
+      <div class="eco-bar" style="display:flex;align-items:center;justify-content:space-between;gap:8px">
+        <div style="display:flex;align-items:center;flex:1">
+          <div style="width:28px;height:28px;border-radius:6px;background:${color};display:flex;align-items:center;justify-content:center;flex-shrink:0">
+            ${icono}
+          </div>
+          <div style="flex:1;margin-left:8px">
+            <div style="font-size:12px;font-weight:500">${r.tipo}</div>
+            <div style="font-size:10px;color:var(--text-muted)">${r.cantidad} · ${r.fecha} · ${r.empresa}</div>
+          </div>
         </div>
-        <div style="flex:1;margin-left:8px">
-          <div style="font-size:12px;font-weight:500">${r.tipo}</div>
-          <div style="font-size:10px;color:var(--text-muted)">${r.cantidad} · ${r.fecha} · ${r.empresa}</div>
+        <div style="display:flex;gap:6px;align-items:center">
+          <div style="text-align:right">${docHtml}</div>
+          <span class="st ${estadoClass}"><span class="dot"></span>${estadoLabel}</span>
+          ${r.documento ? `<button class="btn" style="font-size:10px;padding:3px 6px" onclick="resEnviarWhatsApp('${r.id}')"><i class="ti ti-brand-whatsapp"></i></button>` : ''}
         </div>
-        <span class="st ${estadoClass}"><span class="dot"></span>${estadoLabel}</span>
       </div>
     `;
   }).join('');
@@ -693,3 +702,178 @@ window.resCerrarModalNuevo = resCerrarModalNuevo;
 window.resGuardarRegistro = resGuardarRegistro;
 window.resCargarRegistros = resCargarRegistros;
 window.resPDF = resPDF;
+
+// ===== UPLOAD DE ARCHIVOS =====
+let _resArchivoSeleccionado = null;
+
+function resVerificarArchivo(input) {
+  const archivo = input.files[0];
+  const preview = document.getElementById('res-archivo-preview');
+
+  if (!archivo) {
+    preview.innerHTML = '';
+    _resArchivoSeleccionado = null;
+    return;
+  }
+
+  // Verificar tamaño (5MB)
+  if (archivo.size > 5 * 1024 * 1024) {
+    APP.toast.show('⚠️ Archivo muy grande (máx 5MB)', 'warning');
+    preview.innerHTML = '<span style="color:var(--text-danger)">❌ Archivo muy grande</span>';
+    _resArchivoSeleccionado = null;
+    input.value = '';
+    return;
+  }
+
+  // Verificar tipo
+  const tiposPermitidos = ['application/pdf', 'image/jpeg', 'image/png', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
+  if (!tiposPermitidos.includes(archivo.type)) {
+    APP.toast.show('⚠️ Tipo de archivo no permitido', 'warning');
+    preview.innerHTML = '<span style="color:var(--text-danger)">❌ Tipo no permitido</span>';
+    _resArchivoSeleccionado = null;
+    input.value = '';
+    return;
+  }
+
+  // Leer archivo y convertir a base64
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    const base64 = e.target.result.split(',')[1];
+    const tipo = archivo.type.includes('pdf') ? 'pdf' : archivo.type.includes('image') ? 'imagen' : 'documento';
+
+    _resArchivoSeleccionado = {
+      nombre: archivo.name,
+      base64: base64,
+      tipo: tipo,
+      tamaño: archivo.size,
+      tamaño_mb: (archivo.size / (1024 * 1024)).toFixed(2)
+    };
+
+    preview.innerHTML = `✅ <strong>${archivo.name}</strong> (${_resArchivoSeleccionado.tamaño_mb} MB)`;
+  };
+  reader.readAsDataURL(archivo);
+}
+
+function resGuardarRegistroAnterior() {
+  const tipo = document.getElementById('res-tipo')?.value;
+  const fecha = document.getElementById('res-fecha')?.value;
+  const cantidad = document.getElementById('res-cantidad')?.value;
+  const estado = document.getElementById('res-estado')?.value;
+  const empresa = document.getElementById('res-empresa')?.value;
+
+  if (!tipo || !fecha || !cantidad || !estado) {
+    APP.toast.show('⚠️ Completa todos los campos obligatorios', 'warning');
+    return;
+  }
+
+  const registro = {
+    id: 'res-' + Date.now(),
+    tipo,
+    fecha,
+    cantidad,
+    estado,
+    empresa: empresa || 'SIN ASIGNAR',
+    creado: new Date().toISOString()
+  };
+
+  // Agregar documento si existe
+  if (_resArchivoSeleccionado) {
+    registro.documento = {
+      base64: _resArchivoSeleccionado.base64,
+      nombre: _resArchivoSeleccionado.nombre,
+      tipo: _resArchivoSeleccionado.tipo,
+      tamaño: _resArchivoSeleccionado.tamaño,
+      fecha_carga: new Date().toISOString()
+    };
+  }
+
+  const residuos = APP.lsGet('residuos_ecologicos', []);
+  residuos.unshift(registro);
+  APP.lsSet('residuos_ecologicos', residuos);
+
+  resCerrarModalNuevo();
+  resCargarRegistros();
+  _resArchivoSeleccionado = null;
+  document.getElementById('res-archivo').value = '';
+  document.getElementById('res-archivo-preview').innerHTML = '';
+  APP.toast.show('✅ Registro guardado correctamente', 'success');
+}
+
+function resDescargarArchivo(res_id) {
+  const residuos = APP.lsGet('residuos_ecologicos', []);
+  const registro = residuos.find(r => r.id === res_id);
+
+  if (!registro || !registro.documento) {
+    APP.toast.show('⚠️ Sin documento adjunto', 'warning');
+    return;
+  }
+
+  const doc = registro.documento;
+  const byteCharacters = atob(doc.base64);
+  const byteArray = new Uint8Array(byteCharacters.length);
+
+  for (let i = 0; i < byteCharacters.length; i++) {
+    byteArray[i] = byteCharacters.charCodeAt(i);
+  }
+
+  const blob = new Blob([byteArray], { type: doc.tipo === 'pdf' ? 'application/pdf' : 'application/octet-stream' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = doc.nombre;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+}
+
+function resVerArchivo(res_id) {
+  const residuos = APP.lsGet('residuos_ecologicos', []);
+  const registro = residuos.find(r => r.id === res_id);
+
+  if (!registro || !registro.documento) {
+    APP.toast.show('⚠️ Sin documento adjunto', 'warning');
+    return;
+  }
+
+  const doc = registro.documento;
+
+  if (doc.tipo === 'imagen') {
+    const byteCharacters = atob(doc.base64);
+    const byteArray = new Uint8Array(byteCharacters.length);
+    for (let i = 0; i < byteCharacters.length; i++) {
+      byteArray[i] = byteCharacters.charCodeAt(i);
+    }
+    const blob = new Blob([byteArray], { type: 'image/jpeg' });
+    const url = URL.createObjectURL(blob);
+    window.open(url, '_blank');
+  } else {
+    resDescargarArchivo(res_id);
+  }
+}
+
+function resEnviarWhatsApp(res_id) {
+  const residuos = APP.lsGet('residuos_ecologicos', []);
+  const registro = residuos.find(r => r.id === res_id);
+
+  if (!registro) return;
+
+  const mensaje = `📄 *Documento de Residuo*\n\nTipo: ${registro.tipo}\nFecha: ${registro.fecha}\nCantidad: ${registro.cantidad}\nEmpresa: ${registro.empresa}`;
+
+  const numero = prompt('Ingresa número WhatsApp (sin +56):');
+  if (!numero) return;
+
+  const url = `https://wa.me/56${numero}?text=${encodeURIComponent(mensaje)}`;
+  window.open(url, '_blank');
+
+  if (registro.documento) {
+    APP.toast.show('💡 Nota: Para enviar el archivo adjunto, descárgalo primero e intégralo manualmente en WhatsApp', 'info');
+  }
+}
+
+// Reemplazar la función resGuardarRegistro original
+window.resGuardarRegistro = resGuardarRegistroAnterior;
+window.resVerificarArchivo = resVerificarArchivo;
+window.resDescargarArchivo = resDescargarArchivo;
+window.resVerArchivo = resVerArchivo;
+window.resEnviarWhatsApp = resEnviarWhatsApp;

@@ -11,7 +11,10 @@
       "Skill(run)",
       "Skill(run:*)",
       "Bash(git add *)",
-      "Bash(git commit *)"
+      "Bash(git commit *)",
+      "Bash(git push *)",
+      "Bash(node -c js/inventario.js)",
+      "Bash(awk '/module-admin/,/module-wrap/' index.html)"
     ]
   }
 }

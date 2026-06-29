@@ -2189,6 +2189,12 @@
           <option value="SIN ASIGNAR">Sin asignar</option>
         </select>
       </div>
+      <div style="margin-bottom:14px">
+        <label>Documentación <span style="color:#999;font-weight:normal">(Opcional)</span></label>
+        <input type="file" id="res-archivo" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" onchange="resVerificarArchivo(this)" style="width:100%;padding:8px;border:0.5px solid var(--border);border-radius:var(--radius);background:var(--surface-1);color:var(--text-primary);font-size:12px">
+        <small style="display:block;color:var(--text-muted);margin-top:4px">Máx 5MB (PDF, imágenes, documentos)</small>
+        <div id="res-archivo-preview" style="margin-top:8px;font-size:11px;color:var(--text-muted)"></div>
+      </div>
     </div>
     <div class="modal-footer">
       <button class="btn" onclick="resCerrarModalNuevo()"><i class="ti ti-x"></i> Cancelar</button>
