@@ -25,29 +25,150 @@
       <div class="ch">
         <span class="ct"><i class="ti ti-package" style="font-size:13px"></i> Configuración de repuestos</span>
       </div>
-      <div style="max-width:420px">
-        <div class="fg" style="margin:0">
-          <label>% Ganancia sobre repuestos</label>
-          <div style="display:flex;align-items:center;gap:8px">
-            <input id="rep-cfg-ganancia" type="number" min="0" max="200" step="1" placeholder="30"
-              style="flex:1;font-family:var(--font-mono)" oninput="repCalcEjemplo()">
-            <span style="font-size:12px;color:var(--text-muted)">%</span>
+      <div style="max-width:600px">
+
+        <!-- SECCIÓN 1: Margen y cálculo -->
+        <div class="config-section">
+          <h4 style="margin:0 0 10px;font-size:12px;color:var(--text-accent);display:flex;align-items:center;gap:6px"><i class="ti ti-calculator"></i> 1. Margen y cálculo de precios</h4>
+          <div class="fg" style="margin:0">
+            <label>% Ganancia sobre repuestos</label>
+            <div style="display:flex;align-items:center;gap:8px">
+              <input id="rep-cfg-ganancia" type="number" min="0" max="200" step="1" placeholder="30"
+                style="flex:1;font-family:var(--font-mono)" oninput="repCalcEjemplo()">
+              <span style="font-size:12px;color:var(--text-muted)">%</span>
+            </div>
+            <div style="font-size:10px;color:var(--text-muted);margin-top:3px">Margen aplicado sobre el costo de compra del repuesto.</div>
           </div>
-          <div style="font-size:10px;color:var(--text-muted);margin-top:3px">Margen aplicado sobre el costo de compra del repuesto.</div>
+
+          <!-- Ejemplo interactivo -->
+          <div style="margin-top:14px;padding:12px;background:var(--bg-accent);border:0.5px solid var(--border-accent);border-radius:var(--radius)">
+            <div style="font-size:11px;font-weight:500;color:var(--text-accent);margin-bottom:8px"><i class="ti ti-calculator" style="font-size:12px;vertical-align:-1px"></i> Ejemplo de cálculo</div>
+            <div style="font-size:11px;color:var(--text-secondary);margin-bottom:8px">Precio de compra: <strong style="font-family:var(--font-mono)">$10.000 CLP</strong></div>
+            <div id="rep-calc-ejemplo" style="font-size:12px;color:var(--text-accent);font-weight:500;font-family:var(--font-mono)">$10.000 CLP</div>
+            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:11px;margin-top:8px;color:var(--text-secondary)">
+              <input id="rep-cfg-iva" type="checkbox" onchange="repCalcEjemplo()">
+              Mostrar precios con IVA (19%)
+            </label>
+            <div id="rep-calc-iva" style="display:none;font-size:12px;color:var(--text-accent);font-weight:500;font-family:var(--font-mono);margin-top:6px"></div>
+            <div style="font-size:10px;color:var(--text-muted);margin-top:8px">Fórmula: Precio Venta = Costo × (1 + Margen/100)</div>
+          </div>
         </div>
 
-        <!-- Ejemplo interactivo -->
-        <div style="margin-top:14px;padding:12px;background:var(--bg-accent);border:0.5px solid var(--border-accent);border-radius:var(--radius)">
-          <div style="font-size:11px;font-weight:500;color:var(--text-accent);margin-bottom:8px"><i class="ti ti-calculator" style="font-size:12px;vertical-align:-1px"></i> Ejemplo de cálculo</div>
-          <div style="font-size:11px;color:var(--text-secondary);margin-bottom:8px">Precio de compra: <strong style="font-family:var(--font-mono)">$10.000 CLP</strong></div>
-          <div id="rep-calc-ejemplo" style="font-size:12px;color:var(--text-accent);font-weight:500;font-family:var(--font-mono)">$10.000 CLP</div>
-          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:11px;margin-top:8px;color:var(--text-secondary)">
-            <input id="rep-cfg-iva" type="checkbox" onchange="repCalcEjemplo()">
-            Mostrar precios con IVA (19%)
-          </label>
-          <div id="rep-calc-iva" style="display:none;font-size:12px;color:var(--text-accent);font-weight:500;font-family:var(--font-mono);margin-top:6px"></div>
-</div>
-</div>
+        <!-- SECCIÓN 2: Stock mínimo alertas -->
+        <div class="config-section" style="margin-top:18px;padding-top:14px;border-top:0.5px solid var(--border)">
+          <h4 style="margin:0 0 10px;font-size:12px;color:var(--text-accent);display:flex;align-items:center;gap:6px"><i class="ti ti-alert-triangle"></i> 2. Stock mínimo para alertas</h4>
+          <div class="fg">
+            <label>Stock mínimo antes de alertar</label>
+            <div style="display:flex;align-items:center;gap:8px">
+              <input id="rep-cfg-stock-min" type="number" min="0" max="100" step="1" placeholder="5"
+                style="flex:1;font-family:var(--font-mono)">
+              <span style="font-size:12px;color:var(--text-muted)">unidades</span>
+            </div>
+            <div style="font-size:10px;color:var(--text-muted);margin-top:3px">Cuando stock < este valor → badge rojo "Stock bajo" en tabla Inventario.</div>
+          </div>
+        </div>
+
+        <!-- SECCIÓN 3: Proveedor predeterminado -->
+        <div class="config-section" style="margin-top:18px;padding-top:14px;border-top:0.5px solid var(--border)">
+          <h4 style="margin:0 0 10px;font-size:12px;color:var(--text-accent);display:flex;align-items:center;gap:6px"><i class="ti ti-truck"></i> 3. Proveedor predeterminado</h4>
+          <div class="fg">
+            <label>Proveedor por defecto al crear repuesto</label>
+            <select id="rep-cfg-prov-default" style="width:100%">
+              <option value="">Sin proveedor predeterminado</option>
+            </select>
+            <div style="font-size:10px;color:var(--text-muted);margin-top:3px">Se autocarga al crear nuevo repuesto. Permite cambiar si es necesario.</div>
+          </div>
+        </div>
+
+        <!-- SECCIÓN 4: Categorías de repuestos -->
+        <div class="config-section" style="margin-top:18px;padding-top:14px;border-top:0.5px solid var(--border)">
+          <h4 style="margin:0 0 10px;font-size:12px;color:var(--text-accent);display:flex;align-items:center;gap:6px"><i class="ti ti-tag"></i> 4. Categorías de repuestos</h4>
+          <div class="fg">
+            <label>Categorías disponibles</label>
+            <div id="rep-cfg-cat-list" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px"></div>
+            <div style="display:flex;gap:6px">
+              <input id="rep-cfg-cat-new" type="text" placeholder="Nueva categoría (ej: Neumáticos)" style="flex:1;padding:8px 10px;border:0.5px solid var(--border);border-radius:var(--radius);background:var(--surface-2);color:var(--text-primary);font-size:12px">
+              <button class="btn" onclick="invAgregarCategoria()" style="font-size:11px"><i class="ti ti-plus"></i> Agregar</button>
+            </div>
+            <div style="font-size:10px;color:var(--text-muted);margin-top:3px">Usadas para clasificar repuestos en la tabla y filtros.</div>
+          </div>
+        </div>
+
+        <!-- SECCIÓN 5: Moneda y formato -->
+        <div class="config-section" style="margin-top:18px;padding-top:14px;border-top:0.5px solid var(--border)">
+          <h4 style="margin:0 0 10px;font-size:12px;color:var(--text-accent);display:flex;align-items:center;gap:6px"><i class="ti ti-currency"></i> 5. Moneda y formato</h4>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;font-size:11px">
+            <div style="background:var(--surface-1);border-radius:var(--radius);padding:10px">
+              <div style="color:var(--text-muted);margin-bottom:2px">Moneda</div>
+              <div style="font-weight:500;color:var(--text-accent)"><i class="ti ti-currency" style="font-size:11px"></i> CLP (Peso Chileno)</div>
+            </div>
+            <div style="background:var(--surface-1);border-radius:var(--radius);padding:10px">
+              <div style="color:var(--text-muted);margin-bottom:2px">IVA</div>
+              <div style="font-weight:500;color:var(--text-accent)">19%</div>
+            </div>
+          </div>
+          <div style="margin-top:10px">
+            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:11px;color:var(--text-secondary)">
+              <input id="rep-cfg-iva-auto" type="checkbox"> Aplicar IVA automáticamente en cálculos de precio
+            </label>
+          </div>
+        </div>
+
+        <!-- SECCIÓN 6: Políticas de devolución -->
+        <div class="config-section" style="margin-top:18px;padding-top:14px;border-top:0.5px solid var(--border)">
+          <h4 style="margin:0 0 10px;font-size:12px;color:var(--text-accent);display:flex;align-items:center;gap:6px"><i class="ti ti-rotate-ccw"></i> 6. Políticas de devolución</h4>
+          <div class="g2">
+            <div class="fg">
+              <label>Días para devolver repuestos defectuosos</label>
+              <input id="rep-cfg-dias-devol" type="number" min="0" max="365" step="1" placeholder="30" style="font-family:var(--font-mono)">
+            </div>
+            <div class="fg">
+              <label>% de reembolso en devolución</label>
+              <div style="display:flex;align-items:center;gap:8px">
+                <input id="rep-cfg-pct-reembolso" type="number" min="0" max="100" step="1" placeholder="100" style="font-family:var(--font-mono)">
+                <span style="font-size:12px;color:var(--text-muted)">%</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- SECCIÓN 7: Control de caducidad -->
+        <div class="config-section" style="margin-top:18px;padding-top:14px;border-top:0.5px solid var(--border)">
+          <h4 style="margin:0 0 10px;font-size:12px;color:var(--text-accent);display:flex;align-items:center;gap:6px"><i class="ti ti-calendar-x"></i> 7. Control de caducidad (baterías, lubricantes, líquidos)</h4>
+          <div class="fg">
+            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:11px;color:var(--text-secondary);margin-bottom:8px">
+              <input id="rep-cfg-caducidad-activo" type="checkbox" onchange="invToggleCaducidad()"> Activar alertas de vencimiento
+            </label>
+            <div id="rep-cfg-caducidad-detalle" style="display:none">
+              <div class="fg">
+                <label>Días antes de vencimiento para alertar</label>
+                <div style="display:flex;align-items:center;gap:8px">
+                  <input id="rep-cfg-dias-alerta-venc" type="number" min="1" max="365" step="1" placeholder="30" style="flex:1;font-family:var(--font-mono)">
+                  <span style="font-size:12px;color:var(--text-muted)">días</span>
+                </div>
+                <div style="font-size:10px;color:var(--text-muted);margin-top:3px">Se mostrará alerta en tabla Inventario cuando la fecha de vencimiento esté próxima.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- SECCIÓN 8: Botón reset -->
+        <div class="config-section" style="margin-top:18px;padding-top:14px;border-top:0.5px solid var(--border)">
+          <h4 style="margin:0 0 10px;font-size:12px;color:var(--text-accent);display:flex;align-items:center;gap:6px"><i class="ti ti-refresh"></i> 8. Restaurar valores por defecto</h4>
+          <div style="display:flex;gap:8px;align-items:center">
+            <button class="btn" onclick="invResetearConfig()" style="color:var(--text-danger);border-color:var(--border-danger)"><i class="ti ti-refresh"></i> Restaurar valores por defecto</button>
+            <span style="font-size:10px;color:var(--text-muted)">Revierte toda la configuración a valores de fábrica.</span>
+          </div>
+        </div>
+
+        <div style="margin-top:18px;display:flex;gap:8px;justify-content:flex-end">
+          <button class="btn bpa" onclick="invGuardarConfigRepuestos()">
+            <i class="ti ti-device-floppy"></i> Guardar configuración
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
 
 <!-- MODAL NUEVO REPUESTO -->
 <div id="inv-modal-repuesto" class="modal-overlay" style="display:none">
@@ -184,7 +305,7 @@
   <div class="al al-s" style="margin-bottom:14px"><i class="ti ti-leaf"></i><div class="al-text"><strong>Módulo ecológico:</strong> Registro obligatorio de residuos peligrosos. Si no tienes contrato vigente, el sistema muestra empresas autorizadas por el MINSAL.</div></div>
   <div class="g2">
     <div class="card">
-      <div class="ch"><span class="ct">Registro de residuos</span><button class="btn bpa" style="font-size:11px;padding:4px 8px"><i class="ti ti-plus"></i>Nuevo registro</button></div>
+      <div class="ch"><span class="ct">Registro de residuos</span><button class="btn bpa" style="font-size:11px;padding:4px 8px" onclick="resNuevoRegistro()"><i class="ti ti-plus"></i>Nuevo registro</button></div>
       <div class="eco-bar"><div style="width:28px;height:28px;border-radius:6px;background:var(--bg-warning);display:flex;align-items:center;justify-content:center;flex-shrink:0"><i class="ti ti-droplet" style="font-size:14px;color:var(--text-warning)"></i></div><div style="flex:1;margin-left:8px"><div style="font-size:12px;font-weight:500">Aceite quemado</div><div style="font-size:10px;color:var(--text-muted)">48 litros · Retiro: 28 jun · ECORILES SPA</div></div><span class="st s-prog"><span class="dot"></span>Programado</span></div>
       <div class="eco-bar"><div style="width:28px;height:28px;border-radius:6px;background:var(--bg-danger);display:flex;align-items:center;justify-content:center;flex-shrink:0"><i class="ti ti-battery" style="font-size:14px;color:var(--text-danger)"></i></div><div style="flex:1;margin-left:8px"><div style="font-size:12px;font-weight:500">Baterías usadas</div><div style="font-size:10px;color:var(--text-muted)">6 unidades · RECICLAJE METÁLICO LTDA</div></div><span class="st s-done"><span class="dot"></span>Retirado</span></div>
       <div class="eco-bar"><div style="width:28px;height:28px;border-radius:6px;background:var(--bg-accent);display:flex;align-items:center;justify-content:center;flex-shrink:0"><i class="ti ti-components" style="font-size:14px;color:var(--text-accent)"></i></div><div style="flex:1;margin-left:8px"><div style="font-size:12px;font-weight:500">Filtros usados</div><div style="font-size:10px;color:var(--text-muted)">23 unidades · Sin empresa asignada</div></div><span class="st s-crit"><span class="dot"></span>Sin contrato</span></div>
@@ -194,9 +315,65 @@
     <div class="card">
       <div class="ch"><span class="ct">Certificados de disposición final</span></div>
       <div style="display:flex;flex-direction:column;gap:6px">
-        <div style="display:flex;align-items:center;justify-content:space-between;padding:8px;background:var(--surface-1);border-radius:var(--radius)"><div><div style="font-size:12px;font-weight:500"><i class="ti ti-file-certificate" style="font-size:12px;color:var(--text-success)"></i> Cert. Aceite Q1 2026</div><div style="font-size:10px;color:var(--text-muted)">ECORILES SPA · mar 2026</div></div><button class="btn" style="font-size:10px;padding:3px 7px"><i class="ti ti-download"></i>PDF</button></div>
-        <div style="display:flex;align-items:center;justify-content:space-between;padding:8px;background:var(--surface-1);border-radius:var(--radius)"><div><div style="font-size:12px;font-weight:500"><i class="ti ti-file-certificate" style="font-size:12px;color:var(--text-success)"></i> Cert. Baterías 2025</div><div style="font-size:10px;color:var(--text-muted)">RECICLAJE METÁLICO · dic 2025</div></div><button class="btn" style="font-size:10px;padding:3px 7px"><i class="ti ti-download"></i>PDF</button></div>
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:8px;background:var(--surface-1);border-radius:var(--radius)"><div><div style="font-size:12px;font-weight:500"><i class="ti ti-file-certificate" style="font-size:12px;color:var(--text-success)"></i> Cert. Aceite Q1 2026</div><div style="font-size:10px;color:var(--text-muted)">ECORILES SPA · mar 2026</div></div><button class="btn" style="font-size:10px;padding:3px 7px" onclick="resPDF('cert-aceite-q1-2026')"><i class="ti ti-download"></i>PDF</button></div>
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:8px;background:var(--surface-1);border-radius:var(--radius)"><div><div style="font-size:12px;font-weight:500"><i class="ti ti-file-certificate" style="font-size:12px;color:var(--text-success)"></i> Cert. Baterías 2025</div><div style="font-size:10px;color:var(--text-muted)">RECICLAJE METÁLICO · dic 2025</div></div><button class="btn" style="font-size:10px;padding:3px 7px" onclick="resPDF('cert-baterias-2025')"><i class="ti ti-download"></i>PDF</button></div>
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL NUEVO REGISTRO DE RESIDUOS -->
+<div id="res-modal-nuevo" class="modal-overlay" style="display:none" onclick="if(event.target===this)resCerrarModalNuevo()">
+  <div class="modal-grande" style="max-width:560px">
+    <div class="modal-header">
+      <h2>Nuevo registro de residuos</h2>
+      <button class="modal-close" onclick="resCerrarModalNuevo()">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="fg">
+        <label>Tipo de residuo <span style="color:#ef4444">*</span></label>
+        <select id="res-tipo" style="width:100%">
+          <option value="">Seleccionar tipo…</option>
+          <option value="Aceite quemado">Aceite quemado</option>
+          <option value="Baterías">Baterías usadas</option>
+          <option value="Filtros">Filtros usados</option>
+          <option value="Líquidos refrigerante">Líquidos refrigerante</option>
+          <option value="Neumáticos">Neumáticos</option>
+          <option value="Catalizadores">Catalizadores</option>
+          <option value="Otro">Otro</option>
+        </select>
+      </div>
+      <div class="fg">
+        <label>Fecha <span style="color:#ef4444">*</span></label>
+        <input id="res-fecha" type="date" style="width:100%">
+      </div>
+      <div class="fg">
+        <label>Cantidad <span style="color:#ef4444">*</span></label>
+        <input id="res-cantidad" type="text" placeholder="Ej: 50 litros, 6 unidades">
+      </div>
+      <div class="fg">
+        <label>Estado <span style="color:#ef4444">*</span></label>
+        <select id="res-estado" style="width:100%">
+          <option value="programado">Programado</option>
+          <option value="retirado">Retirado</option>
+          <option value="sin_contrato">Sin contrato</option>
+        </select>
+      </div>
+      <div class="fg">
+        <label>Empresa autorizadora</label>
+        <select id="res-empresa" style="width:100%">
+          <option value="">Seleccionar empresa…</option>
+          <option value="ECORILES SPA">ECORILES SPA</option>
+          <option value="RECICLAJE METÁLICO LTDA">RECICLAJE METÁLICO LTDA</option>
+          <option value="GESTIÓN AMBIENTAL CHILE">GESTIÓN AMBIENTAL CHILE</option>
+          <option value="ECOCYCLE">ECOCYCLE</option>
+          <option value="SIN ASIGNAR">Sin asignar</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="resCerrarModalNuevo()"><i class="ti ti-x"></i> Cancelar</button>
+      <button class="btn bpa" onclick="resGuardarRegistro()"><i class="ti ti-device-floppy"></i> Guardar</button>
     </div>
   </div>
 </div>

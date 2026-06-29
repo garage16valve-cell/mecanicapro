@@ -21,18 +21,40 @@ function invSetTab(tab) {
 }
 
 // ===== CONFIG REPUESTOS =====
+const REP_CAT_DEFAULT = ['Motor', 'Frenos', 'Suspensión', 'Eléctrica', 'Exterior', 'Interior', 'Transmisión', 'Refrigeración', 'Escape', 'Carrocería'];
+
 function _invCargarConfigRepuestos() {
   const cfg = APP.lsGet('rep_config', {});
   const el = document.getElementById('rep-cfg-ganancia');
   if (el) el.value = cfg.ganancia || 30;
+  document.getElementById('rep-cfg-stock-min').value = cfg.stock_minimo_alerta || 5;
+  document.getElementById('rep-cfg-prov-default').value = cfg.proveedor_predeterminado || '';
+  document.getElementById('rep-cfg-iva').checked = cfg.iva_defecto || false;
+  document.getElementById('rep-cfg-iva-auto').checked = cfg.iva_automatico || false;
+  document.getElementById('rep-cfg-dias-devol').value = cfg.dias_devolucion || 30;
+  document.getElementById('rep-cfg-pct-reembolso').value = cfg.porcentaje_reembolso || 100;
+  document.getElementById('rep-cfg-caducidad-activo').checked = cfg.control_caducidad_activo || false;
+  document.getElementById('rep-cfg-caducidad-detalle').style.display = cfg.control_caducidad_activo ? '' : 'none';
+  document.getElementById('rep-cfg-dias-alerta-venc').value = cfg.dias_alerta_vencimiento || 30;
+  invRenderCategorias(cfg.categorias || REP_CAT_DEFAULT);
+  invCargarProveedoresSelect();
   repCalcEjemplo();
 }
 
 function invGuardarConfigRepuestos() {
   const g = id => (document.getElementById(id)?.value || '').trim();
-  const cfg = {};
-  cfg.ganancia    = parseFloat(g('rep-cfg-ganancia')) || 0;
-  cfg.iva_defecto = !!document.getElementById('rep-cfg-iva')?.checked;
+  const cfg = {
+    ganancia: parseFloat(g('rep-cfg-ganancia')) || 0,
+    stock_minimo_alerta: parseInt(g('rep-cfg-stock-min')) || 5,
+    proveedor_predeterminado: document.getElementById('rep-cfg-prov-default')?.value || '',
+    iva_defecto: !!document.getElementById('rep-cfg-iva')?.checked,
+    iva_automatico: !!document.getElementById('rep-cfg-iva-auto')?.checked,
+    dias_devolucion: parseInt(g('rep-cfg-dias-devol')) || 30,
+    porcentaje_reembolso: parseInt(g('rep-cfg-pct-reembolso')) || 100,
+    control_caducidad_activo: !!document.getElementById('rep-cfg-caducidad-activo')?.checked,
+    dias_alerta_vencimiento: parseInt(g('rep-cfg-dias-alerta-venc')) || 30,
+    categorias: _repCategoriasActuales || REP_CAT_DEFAULT
+  };
   APP.lsSet('rep_config', cfg);
   APP.toast.show('Configuración guardada', 'success');
 }
@@ -55,6 +77,66 @@ function repCalcEjemplo() {
   }
 }
 
+// Handler para checkbox caducidad
+function invToggleCaducidad() {
+  const chk = document.getElementById('rep-cfg-caducidad-activo');
+  const detalle = document.getElementById('rep-cfg-caducidad-detalle');
+  if (chk && detalle) {
+    detalle.style.display = chk.checked ? '' : 'none';
+  }
+}
+
+let _repCategoriasActuales = [...REP_CAT_DEFAULT];
+
+function invRenderCategorias(cats) {
+  _repCategoriasActuales = [...cats];
+  const c = document.getElementById('rep-cfg-cat-list');
+  if (!c) return;
+  c.innerHTML = _repCategoriasActuales.map(cat => `
+    <span class="data-pill" style="display:inline-flex;align-items:center;gap:4px;background:var(--bg-accent);color:var(--text-accent);padding:4px 8px;border-radius:20px;font-size:10px">
+      ${cat}
+      <button type="button" onclick="invEliminarCategoria('${cat}')" style="background:none;border:none;color:inherit;cursor:pointer;padding:0;font-size:11px;line-height:1">×</button>
+    </span>
+  `).join('');
+}
+
+function invAgregarCategoria() {
+  const input = document.getElementById('rep-cfg-cat-new');
+  const v = (input?.value || '').trim();
+  if (!v) return;
+  if (_repCategoriasActuales.includes(v)) { APP.toast.show('⚠️ Categoría ya existe', 'warning'); return; }
+  _repCategoriasActuales.push(v);
+  input.value = '';
+  invRenderCategorias(_repCategoriasActuales);
+  APP.toast.show('Categoría agregada', 'success');
+}
+
+function invEliminarCategoria(cat) {
+  if (!confirm('¿Eliminar categoría "' + cat + '"?')) return;
+  _repCategoriasActuales = _repCategoriasActuales.filter(c => c !== cat);
+  invRenderCategorias(_repCategoriasActuales);
+  APP.toast.show('Categoría eliminada', 'success');
+}
+
+function invResetearConfig() {
+  if (!confirm('¿Restaurar TODA la configuración a valores por defecto?')) return;
+  const cfg = {
+    ganancia: 30,
+    stock_minimo_alerta: 5,
+    proveedor_predeterminado: '',
+    iva_defecto: false,
+    iva_automatico: false,
+    dias_devolucion: 30,
+    porcentaje_reembolso: 100,
+    control_caducidad_activo: false,
+    dias_alerta_vencimiento: 30,
+    categorias: [...REP_CAT_DEFAULT]
+  };
+  APP.lsSet('rep_config', cfg);
+  _invCargarConfigRepuestos();
+  APP.toast.show('Configuración restaurada', 'success');
+}
+
 // ===== INVENTARIO DE REPUESTOS =====
 const INV_DEFAULT = [
   { c:'FIL-5W30', n:'Filtro aceite 5W-30',       m:'Bosch',  ub:'Estante A, Fila 1', st:2,  mn:5,  p:'$4.500',  e:'s-crit', et:'Crítico' },
@@ -68,12 +150,14 @@ function renderInventario() {
   const w = document.getElementById('inv-wrapper');
   if (!w) return;
   const items = APP.lsGet('mp_inventario', INV_DEFAULT);
+  const cfg = APP.lsGet('rep_config', {});
+  const stockMinAlerta = cfg.stock_minimo_alerta || 5;
   w.innerHTML = '';
 
   const wrap = document.createElement('div');
   wrap.style.cssText = 'background:var(--surface-2);border:0.5px solid var(--border);border-radius:12px;overflow:hidden';
 
-  const cols = '80px 1fr 90px 110px 60px 60px 70px 70px';
+  const cols = '80px 1fr 90px 110px 60px 60px 70px 90px';
   const hdr = document.createElement('div');
   hdr.style.cssText = `padding:9px 14px;display:grid;grid-template-columns:${cols};gap:8px;font-size:9px;color:var(--text-muted);font-weight:500;text-transform:uppercase;letter-spacing:.05em;border-bottom:0.5px solid var(--border);background:var(--surface-1)`;
   hdr.innerHTML = '<span>Código</span><span>Descripción</span><span>Marca</span><span>Ubicación</span><span>Stock</span><span>Mín.</span><span>Precio</span><span>Estado</span>';
@@ -82,15 +166,19 @@ function renderInventario() {
   items.forEach(i => {
     const r = document.createElement('div');
     r.style.cssText = `padding:9px 14px;display:grid;grid-template-columns:${cols};gap:8px;align-items:center;font-size:11px;border-bottom:0.5px solid var(--border)`;
+    const stockBajo = i.st < stockMinAlerta;
+    const stockDisplay = stockBajo
+      ? `<span style="display:flex;align-items:center;gap:4px;font-weight:700;color:var(--text-danger)"><i class="ti ti-alert-triangle" style="font-size:10px"></i>${i.st}</span>`
+      : `<span style="font-weight:500;${i.st <= i.mn ? 'color:var(--text-danger)' : ''}">${i.st}</span>`;
     r.innerHTML = `
       <span style="font-family:var(--font-mono);font-size:10px;color:var(--text-muted)">${i.c}</span>
       <span>${i.n}</span>
       <span style="color:var(--text-secondary)">${i.m}</span>
       <span style="font-size:10px;color:var(--text-muted)">${i.ub}</span>
-      <span style="font-weight:500;${i.st <= i.mn ? 'color:var(--text-danger)' : ''}">${i.st}</span>
+      ${stockDisplay}
       <span style="color:var(--text-muted)">${i.mn}</span>
       <span>${i.p}</span>
-      <span class="st ${i.e}"><span class="dot"></span>${i.et}</span>`;
+      <span class="st ${i.e}"><span class="dot"></span>${stockBajo ? 'Stock bajo' : i.et}</span>`;
     wrap.appendChild(r);
   });
 
@@ -332,14 +420,15 @@ function invNuevoRepuesto() {
   });
   const s = document.getElementById('ir-marca');
   if (s) s.value = '';
-  const p = document.getElementById('ir-proveedor');
-  if (p) p.value = '';
+  const cfg = APP.lsGet('rep_config', {});
   document.getElementById('ir-stock').value = '0';
-  document.getElementById('ir-min').value = '5';
-  document.getElementById('ir-ganancia').value = '30';
+  document.getElementById('ir-min').value = String(cfg.stock_minimo_alerta || 5);
+  document.getElementById('ir-ganancia').value = String(cfg.ganancia || 30);
   document.getElementById('ir-precio-compra').value = '0';
   invCargarMarcas();
   invCargarProveedoresSelect();
+  const selProv = document.getElementById('ir-proveedor');
+  if (selProv) selProv.value = cfg.proveedor_predeterminado || '';
   document.getElementById('inv-repuesto-title').textContent = 'Nuevo repuesto';
   document.getElementById('inv-modal-repuesto').style.display = '';
 }
@@ -485,3 +574,122 @@ function invGuardarEntrada() {
   renderInventario();
   APP.toast.show('Entrada registrada.', 'success');
 }
+
+window.invAgregarCategoria = invAgregarCategoria;
+window.invEliminarCategoria = invEliminarCategoria;
+window.invResetearConfig = invResetearConfig;
+
+// ===== RESIDUOS ECOLÓGICOS =====
+function resNuevoRegistro() {
+  document.getElementById('res-tipo').value = '';
+  document.getElementById('res-fecha').value = new Date().toISOString().split('T')[0];
+  document.getElementById('res-cantidad').value = '';
+  document.getElementById('res-estado').value = 'programado';
+  document.getElementById('res-empresa').value = '';
+  document.getElementById('res-modal-nuevo').style.display = '';
+}
+
+function resCerrarModalNuevo() {
+  document.getElementById('res-modal-nuevo').style.display = 'none';
+}
+
+function resGuardarRegistro() {
+  const tipo = document.getElementById('res-tipo')?.value;
+  const fecha = document.getElementById('res-fecha')?.value;
+  const cantidad = document.getElementById('res-cantidad')?.value;
+  const estado = document.getElementById('res-estado')?.value;
+  const empresa = document.getElementById('res-empresa')?.value;
+
+  if (!tipo || !fecha || !cantidad || !estado) {
+    APP.toast.show('⚠️ Completa todos los campos obligatorios', 'warning');
+    return;
+  }
+
+  const registro = {
+    id: 'res-' + Date.now(),
+    tipo,
+    fecha,
+    cantidad,
+    estado,
+    empresa: empresa || 'SIN ASIGNAR',
+    creado: new Date().toISOString()
+  };
+
+  const residuos = APP.lsGet('residuos_ecologicos', []);
+  residuos.unshift(registro);
+  APP.lsSet('residuos_ecologicos', residuos);
+
+  resCerrarModalNuevo();
+  resCargarRegistros();
+  APP.toast.show('Registro guardado correctamente', 'success');
+}
+
+function resCargarRegistros() {
+  const residuos = APP.lsGet('residuos_ecologicos', []);
+  const container = document.querySelector('#pg-residuos .card');
+  if (!container) return;
+
+  const ecoBarHTML = residuos.map(r => {
+    const iconos = {
+      'Aceite quemado': '<i class="ti ti-droplet" style="font-size:14px;color:var(--text-warning)"></i>',
+      'Baterías': '<i class="ti ti-battery" style="font-size:14px;color:var(--text-danger)"></i>',
+      'Filtros': '<i class="ti ti-components" style="font-size:14px;color:var(--text-accent)"></i>',
+      'Otros': '<i class="ti ti-package" style="font-size:14px;color:var(--text-info)"></i>'
+    };
+    const colores = {
+      'Aceite quemado': 'var(--bg-warning)',
+      'Baterías': 'var(--bg-danger)',
+      'Filtros': 'var(--bg-accent)',
+      'Otros': 'var(--bg-info)'
+    };
+    const icono = iconos[r.tipo] || '<i class="ti ti-package" style="font-size:14px;color:var(--text-info)"></i>';
+    const color = colores[r.tipo] || 'var(--bg-info)';
+    const estadoClass = r.estado === 'programado' ? 's-prog' : r.estado === 'retirado' ? 's-done' : 's-crit';
+    const estadoLabel = r.estado === 'programado' ? 'Programado' : r.estado === 'retirado' ? 'Retirado' : 'Sin contrato';
+
+    return `
+      <div class="eco-bar">
+        <div style="width:28px;height:28px;border-radius:6px;background:${color};display:flex;align-items:center;justify-content:center;flex-shrink:0">
+          ${icono}
+        </div>
+        <div style="flex:1;margin-left:8px">
+          <div style="font-size:12px;font-weight:500">${r.tipo}</div>
+          <div style="font-size:10px;color:var(--text-muted)">${r.cantidad} · ${r.fecha} · ${r.empresa}</div>
+        </div>
+        <span class="st ${estadoClass}"><span class="dot"></span>${estadoLabel}</span>
+      </div>
+    `;
+  }).join('');
+
+  const cbtn = container.querySelector('.ch .btn');
+  const ecoBars = container.querySelectorAll('.eco-bar');
+  ecoBars.forEach(el => el.remove());
+
+  const insertAfter = cbtn?.parentElement;
+  if (insertAfter && ecoBarHTML) {
+    insertAfter.insertAdjacentHTML('afterend', ecoBarHTML);
+  }
+}
+
+function resPDF(certId) {
+  const pdfs = APP.lsGet('residuos_pdfs', {});
+  if (pdfs[certId] && pdfs[certId].base64) {
+    const byteCharacters = atob(pdfs[certId].base64);
+    const byteArray = new Uint8Array(byteCharacters.length);
+    for (let i = 0; i < byteCharacters.length; i++) {
+      byteArray[i] = byteCharacters.charCodeAt(i);
+    }
+    const blob = new Blob([byteArray], { type: 'application/pdf' });
+    const url = URL.createObjectURL(blob);
+    window.open(url, '_blank');
+    setTimeout(() => URL.revokeObjectURL(url), 100);
+  } else {
+    APP.toast.show('⚠️ PDF no disponible para descarga', 'warning');
+  }
+}
+
+window.resNuevoRegistro = resNuevoRegistro;
+window.resCerrarModalNuevo = resCerrarModalNuevo;
+window.resGuardarRegistro = resGuardarRegistro;
+window.resCargarRegistros = resCargarRegistros;
+window.resPDF = resPDF;
