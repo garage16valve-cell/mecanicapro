@@ -1326,6 +1326,23 @@ function otGuardarRepuestosData(ot_id) {
   return ot;
 }
 
+function otGuardarPanelRepuestos(ot_id) {
+  otGuardarRepuestosData(ot_id);
+  const ots = APP.lsGet('ots', []);
+  const ot = ots.find(o => o.id === ot_id);
+  if (!ot) return;
+  ot.fase = 'aprobacion';
+  ot.estado = 'aprobacion';
+  ot.historial_eventos = ot.historial_eventos || [];
+  ot.historial_eventos.push({ fecha: Date.now(), fase: 'aprobacion', accion: 'Avanzó a Aprobación', usuario: 'Sistema', descripcion: '' });
+  ot.fecha_modificacion = new Date().toISOString();
+  APP.lsSet('ots', ots);
+  _otCerrarPanelFase();
+  if (typeof renderKanban === 'function') renderKanban();
+  APP.toast.show('✅ OT avanzó a Aprobación', 'success');
+  otAbrirPanelAprobacion(ot_id);
+}
+
 function otGenerarCotizacionPDF(ot_id) {
   otGuardarRepuestosData(ot_id);
   if (typeof tallerGenerarPDFCotizacion !== 'function') {
@@ -1833,8 +1850,8 @@ function otDiagBuscarServicio(q, suffix) {
     return;
   }
   drop.innerHTML = matches.map(s => {
-    const precio = s.valor || s.precioFijo || s.precio_venta || 0;
-    const horas = s.horas || s.horasEst || s.horas_estimadas || 0;
+    const horas = s.horasEst != null ? s.horasEst : (s.horas || s.horas_estimadas || 0);
+    const precio = s.precioFijo != null ? s.precioFijo : (s.valor || s.precio_venta || s.precioMinVenta || 0);
     return `<div onclick="otDiagSelServicio('${_nfEsc(s.nombre)}',${horas},${precio},'${sf}')"
       style="padding:8px 12px;cursor:pointer;border-bottom:0.5px solid var(--border);font-size:12px">
       <div style="font-weight:500">${_nfEsc(s.nombre)}</div>
@@ -1853,8 +1870,8 @@ function otDiagSelServicio(nombre, horas, valor, suffix) {
   document.getElementById('ot-diag-datos-servicio' + sf).style.display = 'block';
   const servicios = APP.lsGet('mp_servicios') || [];
   const svc = servicios.find(s => (s.nombre || '').toLowerCase() === nombre.toLowerCase());
-  if (svc && (svc.repuestos || svc.repuestosSugeridos)) {
-    const reps = svc.repuestos || svc.repuestosSugeridos || [];
+  if (svc && (svc.repuestosSugeridos || svc.repuestos)) {
+    const reps = svc.repuestosSugeridos || svc.repuestos || [];
     otDiagRepuestos = reps.map(r => ({
       nombre: r.nombre || r.desc || '',
       cantidad: r.cantidad || 1,
@@ -1933,10 +1950,16 @@ function otDiagRenderServicios(suffix) {
   }
   lista.innerHTML = otDiagServicios.map((s, i) => {
     const repsHtml = s.repuestos && s.repuestos.length
-      ? s.repuestos.map((r, ri) => `<div style="display:flex;align-items:center;gap:4px;padding:2px 0;font-size:10px;color:var(--text-muted)">
-          <span style="flex:1">• ${_nfEsc(r.nombre)} (${r.cantidad} ${r.unidad})</span>
+      ? s.repuestos.map((r, ri) => {
+          const inv = typeof _findRepuestoEnInventario === 'function' ? _findRepuestoEnInventario(r.nombre) : null;
+          const badge = inv && inv.stock > 0
+            ? `<span style="margin-left:4px;font-size:8px;padding:0 4px;border-radius:4px;background:#05966915;color:#059669;border:0.5px solid #05966930">✓ stock:${inv.stock}</span>`
+            : `<span style="margin-left:4px;font-size:8px;padding:0 4px;border-radius:4px;background:#d9770615;color:#d97706;border:0.5px solid #d9770630">Cotizar</span>`;
+          return `<div style="display:flex;align-items:center;gap:4px;padding:2px 0;font-size:10px;color:var(--text-muted)">
+          <span style="flex:1">• ${_nfEsc(r.nombre)} (${r.cantidad} ${r.unidad})${badge}</span>
           <button onclick="otDiagElimRepuestoServicio(${i},${ri},'${sf}')" style="background:none;border:none;cursor:pointer;color:var(--text-muted);font-size:12px;padding:0;line-height:1">×</button>
-        </div>`).join('')
+        </div>`;
+        }).join('')
       : '<div style="font-size:10px;color:var(--text-muted);padding:2px 0">Sin repuestos</div>';
     return `<div style="border:0.5px solid var(--border);border-radius:var(--radius);padding:8px 10px;background:var(--surface-1);margin-bottom:6px">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
@@ -1988,9 +2011,9 @@ function otDiagGuardarCatalogo(suffix) {
   servicios.push({
     id: 'SVC' + Date.now(),
     nombre,
-    horas_estimadas: horas,
-    precio_venta: valor,
-    repuestos: otDiagRepuestos.map(r => ({ ...r }))
+    horasEst: horas,
+    precioFijo: valor,
+    repuestosSugeridos: otDiagRepuestos.map(r => ({ ...r }))
   });
   APP.lsSet('mp_servicios', servicios);
   APP.toast.show('✅ Servicio guardado en catálogo', 'success');
