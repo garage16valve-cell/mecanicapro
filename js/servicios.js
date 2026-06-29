@@ -45,7 +45,13 @@ function svcSetSubTab(tab) {
     if (sPerm) sPerm.style.display = '';
     if (bPerm) { bPerm.style.borderBottomColor = 'var(--fill-accent)'; bPerm.style.color = 'var(--text-accent)'; }
     svcLoadOperarios();
-    svcPermCargar(document.getElementById('svc-perm-operario')?.value || '');
+    const sel = document.getElementById('svc-perm-operario');
+    if (sel && sel.options.length > 1) {
+      sel.selectedIndex = 1;
+      svcPermCargar(sel.value);
+    } else {
+      svcPermCargar('');
+    }
   } else if (tab === 'op') {
     if (sOp) sOp.style.display = '';
     if (bOp) { bOp.style.borderBottomColor = 'var(--fill-accent)'; bOp.style.color = 'var(--text-accent)'; }
@@ -135,15 +141,17 @@ function svcPermCargar(idOperario) {
   const todos     = APP.lsGet('mp_servicios', []);
   const permisos  = APP.lsGet('operarios_servicios', []);
   const operPerms = permisos.filter(p => String(p.id_operario) === String(idOperario)).map(p => p.id_servicio);
+
+  tabla.style.display = 'block';
   if (!operPerms.length) {
     info.style.display = 'block';
-    info.innerHTML = '<i class="ti ti-checkbox"></i> Sin restricciones — este operario puede hacer todos los servicios.';
-    tabla.style.display = 'none';
-    return;
+    info.innerHTML = '<i class="ti ti-checkbox"></i> Sin restricciones — este operario puede hacer todos los servicios. Desmarca servicios para restringir.';
+  } else {
+    info.style.display = 'none';
   }
-  info.style.display = 'none';
-  tabla.style.display = 'block';
-  tabla.innerHTML = '<div style="font-size:10px;color:var(--text-muted);margin-bottom:8px;text-transform:uppercase;letter-spacing:.03em">Servicios permitidos</div>' +
+
+  tabla.innerHTML = '<div style="font-size:10px;color:var(--text-muted);margin-bottom:8px;text-transform:uppercase;letter-spacing:.03em">Servicios' +
+    (operPerms.length ? ' — <span style="color:var(--text-danger)">restringido</span>' : '') + '</div>' +
     todos.map(s => {
       const checked = operPerms.includes(s.id);
       return '<label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:5px 0;border-bottom:0.5px solid var(--border-light);font-size:12px">' +

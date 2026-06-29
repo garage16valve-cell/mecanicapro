@@ -1,80 +1,103 @@
 <!-- AGENDA Y CALENDARIO -->
 <div class="page active" id="pg-agenda">
 
-  <!-- Toolbar -->
-  <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;flex-wrap:wrap">
-    <!-- Selector de vista -->
-    <div style="display:flex;border:0.5px solid var(--border);border-radius:var(--radius);overflow:hidden">
-      <button class="btn" id="ag-btn-dia"    onclick="agSetVista('dia')"    style="border-radius:0;border:none;border-right:0.5px solid var(--border)">Día</button>
-      <button class="btn" id="ag-btn-semana" onclick="agSetVista('semana')" style="border-radius:0;border:none;border-right:0.5px solid var(--border)">Semana</button>
-      <button class="btn" id="ag-btn-mes"    onclick="agSetVista('mes')"    style="border-radius:0;border:none">Mes</button>
-    </div>
-    <!-- Navegación -->
-    <button class="btn" onclick="agNavPrev()"><i class="ti ti-chevron-left"></i></button>
-    <button class="btn" style="font-size:11px" onclick="agNavHoy()">Hoy</button>
-    <button class="btn" onclick="agNavNext()"><i class="ti ti-chevron-right"></i></button>
-    <!-- Label de período -->
-    <span id="ag-fecha-label" style="font-size:13px;font-weight:500;flex:1;white-space:nowrap"></span>
-    <!-- Semáforo de capacidad -->
-    <div style="display:flex;align-items:center;gap:5px;font-size:11px;padding:4px 8px;background:var(--surface-1);border:0.5px solid var(--border);border-radius:var(--radius)">
-      <span id="ag-semaforo-dot" style="display:inline-block;width:9px;height:9px;border-radius:50%;background:#10b981;flex-shrink:0"></span>
-      <span id="ag-semaforo-label" style="color:var(--text-muted)">Capacidad</span>
-    </div>
-    <!-- Google Calendar -->
-    <button class="btn" onclick="agToggleGCalPanel()"><i class="ti ti-brand-google"></i> Google Cal</button>
-  </div>
+  <div style="display:grid;grid-template-columns:1fr 280px;gap:14px;align-items:start">
 
-  <!-- Panel Google Calendar (colapsable) -->
-  <div id="ag-gcal-panel" style="display:none;margin-bottom:14px">
-    <div class="card">
-      <div class="ch">
-        <span class="ct"><i class="ti ti-brand-google" style="font-size:13px"></i> Integración Google Calendar</span>
-        <button class="btn" onclick="agToggleGCalPanel()"><i class="ti ti-x"></i></button>
+    <!-- ═══════ COLUMNA IZQUIERDA (70% / 1fr) ═══════ -->
+    <div>
+
+      <!-- Toolbar -->
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap">
+        <button class="btn" onclick="agNavPrev()"><i class="ti ti-chevron-left"></i></button>
+        <button class="btn" style="font-size:11px" onclick="agNavHoy()">Hoy</button>
+        <button class="btn" onclick="agNavNext()"><i class="ti ti-chevron-right"></i></button>
+        <span id="ag-fecha-label" style="font-size:13px;font-weight:500;white-space:nowrap"></span>
+        <div style="flex:1"></div>
+        <button class="btn" onclick="agToggleGCalPanel()" style="font-size:11px"><i class="ti ti-brand-google"></i> Google Cal</button>
       </div>
-      <div class="g2">
-        <div>
-          <div class="fg">
-            <label>Google Client ID</label>
-            <input id="ag-gcal-clientid" placeholder="XXXX.apps.googleusercontent.com" oninput="agGCalGuardar()">
-            <div style="font-size:10px;color:var(--text-muted);margin-top:3px">Obtenlo en <strong>console.cloud.google.com</strong> → APIs → Credenciales → OAuth 2.0</div>
+
+      <!-- Panel Google Calendar -->
+      <div id="ag-gcal-panel" style="display:none;margin-bottom:10px">
+        <div class="card">
+          <div class="ch">
+            <span class="ct"><i class="ti ti-brand-google"></i> Integración Google Calendar</span>
+            <button class="btn" onclick="agToggleGCalPanel()"><i class="ti ti-x"></i></button>
           </div>
-          <div class="fg">
-            <label>Calendar ID</label>
-            <input id="ag-gcal-calid" placeholder="primary  o  correo@gmail.com" oninput="agGCalGuardar()">
-          </div>
-          <div class="fg">
-            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-weight:400">
-              <input type="checkbox" id="ag-gcal-auto" onchange="agGCalGuardar()">
-              Sincronización automática al crear/editar OTs
-            </label>
-          </div>
-        </div>
-        <div>
-          <div style="font-size:11px;margin-bottom:10px" id="ag-gcal-status-text">⚪ Desconectado</div>
-          <div style="display:flex;flex-direction:column;gap:6px">
-            <button class="btn bpa" id="ag-gcal-connect-btn"    onclick="agConectarGCal()"><i class="ti ti-brand-google"></i> Conectar con Google</button>
-            <button class="btn"     id="ag-gcal-disconnect-btn" onclick="agDesconectarGCal()" style="display:none"><i class="ti ti-unlink"></i> Desconectar</button>
-            <button class="btn"     id="ag-gcal-sync-btn"       onclick="agSincronizarOTs()"  style="display:none"><i class="ti ti-refresh"></i> Sincronizar OTs ahora</button>
-          </div>
-          <div class="al al-a" style="margin-top:10px;font-size:10px">
-            <i class="ti ti-info-circle"></i>
-            <div class="al-text">El origen autorizado en Google Cloud debe coincidir con la URL de producción del taller.</div>
+          <div class="g2">
+            <div>
+              <div class="fg"><label>Google Client ID</label><input id="ag-gcal-clientid" placeholder="XXXX.apps.googleusercontent.com" oninput="agGCalGuardar()"></div>
+              <div class="fg"><label>Calendar ID</label><input id="ag-gcal-calid" placeholder="primary" oninput="agGCalGuardar()"></div>
+              <div class="fg"><label style="display:flex;align-items:center;gap:8px;font-weight:400"><input type="checkbox" id="ag-gcal-auto" onchange="agGCalGuardar()"> Sincronización automática</label></div>
+            </div>
+            <div>
+              <div style="font-size:11px;margin-bottom:10px" id="ag-gcal-status-text">⚪ Desconectado</div>
+              <div style="display:flex;flex-direction:column;gap:6px">
+                <button class="btn bpa" id="ag-gcal-connect-btn" onclick="agConectarGCal()"><i class="ti ti-brand-google"></i> Conectar</button>
+                <button class="btn" id="ag-gcal-disconnect-btn" onclick="agDesconectarGCal()" style="display:none"><i class="ti ti-unlink"></i> Desconectar</button>
+                <button class="btn" id="ag-gcal-sync-btn" onclick="agSincronizarOTs()" style="display:none"><i class="ti ti-refresh"></i> Sincronizar OTs</button>
+              </div>
+            </div>
           </div>
         </div>
       </div>
-    </div>
-  </div>
 
-  <!-- Contenedor del calendario -->
-  <div class="card" style="padding:0;overflow:hidden">
-    <!-- Header días (vista Día / Semana) -->
-    <div id="ag-header-dias" style="display:none;border-bottom:0.5px solid var(--border)"></div>
-    <!-- Grid scrollable (vista Día / Semana) -->
-    <div id="ag-grid-wrap" style="display:none;overflow-y:auto;max-height:640px;position:relative">
-      <div id="ag-grid"></div>
+      <!-- Contenedor del calendario -->
+      <div class="card" style="padding:0;overflow:hidden">
+        <div id="ag-header-dias" style="display:none;border-bottom:0.5px solid var(--border)"></div>
+        <div id="ag-grid-wrap" style="display:none;overflow-y:auto;max-height:620px;position:relative">
+          <div id="ag-grid"></div>
+        </div>
+        <div id="ag-mes-grid" style="display:none"></div>
+      </div>
+
     </div>
-    <!-- Grid mes -->
-    <div id="ag-mes-grid" style="display:none"></div>
+
+    <!-- ═══════ COLUMNA DERECHA (280px / 30%) ═══════ -->
+    <div>
+
+      <!-- Mini calendario (mes completo) -->
+      <div class="card" style="margin-bottom:10px">
+        <div class="ch" style="margin-bottom:8px">
+          <button class="btn" onclick="agMiniPrev()" style="padding:2px 6px;font-size:11px"><i class="ti ti-chevron-left"></i></button>
+          <span id="ag-mini-label" style="font-size:12px;font-weight:500"></span>
+          <button class="btn" onclick="agMiniNext()" style="padding:2px 6px;font-size:11px"><i class="ti ti-chevron-right"></i></button>
+        </div>
+        <div id="ag-mini-grid" style="font-size:10px"></div>
+      </div>
+
+      <!-- Botones de vista -->
+      <div style="display:flex;gap:0;margin-bottom:10px;border:0.5px solid var(--border);border-radius:var(--radius);overflow:hidden">
+        <button id="ag-btn-dia" class="btn" onclick="agSetVista('dia')" style="flex:1;border-radius:0;border:none;border-right:0.5px solid var(--border);font-size:11px;padding:6px">Día</button>
+        <button id="ag-btn-semana" class="btn" onclick="agSetVista('semana')" style="flex:1;border-radius:0;border:none;border-right:0.5px solid var(--border);font-size:11px;padding:6px">Semana</button>
+        <button id="ag-btn-mes" class="btn" onclick="agSetVista('mes')" style="flex:1;border-radius:0;border:none;font-size:11px;padding:6px">Mes</button>
+      </div>
+
+      <!-- Filtro por operario -->
+      <div class="card" style="margin-bottom:10px">
+        <div class="fg" style="margin:0">
+          <label style="font-size:11px">Filtrar por operario</label>
+          <select id="ag-filtro-op" onchange="agendaFiltrarPorOperario(this.value)" style="width:100%;font-size:11px">
+            <option value="">Todos los operarios</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Leyenda semáforo -->
+      <div class="card" style="font-size:11px">
+        <span style="font-size:11px;font-weight:500;display:block;margin-bottom:8px"><i class="ti ti-traffic-lights"></i> Ocupación</span>
+        <div style="display:flex;flex-direction:column;gap:4px">
+          <div style="display:flex;align-items:center;gap:6px"><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#10b981"></span> 0–50% — Baja</div>
+          <div style="display:flex;align-items:center;gap:6px"><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#f59e0b"></span> 50–80% — Media</div>
+          <div style="display:flex;align-items:center;gap:6px"><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#ef4444"></span> 80–100% — Alta</div>
+          <div style="display:flex;align-items:center;gap:6px"><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#d1d5db"></span> Sin OTs</div>
+        </div>
+        <div style="margin-top:8px;padding-top:8px;border-top:0.5px solid var(--border)">
+          <div style="display:flex;align-items:center;gap:6px"><span id="ag-semaforo-dot" style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#10b981"></span> <span id="ag-semaforo-label" style="color:var(--text-muted)">Hoy: calculando…</span></div>
+        </div>
+      </div>
+
+    </div>
+
   </div>
 
 </div>
