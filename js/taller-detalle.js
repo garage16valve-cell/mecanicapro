@@ -370,7 +370,7 @@ function _diagBuscarServicio(texto) {
       `<div onclick="_diagSeleccionarServicio('${s.id}')" style="cursor:pointer;padding:8px 10px;font-size:12px;border-bottom:0.5px solid var(--border)"
          onmouseover="this.style.background='var(--surface-1)'" onmouseout="this.style.background=''">
         <span style="font-weight:500">${s.nombre}</span>
-        <span style="color:var(--text-muted);font-size:10px;margin-left:8px">${(s.horas_estimadas||s.horasEst||0)}h · $${(s.precio_venta||s.precioFijo||0).toLocaleString('es-CL')}</span>
+        <span style="color:var(--text-muted);font-size:10px;margin-left:8px">${(s.horas||s.horasEst||s.horas_estimadas||0)}h · $${(s.valor||s.precioFijo||s.precio_venta||0).toLocaleString('es-CL')}</span>
       </div>`
     ).join('');
     dropdown.style.display = 'block';
@@ -392,8 +392,8 @@ function _diagSeleccionarServicio(id) {
   const servicio = servicios.find(s => s.id === id);
   if (!servicio) return;
   document.getElementById('diag-svc-nombre').value = servicio.nombre;
-  document.getElementById('diag-svc-horas').value = servicio.horas_estimadas || servicio.horasEst || 0;
-  document.getElementById('diag-svc-valor').value = servicio.precio_venta || servicio.precioFijo || 0;
+  document.getElementById('diag-svc-horas').value = servicio.horas || servicio.horasEst || servicio.horas_estimadas || 0;
+  document.getElementById('diag-svc-valor').value = servicio.valor || servicio.precioFijo || servicio.precio_venta || 0;
   document.getElementById('diag-svc-seleccionado-id').value = id;
   document.getElementById('diag-svc-info').style.display = 'block';
   const dropdown = document.getElementById('diag-svc-sugerencias');
@@ -403,9 +403,13 @@ function _diagSeleccionarServicio(id) {
   if (repsEl) {
     if (reps.length) {
       repsEl.innerHTML = '<div style="font-size:10px;font-weight:600;color:var(--text-muted);text-transform:uppercase;margin-bottom:4px">Repuestos sugeridos</div>' +
-        reps.map(r =>
-          `<div style="font-size:10px;padding:2px 0;color:var(--text-secondary)">• ${r.nombre}${r.cantidad ? ' (x' + r.cantidad + ')' : ''}${r.precio || r.precio_unitario ? ' — $' + ((r.precio||r.precio_unitario||0)).toLocaleString('es-CL') : ''}${r.proveedor ? ' — ' + r.proveedor : ''}</div>`
-        ).join('');
+        reps.map(r => {
+          const inv = typeof _findRepuestoEnInventario === 'function' ? _findRepuestoEnInventario(r.nombre || r.desc || '') : null;
+          const badge = inv && inv.stock > 0
+            ? `<span style="margin-left:6px;font-size:9px;padding:1px 5px;border-radius:6px;background:#05966915;color:#059669;border:0.5px solid #05966930">✓ En inventario (stock: ${inv.stock})</span>`
+            : `<span style="margin-left:6px;font-size:9px;padding:1px 5px;border-radius:6px;background:#d9770615;color:#d97706;border:0.5px solid #d9770630">Cotizar</span>`;
+          return `<div style="font-size:10px;padding:2px 0;color:var(--text-secondary)">• ${r.nombre}${r.cantidad ? ' (x' + r.cantidad + ')' : ''}${r.precio || r.precio_unitario ? ' — $' + ((r.precio||r.precio_unitario||0)).toLocaleString('es-CL') : ''}${r.proveedor ? ' — ' + r.proveedor : ''}${badge}</div>`;
+        }).join('');
     } else {
       repsEl.innerHTML = '<div style="font-size:11px;color:var(--text-muted)">Sin repuestos sugeridos</div>';
     }

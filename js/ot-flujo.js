@@ -62,6 +62,10 @@ function otAbrirDiagnostico(ot_id) {
 
   document.getElementById('ot-diagnostico-ot-id-hidden').value = ot_id;
   document.getElementById('ot-diagnostico-panel').style.display = '';
+  // Inicializar multi-service
+  otDiagServicios = ot.servicios || [];
+  otDiagRepuestos = [];
+  otDiagRenderServicios('_panel');
 }
 
 function otCargarServicios(ot_id) {
@@ -464,6 +468,11 @@ function otMostrarTabDiagnostico(ot_id) {
   // Diagnóstico editable
   document.getElementById('ot-diagnostico-input').value = ot.diagnostico || '';
   document.getElementById('ot-diagnostico-ot-id').value = ot_id;
+
+  // Inicializar multi-service desde OT existente
+  otDiagServicios = ot.servicios || [];
+  otDiagRepuestos = [];
+  otDiagRenderServicios('_tab');
 
   // Highlight tab activo
   document.querySelectorAll('#ot-detalle-tabs button').forEach(btn => btn.style.borderBottomColor = 'transparent');
@@ -1806,6 +1815,237 @@ function otConfirmarEntrega(ot_id) {
   _otAvanzarAFase(ot_id, 'archivado', 'Archivado');
 }
 
+// ===== MULTI-SERVICE DIAGNÓSTICO (tab/panel) =====
+let otDiagServicios = [];
+let otDiagRepuestos = [];
+
+function otDiagBuscarServicio(q, suffix) {
+  const sf = suffix || '_tab';
+  const drop = document.getElementById('ot-diag-sugerencias' + sf);
+  if (!drop) return;
+  if (!q || q.length < 1) { if (drop) drop.style.display = 'none'; return; }
+  const servicios = APP.lsGet('mp_servicios') || [];
+  const qLow = q.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  const matches = servicios.filter(s => (s.nombre || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').includes(qLow)).slice(0, 10);
+  drop.style.display = 'block';
+  if (!matches.length) {
+    drop.innerHTML = '<div style="padding:9px 12px;font-size:11px;color:var(--text-muted)">Sin resultados — completa manualmente</div>';
+    return;
+  }
+  drop.innerHTML = matches.map(s => {
+    const precio = s.valor || s.precioFijo || s.precio_venta || 0;
+    const horas = s.horas || s.horasEst || s.horas_estimadas || 0;
+    return `<div onclick="otDiagSelServicio('${_nfEsc(s.nombre)}',${horas},${precio},'${sf}')"
+      style="padding:8px 12px;cursor:pointer;border-bottom:0.5px solid var(--border);font-size:12px">
+      <div style="font-weight:500">${_nfEsc(s.nombre)}</div>
+      <div style="font-size:10px;color:var(--text-muted)">${horas ? '⏱ ' + horas + 'h' : ''}${precio ? ' | $' + Number(precio).toLocaleString('es-CL') : ''}</div>
+    </div>`;
+  }).join('');
+}
+
+function otDiagSelServicio(nombre, horas, valor, suffix) {
+  const sf = suffix || '_tab';
+  document.getElementById('ot-diag-servicio-nombre' + sf).value = nombre;
+  document.getElementById('ot-diag-servicio-horas' + sf).value = horas != null ? horas : '';
+  document.getElementById('ot-diag-servicio-valor' + sf).value = valor != null ? valor : '';
+  const drop = document.getElementById('ot-diag-sugerencias' + sf);
+  if (drop) drop.style.display = 'none';
+  document.getElementById('ot-diag-datos-servicio' + sf).style.display = 'block';
+  const servicios = APP.lsGet('mp_servicios') || [];
+  const svc = servicios.find(s => (s.nombre || '').toLowerCase() === nombre.toLowerCase());
+  if (svc && (svc.repuestos || svc.repuestosSugeridos)) {
+    const reps = svc.repuestos || svc.repuestosSugeridos || [];
+    otDiagRepuestos = reps.map(r => ({
+      nombre: r.nombre || r.desc || '',
+      cantidad: r.cantidad || 1,
+      unidad: r.unidad || 'unidad'
+    }));
+  } else {
+    otDiagRepuestos = [];
+  }
+  otDiagRenderRepuestos(sf);
+  const btn = document.getElementById('ot-diag-agregar-btn' + sf);
+  if (btn) btn.style.display = 'flex';
+}
+
+function otDiagAgregarRepuesto(suffix) {
+  const sf = suffix || '_tab';
+  const nombre = (document.getElementById('ot-diag-repuesto-nombre' + sf)?.value || '').trim();
+  const cantidad = parseFloat(document.getElementById('ot-diag-repuesto-cantidad' + sf)?.value) || 1;
+  const unidad = document.getElementById('ot-diag-repuesto-unidad' + sf)?.value || 'unidad';
+  if (!nombre) { APP.toast.show('Ingresa el nombre del repuesto', 'warning'); return; }
+  otDiagRepuestos.push({ nombre, cantidad, unidad });
+  document.getElementById('ot-diag-repuesto-nombre' + sf).value = '';
+  document.getElementById('ot-diag-repuesto-cantidad' + sf).value = '1';
+  otDiagRenderRepuestos(sf);
+}
+
+function otDiagRenderRepuestos(suffix) {
+  const sf = suffix || '_tab';
+  const lista = document.getElementById('ot-diag-repuestos-lista' + sf);
+  if (!lista) return;
+  if (!otDiagRepuestos.length) {
+    lista.innerHTML = '<div style="color:var(--text-muted);font-size:10px;padding:4px 0">Sin repuestos — agrega usando el botón</div>';
+    return;
+  }
+  lista.innerHTML = otDiagRepuestos.map((r, i) => {
+    const inv = typeof _findRepuestoEnInventario === 'function' ? _findRepuestoEnInventario(r.nombre) : null;
+    const badge = inv && inv.stock > 0
+      ? `<span style="margin-left:6px;font-size:9px;padding:1px 5px;border-radius:6px;background:#05966915;color:#059669;border:0.5px solid #05966930">✓ En inventario (stock: ${inv.stock})</span>`
+      : `<span style="margin-left:6px;font-size:9px;padding:1px 5px;border-radius:6px;background:#d9770615;color:#d97706;border:0.5px solid #d9770630">Cotizar</span>`;
+    return `<div style="display:flex;align-items:center;gap:4px;margin-bottom:4px;font-size:11px">
+      <span style="flex:1">${_nfEsc(r.nombre)} (${r.cantidad} ${r.unidad}) ${badge}</span>
+      <button onclick="otDiagElimRepuesto(${i},'${sf}')" style="background:none;border:none;cursor:pointer;color:var(--text-muted);font-size:14px;padding:0">×</button>
+    </div>`;
+  }).join('');
+}
+
+function otDiagElimRepuesto(i, suffix) { otDiagRepuestos.splice(i, 1); otDiagRenderRepuestos(suffix || '_tab'); }
+
+function otDiagAgregarServicio(suffix) {
+  const sf = suffix || '_tab';
+  const nombre = (document.getElementById('ot-diag-servicio-nombre' + sf)?.value || '').trim();
+  const horas = parseFloat(document.getElementById('ot-diag-servicio-horas' + sf)?.value) || 0;
+  const valor = parseInt(document.getElementById('ot-diag-servicio-valor' + sf)?.value) || 0;
+  if (!nombre) { APP.toast.show('Ingresa el nombre del servicio', 'warning'); return; }
+  otDiagServicios.push({ nombre, horas, valor, repuestos: otDiagRepuestos.map(r => ({ ...r })) });
+  document.getElementById('ot-diag-servicio-nombre' + sf).value = '';
+  document.getElementById('ot-diag-servicio-horas' + sf).value = '';
+  document.getElementById('ot-diag-servicio-valor' + sf).value = '';
+  document.getElementById('ot-diag-buscar' + sf).value = '';
+  otDiagRepuestos = [];
+  otDiagRenderRepuestos(sf);
+  otDiagRenderServicios(sf);
+  document.getElementById('ot-diag-datos-servicio' + sf).style.display = 'none';
+  const btn = document.getElementById('ot-diag-agregar-btn' + sf);
+  if (btn) btn.style.display = 'none';
+}
+
+function otDiagRenderServicios(suffix) {
+  const sf = suffix || '_tab';
+  const lista = document.getElementById('ot-diag-servicios-lista' + sf);
+  if (!lista) return;
+  if (!otDiagServicios.length) {
+    lista.innerHTML = '<div style="color:var(--text-muted);font-size:11px;padding:4px 0">Sin servicios agregados aún</div>';
+    const tot = document.getElementById('ot-diag-totales' + sf);
+    if (tot) tot.style.display = 'none';
+    return;
+  }
+  lista.innerHTML = otDiagServicios.map((s, i) => {
+    const repsHtml = s.repuestos && s.repuestos.length
+      ? s.repuestos.map((r, ri) => `<div style="display:flex;align-items:center;gap:4px;padding:2px 0;font-size:10px;color:var(--text-muted)">
+          <span style="flex:1">• ${_nfEsc(r.nombre)} (${r.cantidad} ${r.unidad})</span>
+          <button onclick="otDiagElimRepuestoServicio(${i},${ri},'${sf}')" style="background:none;border:none;cursor:pointer;color:var(--text-muted);font-size:12px;padding:0;line-height:1">×</button>
+        </div>`).join('')
+      : '<div style="font-size:10px;color:var(--text-muted);padding:2px 0">Sin repuestos</div>';
+    return `<div style="border:0.5px solid var(--border);border-radius:var(--radius);padding:8px 10px;background:var(--surface-1);margin-bottom:6px">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+        <span style="font-weight:600;font-size:12px;flex:1">SERVICIO ${i + 1}: ${_nfEsc(s.nombre)}</span>
+        <button onclick="otDiagElimServicio(${i},'${sf}')" style="background:none;border:none;cursor:pointer;color:var(--text-muted);font-size:16px;padding:0">×</button>
+      </div>
+      <div style="font-size:11px;color:var(--text-secondary);margin-bottom:4px">
+        ⏱ ${s.horas}h | $${(s.valor || 0).toLocaleString('es-CL')}
+      </div>
+      <div style="font-size:10px;font-weight:500;color:var(--text-muted);margin-bottom:2px">Repuestos:</div>
+      ${repsHtml}
+    </div>`;
+  }).join('');
+  otDiagActualizarTotales(sf);
+}
+
+function otDiagActualizarTotales(suffix) {
+  const sf = suffix || '_tab';
+  const totalH = otDiagServicios.reduce((a, s) => a + (s.horas || 0), 0);
+  const totalV = otDiagServicios.reduce((a, s) => a + (s.valor || 0), 0);
+  const tot = document.getElementById('ot-diag-totales' + sf);
+  if (tot) {
+    tot.style.display = 'flex';
+    tot.innerHTML = `<span>Total: <strong>${totalH}h</strong></span>
+      <span style="font-weight:600;color:var(--text-accent,#2563eb)">Total: $${totalV.toLocaleString('es-CL')}</span>`;
+  }
+}
+
+function otDiagElimServicio(i, suffix) { otDiagServicios.splice(i, 1); otDiagRenderServicios(suffix || '_tab'); }
+
+function otDiagElimRepuestoServicio(si, ri, suffix) {
+  if (otDiagServicios[si] && otDiagServicios[si].repuestos) {
+    otDiagServicios[si].repuestos.splice(ri, 1);
+    otDiagRenderServicios(suffix || '_tab');
+  }
+}
+
+function otDiagGuardarCatalogo(suffix) {
+  const sf = suffix || '_tab';
+  const nombre = (document.getElementById('ot-diag-servicio-nombre' + sf)?.value || '').trim();
+  const horas = parseFloat(document.getElementById('ot-diag-servicio-horas' + sf)?.value) || 0;
+  const valor = parseInt(document.getElementById('ot-diag-servicio-valor' + sf)?.value) || 0;
+  if (!nombre) { APP.toast.show('Ingresa el nombre del servicio', 'warning'); return; }
+  const servicios = APP.lsGet('mp_servicios') || [];
+  if (servicios.find(s => (s.nombre || '').toLowerCase() === nombre.toLowerCase())) {
+    APP.toast.show('⚠️ El servicio ya existe en el catálogo', 'warning');
+    return;
+  }
+  servicios.push({
+    id: 'SVC' + Date.now(),
+    nombre,
+    horas_estimadas: horas,
+    precio_venta: valor,
+    repuestos: otDiagRepuestos.map(r => ({ ...r }))
+  });
+  APP.lsSet('mp_servicios', servicios);
+  APP.toast.show('✅ Servicio guardado en catálogo', 'success');
+}
+
+function otDiagGuardarYAvanzar(suffix) {
+  const sf = suffix || '_tab';
+  const isTab = sf === '_tab';
+  const otId = document.getElementById(isTab ? 'ot-diagnostico-ot-id' : 'ot-diagnostico-ot-id-hidden')?.value;
+  const diagnostico = document.getElementById(isTab ? 'ot-diagnostico-input' : 'ot-diagnostico-input-panel')?.value?.trim();
+  if (!diagnostico) { APP.toast.show('⚠️ Anotar diagnóstico es obligatorio', 'warning'); return; }
+  if (!otDiagServicios.length) { APP.toast.show('⚠️ Agrega al menos un servicio', 'warning'); return; }
+  const ots = APP.lsGet('ots', []);
+  const ot = ots.find(o => o.id === otId);
+  if (!ot) { APP.toast.show('⚠️ OT no encontrada', 'error'); return; }
+
+  ot.diagnostico = diagnostico;
+  const serviciosGuardar = otDiagServicios.map(s => ({
+    nombre: s.nombre,
+    horas: s.horas || 0,
+    valor: s.valor || 0,
+    repuestos: (s.repuestos || []).map(r => ({ nombre: r.nombre, cantidad: r.cantidad, unidad: r.unidad }))
+  }));
+  const todosRepuestos = [];
+  let totalHoras = 0;
+  serviciosGuardar.forEach(s => {
+    totalHoras += s.horas || 0;
+    (s.repuestos || []).forEach(r => {
+      todosRepuestos.push({ nombre: r.nombre, cantidad: r.cantidad || 1, precio_unitario: 0, proveedor: '' });
+    });
+  });
+  if (!ot.cotizacion) ot.cotizacion = { repuestos: [], mano_obra: 0 };
+  ot.servicios = serviciosGuardar;
+  ot.servicios_diagnostico = serviciosGuardar.map(s => s.nombre);
+  ot.servicios_seleccionados = serviciosGuardar.map(s => s.nombre);
+  ot.cotizacion.repuestos = todosRepuestos;
+  ot.cotizacion.mano_obra = serviciosGuardar.reduce((a, s) => a + (s.valor || 0), 0);
+  ot.cotizacion.mano_obra_horas = totalHoras;
+  ot.estado = 'repuestos';
+  ot.fecha_modificacion = new Date().toISOString();
+  APP.lsSet('ots', ots);
+  otDiagServicios = [];
+  otDiagRepuestos = [];
+  if (typeof _otAvanzarAFase === 'function') _otAvanzarAFase(ot.id, 'repuestos', 'Repuestos');
+}
+
+function otDiagCargarOT(ot_id) {
+  const ots = APP.lsGet('ots', []);
+  const ot = ots.find(o => o.id === ot_id);
+  if (!ot) return;
+  otDiagServicios = ot.servicios || [];
+  otDiagRepuestos = [];
+  otDiagRenderServicios('_tab');
+}
+
 // ===== WINDOW EXPORTS =====
 window.otAbrirRecepcion = otAbrirRecepcion;
 window.otGuardarSintomas = otGuardarSintomas;
@@ -1877,3 +2117,13 @@ window.otFacturarOT = otFacturarOT;
 window.otConfirmarEntrega = otConfirmarEntrega;
 window._otCerrarPanelFase = _otCerrarPanelFase;
 window._otAvanzarAFase = _otAvanzarAFase;
+window.otDiagBuscarServicio = otDiagBuscarServicio;
+window.otDiagSelServicio = otDiagSelServicio;
+window.otDiagAgregarRepuesto = otDiagAgregarRepuesto;
+window.otDiagAgregarServicio = otDiagAgregarServicio;
+window.otDiagElimRepuesto = otDiagElimRepuesto;
+window.otDiagElimServicio = otDiagElimServicio;
+window.otDiagElimRepuestoServicio = otDiagElimRepuestoServicio;
+window.otDiagGuardarCatalogo = otDiagGuardarCatalogo;
+window.otDiagGuardarYAvanzar = otDiagGuardarYAvanzar;
+window.otDiagCargarOT = otDiagCargarOT;

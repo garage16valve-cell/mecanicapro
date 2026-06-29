@@ -462,6 +462,30 @@ function nfElimRepuestoServicio(si, ri) {
 }
 
 // ─── Repuestos del servicio actual ──────────────────────────────────────────
+// ─── Helper: buscar repuesto en inventario (por código o nombre) ───
+function _findRepuestoEnInventario(nombreOCodigo) {
+  const inventario = APP.lsGet('repuestos') || [];
+  if (!nombreOCodigo) return null;
+  const q = nombreOCodigo.toString().toLowerCase().trim();
+  // 1. Exact match by codigo (SKU)
+  let match = inventario.find(r => r.codigo && r.codigo.toLowerCase() === q);
+  if (match) return match;
+  // 2. Fuzzy match by nombre
+  match = inventario.find(r => r.nombre && r.nombre.toLowerCase().includes(q));
+  if (match) return match;
+  // 3. Token-level (each word matches)
+  const tokens = q.split(/\s+/).filter(Boolean);
+  if (tokens.length > 1) {
+    match = inventario.find(r => {
+      if (!r.nombre) return false;
+      const rn = r.nombre.toLowerCase();
+      return tokens.every(t => rn.includes(t));
+    });
+  }
+  return match || null;
+}
+window._findRepuestoEnInventario = _findRepuestoEnInventario;
+
 function nfRenderRepuestos() {
   const lista = document.getElementById('nf-repuestos-lista');
   if (!lista) return;
@@ -469,12 +493,16 @@ function nfRenderRepuestos() {
     lista.innerHTML = '<div style="color:var(--text-muted);font-size:10px;padding:4px 0">Sin repuestos — agrega usando el botón</div>';
     return;
   }
-  lista.innerHTML = nfRepuestos.map((r, i) =>
-    `<div style="display:flex;align-items:center;gap:4px;margin-bottom:4px;font-size:11px">
-      <span style="flex:1">${_nfEsc(r.nombre)} (${r.cantidad} ${r.unidad})</span>
+  lista.innerHTML = nfRepuestos.map((r, i) => {
+    const inv = _findRepuestoEnInventario(r.nombre);
+    const badge = inv && inv.stock > 0
+      ? `<span style="margin-left:6px;font-size:9px;padding:1px 5px;border-radius:6px;background:#05966915;color:#059669;border:0.5px solid #05966930">✓ En inventario (stock: ${inv.stock})</span>`
+      : `<span style="margin-left:6px;font-size:9px;padding:1px 5px;border-radius:6px;background:#d9770615;color:#d97706;border:0.5px solid #d9770630">Cotizar</span>`;
+    return `<div style="display:flex;align-items:center;gap:4px;margin-bottom:4px;font-size:11px">
+      <span style="flex:1">${_nfEsc(r.nombre)} (${r.cantidad} ${r.unidad}) ${badge}</span>
       <button onclick="nfElimRepuesto(${i})" style="background:none;border:none;cursor:pointer;color:var(--text-muted);font-size:14px;padding:0">×</button>
-    </div>`
-  ).join('');
+    </div>`;
+  }).join('');
 }
 
 function nfAgregarRepuesto() {
