@@ -2434,33 +2434,45 @@ function _mostrarModalOpcionales(otId, faseDestino, opcionales) {
   }
 }
 
-function cambiarFaseOT(otId, faseDestino, opcionalesFaltantes) {
-  const ots = APP.lsGet('ots') || [];
-  const idx = ots.findIndex(o => o.id === otId);
-  if (idx < 0) return;
+function cambiarFaseOT(otId, faseDestino, datosPendientes) {
+  var ots = APP.lsGet('ots') || [];
+  var ot = ots.find(function(o) { return o.id === otId; });
+  if (!ot) return;
 
-  const faseAnteriorVal = ots[idx].fase || 'recepcion';
-  const sesion = JSON.parse(localStorage.getItem('sesion') || '{}');
-  const usuario = sesion.nombre || 'Sistema';
-  const ahora = new Date();
+  var faseAnteriorVal = ot.fase || 'recepcion';
+  var ses = APP.lsGet('sesion') || {};
+  var nombreUsuario = ses.nombre || 'Usuario desconocido';
+  var idUsuario = ses.usuario_id || null;
 
-  ots[idx].fase = faseDestino;
-  ots[idx].historial = ots[idx].historial || [];
-  ots[idx].historial.push({
-    evento: 'Cambio de fase',
-    descripcion: faseAnteriorVal + ' → ' + faseDestino,
-    fecha: ahora.toISOString(),
-    usuario: usuario,
-    opcionales_omitidos: opcionalesFaltantes && opcionalesFaltantes.length > 0 ? opcionalesFaltantes : undefined
+  if (!ot.historial) {
+    ot.historial = ot.historial_eventos || [];
+  }
+
+  ot.fase = faseDestino;
+  ot.historial.push({
+    evento: 'cambio_fase',
+    descripcion: nombreUsuario + ' cambió de ' + faseAnteriorVal + ' → ' + faseDestino,
+    fecha: new Date().toISOString(),
+    usuario_id: idUsuario,
+    usuario_nombre: nombreUsuario,
+    datos_pendientes: datosPendientes || []
   });
 
-  APP.lsSet('ots', ots);
+  if (datosPendientes && datosPendientes.length > 0) {
+    ot.historial.push({
+      evento: 'datos_omitidos',
+      descripcion: 'Avanzó con datos incompletos: ' + datosPendientes.join(', '),
+      fecha: new Date().toISOString(),
+      usuario_id: idUsuario,
+      usuario_nombre: nombreUsuario,
+      datos_pendientes: datosPendientes
+    });
+  }
 
-  // Sincronizar mp_ots
+  APP.lsSet('ots', ots);
   APP.lsSet('mp_ots', ots);
 
-  // Cerrar panel inline y refrescar lista
-  const panel = document.querySelector('.ot-panel-inline');
+  var panel = document.querySelector('.ot-panel-inline');
   if (panel) panel.remove();
 
   if (typeof renderListaOTs === 'function') renderListaOTs();
@@ -2469,6 +2481,71 @@ function cambiarFaseOT(otId, faseDestino, opcionalesFaltantes) {
   if (APP.toast) APP.toast.show('✅ OT avanzó a ' + faseDestino, 'success');
 }
 
+function abrirHistorialOT(otId) {
+  var ots = APP.lsGet('ots') || [];
+  var ot = ots.find(function(o) { return o.id === otId; });
+  if (!ot) return;
+
+  var entradas = ot.historial || ot.historial_eventos || [];
+
+  var overlay = document.getElementById('modal-historial-ot');
+  if (overlay) overlay.remove();
+
+  overlay = document.createElement('div');
+  overlay.id = 'modal-historial-ot';
+  overlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.45);z-index:1200;display:flex;align-items:center;justify-content:center;padding:20px';
+  overlay.onclick = function(e) { if (e.target === overlay) overlay.remove(); };
+
+  var titulo = 'Historial · #' + (ot.numero || ot.id);
+  var listaHTML = '';
+
+  if (entradas.length === 0) {
+    listaHTML = '<p style="color:var(--text-muted);text-align:center;padding:20px 0">Sin historial registrado para esta OT.</p>';
+  } else {
+    entradas.slice().reverse().forEach(function(e) {
+      var icono = '•';
+      var color = 'var(--text-secondary)';
+      if (e.evento === 'cambio_fase') { icono = '⇄'; color = 'var(--text-accent)'; }
+      if (e.evento === 'datos_omitidos') { icono = '⚠'; color = '#EF9F27'; }
+      if (e.evento === 'creacion') { icono = '📄'; color = '#16a34a'; }
+
+      var fecha = '';
+      if (e.fecha) {
+        var d = new Date(e.fecha);
+        fecha = d.toLocaleDateString('es-CL') + ', ' + d.toLocaleTimeString('es-CL', {hour:'2-digit', minute:'2-digit'});
+      }
+
+      var pendientes = '';
+      if (e.datos_pendientes && e.datos_pendientes.length > 0) {
+        pendientes = '<div style="color:var(--text-muted);font-size:11px;margin-top:3px">Datos omitidos: ' + e.datos_pendientes.join(', ') + '</div>';
+      }
+
+      var usuario = e.usuario_nombre || e.usuario || '';
+
+      listaHTML += '<div style="padding:10px 0;border-bottom:0.5px solid var(--border);display:flex;gap:10px">' +
+        '<div style="font-size:16px;line-height:1;color:' + color + '">' + icono + '</div>' +
+        '<div style="flex:1;min-width:0">' +
+          '<div style="font-size:12px;color:var(--text-primary)">' + (e.descripcion || e.evento || '') + '</div>' +
+          '<div style="font-size:11px;color:var(--text-muted);margin-top:2px">' + fecha + (usuario ? ' · ' + usuario : '') + '</div>' +
+          pendientes +
+        '</div>' +
+      '</div>';
+    });
+  }
+
+  overlay.innerHTML =
+    '<div style="background:var(--surface-2);border-radius:var(--radius);box-shadow:0 8px 30px rgba(0,0,0,.25);max-width:520px;width:100%;max-height:80vh;display:flex;flex-direction:column">' +
+      '<div style="padding:14px 16px;border-bottom:0.5px solid var(--border);display:flex;align-items:center;justify-content:space-between">' +
+        '<div style="font-size:14px;font-weight:600">' + titulo + '</div>' +
+        '<button onclick="document.getElementById(\'modal-historial-ot\').remove()" style="background:none;border:none;font-size:18px;cursor:pointer;color:var(--text-muted);padding:4px">✕</button>' +
+      '</div>' +
+      '<div style="padding:16px;overflow-y:auto;flex:1">' + listaHTML + '</div>' +
+    '</div>';
+
+  document.body.appendChild(overlay);
+}
+
 window.getChecklistFase = getChecklistFase;
 window.ejecutarCambioFase = ejecutarCambioFase;
 window.cambiarFaseOT = cambiarFaseOT;
+window.abrirHistorialOT = abrirHistorialOT;
