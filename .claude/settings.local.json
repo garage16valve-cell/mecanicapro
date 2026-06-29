@@ -30,7 +30,8 @@
       "Bash(exit 1)",
       "Bash([ ! -f \"$INDEX_FILE\" ])",
       "Bash(python3 \"C:\\\\Users\\\\camil\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\C--Users-camil-Downloads-Gestion-de-taller\\\\36f62601-88b6-4fe8-b6db-c645eef1ca5c\\\\scratchpad\\\\sync_taller.py\")",
-      "Bash(# Crear *)"
+      "Bash(# Crear *)",
+      "Bash(ping -n 1 github.com)"
     ]
   }
 }
