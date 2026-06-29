@@ -10,6 +10,10 @@ function finSetTab(tabName) {
   if (panel) panel.style.display = 'block';
   if (btn) btn.classList.add('active');
   if (tabName === 'dashboard') finRenderDashboard();
+  if (tabName === 'flujo') finRenderFlujoCaja();
+  if (tabName === 'remuneraciones') finRenderRemuneraciones();
+  if (tabName === 'proveedores') finRenderProveedores();
+  if (tabName === 'gastos') finRenderGastos();
 }
 
 function finCargar() {
