@@ -640,6 +640,7 @@ function _admCargarConfig() {
   const s   = (id, v) => { const el = document.getElementById(id); if (el) el.value = v || ''; };
   s('cfg-nombre', cfg.nombre); s('cfg-rut', cfg.rut); s('cfg-direccion', cfg.direccion);
   s('cfg-telefono', cfg.telefono); s('cfg-agenda', cfg.agenda);
+  _admCargarLogoPreview();
 }
 
 function admGuardarConfig() {
@@ -649,6 +650,39 @@ function admGuardarConfig() {
   APP.lsSet('mp_taller_config', cfg);
   const btn = document.getElementById('cfg-btn-guardar');
   if (btn) { const o = btn.innerHTML; btn.innerHTML = '<i class="ti ti-check"></i>Guardado ✓'; btn.disabled = true; setTimeout(() => { btn.innerHTML = o; btn.disabled = false; }, 2000); }
+}
+
+// ===== LOGO DEL TALLER =====
+function _admCargarLogoPreview() {
+  const preview = document.getElementById('cfg-logo-preview');
+  const btnDel  = document.getElementById('cfg-logo-eliminar');
+  if (!preview) return;
+  const logo = APP.getLogoTaller();
+  if (logo) {
+    preview.innerHTML = '<img src="' + logo + '" style="max-width:120px;max-height:60px;object-fit:contain">';
+    if (btnDel) btnDel.style.display = '';
+  } else {
+    preview.innerHTML = 'Sin logo';
+    if (btnDel) btnDel.style.display = 'none';
+  }
+}
+
+function admCargarLogo(input) {
+  const file = input.files && input.files[0];
+  if (!file) return;
+  if (file.size > 1048576) { APP.toast.show('⚠️ La imagen supera 1MB. Elige un archivo más pequeño.', 'warning'); input.value = ''; return; }
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try { localStorage.setItem('config_logo_taller', e.target.result); } catch (e) { console.error('Error guardando logo:', e); }
+    _admCargarLogoPreview();
+    APP.toast.show('Logo cargado. Guarda los datos del taller para confirmar.', 'success');
+  };
+  reader.readAsDataURL(file);
+}
+
+function admEliminarLogo() {
+  try { localStorage.removeItem('config_logo_taller'); } catch (e) { console.error(e); }
+  _admCargarLogoPreview();
 }
 
 // ===== CONFIGURACIÓN OPERATIVA =====

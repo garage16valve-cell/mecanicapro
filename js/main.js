@@ -213,6 +213,11 @@ window.APP = {
     },
   },
 
+  // ── Logo del Taller ──
+  getLogoTaller() {
+    try { return localStorage.getItem('config_logo_taller'); } catch { return null; }
+  },
+
   // ── Modales dinámicos (confirmaciones) ──
   modal: {
     abrir(htmlContenido, tamaño = 'mediano') {

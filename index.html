@@ -2239,7 +2239,18 @@
       <div class="fg"><label>Dirección</label><input id="cfg-direccion" placeholder="Dirección del taller"></div>
       <div class="fg"><label>Teléfono / WhatsApp</label><input id="cfg-telefono" placeholder="+56 9 XXXX XXXX"></div>
       <div class="fg"><label>Link de agendamiento</label><input id="cfg-agenda" placeholder="plataforma.cl/agenda/..."></div>
-      <button class="btn bpa" id="cfg-btn-guardar" style="margin-top:4px" onclick="admGuardarConfig()">
+      <div class="div" style="margin:16px 0"></div>
+      <div style="font-size:12px;font-weight:500;margin-bottom:8px">Logo del Taller</div>
+      <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+        <div id="cfg-logo-preview" style="width:120px;height:60px;border:1px dashed var(--border-strong);border-radius:var(--radius);display:flex;align-items:center;justify-content:center;overflow:hidden;background:var(--surface-1);font-size:10px;color:var(--text-muted)">Sin logo</div>
+        <div>
+          <button class="btn" onclick="document.getElementById('cfg-logo-input').click()" style="font-size:11px"><i class="ti ti-upload"></i> Seleccionar imagen</button>
+          <input id="cfg-logo-input" type="file" accept="image/png,image/jpeg" style="display:none" onchange="admCargarLogo(this)">
+          <button id="cfg-logo-eliminar" class="btn" onclick="admEliminarLogo()" style="display:none;font-size:11px;color:var(--text-danger);margin-top:4px"><i class="ti ti-trash"></i> Eliminar logo</button>
+          <div style="font-size:10px;color:var(--text-muted);margin-top:4px">Formato recomendado: PNG transparente, máx. 1MB</div>
+        </div>
+      </div>
+      <button class="btn bpa" id="cfg-btn-guardar" style="margin-top:12px" onclick="admGuardarConfig()">
         <i class="ti ti-device-floppy"></i>Guardar datos del taller
       </button>
     </div>
