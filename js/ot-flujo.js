@@ -69,31 +69,27 @@ function otAbrirDiagnostico(ot_id) {
 }
 
 function otCargarServicios(ot_id) {
-  const servicios = APP.lsGet('mp_servicios', [
-    {id:'serv-1',nombre:'Cambio aceite',horas:0.5,categorias:['Motor','Mantención']},
-    {id:'serv-2',nombre:'Cambio filtro',horas:0.25,categorias:['Motor','Mantención']},
-    {id:'serv-3',nombre:'Cambio de frenos',horas:1.5,categorias:['Frenos']},
-    {id:'serv-4',nombre:'Alineación',horas:1,categorias:['Suspensión']},
-    {id:'serv-5',nombre:'Balanceo de ruedas',horas:0.75,categorias:['Suspensión']}
-  ]);
+  const servicios_default = [
+    {id:'serv-1',nombre:'Cambio aceite',horas:0.5},
+    {id:'serv-2',nombre:'Cambio filtro',horas:0.25},
+    {id:'serv-3',nombre:'Cambio de frenos',horas:1.5},
+    {id:'serv-4',nombre:'Alineación',horas:1},
+    {id:'serv-5',nombre:'Balanceo de ruedas',horas:0.75}
+  ];
 
+  const servicios = APP.lsGet('mp_servicios', servicios_default);
   const ots = APP.lsGet('ots', []);
   const ot = ots.find(o => o.id === ot_id);
   if (!ot) return;
 
   const servicios_seleccionados = ot.servicios_diagnostico || [];
 
-  const html = servicios.map(s => `
-    <label style="display:flex;align-items:center;gap:8px;padding:8px;border:0.5px solid var(--border);border-radius:var(--radius);cursor:pointer;background:var(--surface-1)">
-      <input type="checkbox" value="${s.id}" ${servicios_seleccionados.includes(s.id) ? 'checked' : ''} onchange="otSeleccionarServicio('${ot_id}','${s.id}')">
-      <div style="flex:1">
-        <div style="font-size:12px;font-weight:500">${s.nombre}</div>
-        <div style="font-size:10px;color:var(--text-muted)">${s.horas}h estimadas</div>
-      </div>
-    </label>
-  `).join('');
+  let html = '';
+  servicios.forEach(s => {
+    const checked = servicios_seleccionados.includes(s.id) ? 'checked' : '';
+    html += `<label style="display:flex;align-items:center;gap:8px;padding:8px;border:0.5px solid var(--border);border-radius:var(--radius);cursor:pointer;background:var(--surface-1)"><input type="checkbox" value="${s.id}" ${checked} onchange="otSeleccionarServicio('${ot_id}','${s.id}')"><div style="flex:1"><div style="font-size:12px;font-weight:500">${s.nombre}</div><div style="font-size:10px;color:var(--text-muted)">${s.horas}h</div></div></label>`;
+  });
 
-  // Intentar llenar el elemento del panel detalle
   const container = document.getElementById('ot-diagnostico-servicios-lista');
   if (container) {
     container.innerHTML = html;
@@ -509,8 +505,13 @@ function otGuardarSintomas() {
 }
 
 function otGuardarDiagnosticoNuevo() {
-  const ot_id = document.getElementById('ot-diagnostico-ot-id').value;
-  const diagnostico = document.getElementById('ot-diagnostico-input').value.trim();
+  const ot_id_elem = document.getElementById('ot-diagnostico-ot-id');
+  const diag_elem = document.getElementById('ot-diagnostico-input');
+
+  const ot_id = ot_id_elem ? ot_id_elem.value : '';
+  const diagnostico = diag_elem ? diag_elem.value.trim() : '';
+
+  console.log('DEBUG: ot_id=', ot_id, 'diagnostico=', diagnostico, 'diag_elem=', diag_elem);
 
   if (!diagnostico) {
     APP.toast.show('⚠️ Anotar diagnóstico es obligatorio', 'warning');
