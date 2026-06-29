@@ -256,35 +256,136 @@ function adminRenderUsuarios(buscar) {
   }).join('');
 }
 
+// ===== ADMIN - USUARIOS: datos en memoria =====
+var _admCerts = [];
+var _admCertEditIdx = null;
+var _admUsuEditId = null;
+
 function adminNuevoUsuario() {
-  svcOpNuevo();
-  _svcAdminContext = true;
-  const rg = document.getElementById('svc-op-rol-group');
-  if (rg) rg.style.display = 'block';
-  const t = document.getElementById('svc-op-titulo');
-  if (t) t.textContent = 'Nuevo usuario';
-  const btn = document.getElementById('svc-op-guardar-btn');
-  if (btn) btn.textContent = 'Guardar usuario';
+  _admUsuEditId = null;
+  _admCerts = [];
+  const ids = ['adm-f-nombre','adm-f-apellido','adm-f-rut','adm-f-wz','adm-f-carrera','adm-f-institucion','adm-f-ano-egreso','adm-f-exp-anos','adm-f-exp-desc'];
+  ids.forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+  const sel = document.getElementById('adm-f-nivel');
+  if (sel) sel.value = 'sin_estudios';
+  const chk = document.getElementById('adm-f-titulo-val');
+  if (chk) chk.checked = false;
+  const rol = document.getElementById('adm-f-rol');
+  if (rol) rol.value = 'mecanico';
+  admToggleFormacion();
+  _admCertEditIdx = null;
+  admCertCerrarPanel();
+  admCertRender();
+  ['adm-doc-titulo-preview','adm-doc-cv-preview'].forEach(id => { const el = document.getElementById(id); if (el) el.innerHTML = ''; });
+  ['adm-f-doc-titulo','adm-f-doc-cv'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+  document.getElementById('adm-panel-titulo').textContent = 'Nuevo usuario';
+  document.getElementById('adm-panel-editar').style.display = '';
 }
 
 function adminEditarUsuario(id) {
-  _svcAdminContext = true;
-  svcOpEditar(id);
-  const rg = document.getElementById('svc-op-rol-group');
-  if (rg) rg.style.display = 'block';
   const u = APP.lsGet('usuarios', []).find(x => String(x.id) === String(id));
-  const sel = document.getElementById('svc-op-f-rol');
-  if (sel) sel.value = u?.rol || 'mecanico';
-  const t = document.getElementById('svc-op-titulo');
-  if (t) t.textContent = 'Editar usuario: ' + (u?.nombre || '') + ' ' + (u?.apellido || '');
-  const btn = document.getElementById('svc-op-guardar-btn');
-  if (btn) btn.textContent = 'Guardar usuario';
+  if (!u) return;
+  _admUsuEditId = id;
+  _admCerts = (u.certificaciones || []).map(c => ({ ...c }));
+  const s = (elId, v) => { const el = document.getElementById(elId); if (el) el.value = v || ''; };
+  const c = (elId, v) => { const el = document.getElementById(elId); if (el) el.checked = !!v; };
+  s('adm-f-nombre', u.nombre);
+  s('adm-f-apellido', u.apellido);
+  s('adm-f-rut', u.rut);
+  s('adm-f-wz', u.whatsapp || u.wz || '');
+  s('adm-f-rol', u.rol || 'mecanico');
+  const f = u.formacion || {};
+  const niv = document.getElementById('adm-f-nivel');
+  if (niv) niv.value = f.nivel || 'sin_estudios';
+  admToggleFormacion();
+  s('adm-f-carrera', f.especialidad);
+  s('adm-f-institucion', f.institucion);
+  s('adm-f-ano-egreso', f.año_egreso);
+  c('adm-f-titulo-val', f.titulo_validado);
+  admCertRender();
+  s('adm-f-exp-anos', u.experiencia?.años);
+  s('adm-f-exp-desc', u.experiencia?.especialidades);
+  const docs = u.documentos || {};
+  if (docs.titulo_base64) {
+    const tp = document.getElementById('adm-doc-titulo-preview');
+    if (tp) tp.innerHTML = _admDocPreviewHtml(docs.titulo_base64, 'titulo');
+  }
+  if (docs.cv_base64) {
+    const cp = document.getElementById('adm-doc-cv-preview');
+    if (cp) cp.innerHTML = _admDocPreviewHtml(docs.cv_base64, 'cv');
+  }
+  document.getElementById('adm-panel-titulo').textContent = 'Editar: ' + (u.nombre || '') + ' ' + (u.apellido || '');
+  document.getElementById('adm-panel-editar').style.display = '';
 }
 
 function adminGuardarUsuario() {
-  _svcAdminContext = true;
-  svcOpGuardar();
+  const g = id => (document.getElementById(id)?.value || '').trim();
+  const nombre   = g('adm-f-nombre');
+  const apellido = g('adm-f-apellido');
+  if (!nombre && !apellido) { APP.toast.show('⚠️ Ingresa al menos el nombre.', 'warning'); return; }
+
+  const anoAct = new Date().getFullYear();
+  const anoEg = parseInt(g('adm-f-ano-egreso'));
+  if (anoEg > anoAct) { APP.toast.show('⚠️ Año de egreso no puede ser mayor a ' + anoAct, 'warning'); return; }
+
+  const formacion = {
+    nivel: document.getElementById('adm-f-nivel')?.value || 'sin_estudios',
+    especialidad: g('adm-f-carrera'),
+    institucion: g('adm-f-institucion'),
+    año_egreso: anoEg || null,
+    titulo_validado: document.getElementById('adm-f-titulo-val')?.checked || false,
+  };
+
+  let errCert = false;
+  _admCerts.forEach(c => {
+    if (c.año_vencimiento && c.año_obtencion && c.año_vencimiento < c.año_obtencion) {
+      APP.toast.show('⚠️ En ' + c.nombre + ' el año de vencimiento es anterior al de obtención.', 'warning');
+      errCert = true;
+    }
+  });
+  if (errCert) return;
+
+  const rol = document.getElementById('adm-f-rol')?.value || 'mecanico';
+
+  let usuarios = APP.lsGet('usuarios', []);
+  const dato = {
+    nombre, apellido, rut: g('adm-f-rut'), wz: g('adm-f-wz'), rol,
+    formacion,
+    certificaciones: _admCerts,
+    experiencia: {
+      años: parseInt(g('adm-f-exp-anos')) || 0,
+      especialidades: g('adm-f-exp-desc'),
+    },
+  };
+
+  const docTitulo = document.getElementById('adm-doc-titulo-preview')?.dataset?.base64;
+  const docCv     = document.getElementById('adm-doc-cv-preview')?.dataset?.base64;
+  dato.documentos = {};
+  if (docTitulo) dato.documentos.titulo_base64 = docTitulo;
+  if (docCv)     dato.documentos.cv_base64 = docCv;
+
+  if (_admUsuEditId) {
+    const idx = usuarios.findIndex(x => String(x.id) === String(_admUsuEditId));
+    if (idx >= 0) { usuarios[idx] = { ...usuarios[idx], ...dato, whatsapp: dato.wz, wz: dato.wz, estado: usuarios[idx].estado || 'activo' }; }
+  } else {
+    dato.id = 'usr-' + Date.now();
+    dato.creado = new Date().toISOString();
+    dato.whatsapp = dato.wz;
+    dato.estado = 'activo';
+    usuarios.push(dato);
+  }
+  APP.lsSet('usuarios', usuarios);
+  adminCerrarModalUsuario();
   adminRenderUsuarios(document.getElementById('adm-usuarios-buscar')?.value);
+  APP.toast.show('Usuario guardado.', 'success');
+}
+
+function adminCerrarModalUsuario() {
+  const m = document.getElementById('adm-panel-editar');
+  if (m) m.style.display = 'none';
+  _admUsuEditId = null;
+  _admCerts = [];
+  _admCertEditIdx = null;
 }
 
 function adminEliminarUsuario(id) {
@@ -295,8 +396,153 @@ function adminEliminarUsuario(id) {
   }, 'Eliminar', 'Cancelar');
 }
 
-function adminCerrarModalUsuario() {
-  svcOpCerrar();
+// ===== FORMACIÓN =====
+function admToggleFormacion() {
+  const nivel = document.getElementById('adm-f-nivel')?.value;
+  const det   = document.getElementById('adm-formacion-detalle');
+  const chk   = document.getElementById('adm-f-titulo-val');
+  if (!det) return;
+  if (nivel === 'profesional' || nivel === 'especialista') {
+    det.style.display = '';
+    if (chk) chk.parentElement.style.display = '';
+  } else if (nivel === 'tecnico') {
+    det.style.display = '';
+    document.getElementById('adm-lbl-carrera').textContent = 'Especialidad técnica';
+    document.getElementById('adm-lbl-institucion').textContent = 'Instituto técnico';
+    if (chk) chk.parentElement.style.display = 'none';
+  } else {
+    det.style.display = 'none';
+  }
+}
+
+// ===== CERTIFICACIONES =====
+function admCertRender() {
+  const el = document.getElementById('adm-cert-tabla');
+  if (!el) return;
+  if (!_admCerts.length) {
+    el.innerHTML = '<div style="font-size:11px;color:var(--text-muted);padding:8px 0">Sin certificaciones registradas.</div>';
+    return;
+  }
+  el.innerHTML = `<table style="width:100%;border-collapse:collapse;font-size:11px">
+    <thead><tr>
+      <th style="text-align:left;padding:4px 6px;border-bottom:0.5px solid var(--border);font-size:10px;color:var(--text-muted);font-weight:500">Certificación</th>
+      <th style="text-align:left;padding:4px 6px;border-bottom:0.5px solid var(--border);font-size:10px;color:var(--text-muted);font-weight:500">Institución</th>
+      <th style="text-align:center;padding:4px 6px;border-bottom:0.5px solid var(--border);font-size:10px;color:var(--text-muted);font-weight:500">Año</th>
+      <th style="text-align:center;padding:4px 6px;border-bottom:0.5px solid var(--border);font-size:10px;color:var(--text-muted);font-weight:500">Vigencia</th>
+      <th style="text-align:center;padding:4px 6px;border-bottom:0.5px solid var(--border);font-size:10px;color:var(--text-muted);font-weight:500;width:70px">Acción</th>
+    </tr></thead>
+    <tbody>${_admCerts.map((c, i) => `<tr>
+      <td style="padding:4px 6px;border-bottom:0.5px solid var(--border-light)">${_admEsc(c.nombre)}</td>
+      <td style="padding:4px 6px;border-bottom:0.5px solid var(--border-light)">${_admEsc(c.institucion || '—')}</td>
+      <td style="padding:4px 6px;border-bottom:0.5px solid var(--border-light);text-align:center">${c.año_obtencion || '—'}</td>
+      <td style="padding:4px 6px;border-bottom:0.5px solid var(--border-light);text-align:center">${c.vigente ? '<span class="st s-done" style="font-size:9px"><span class="dot"></span>Vigente</span>' : c.año_vencimiento || '—'}</td>
+      <td style="padding:4px 6px;border-bottom:0.5px solid var(--border-light);text-align:center">
+        <button onclick="admCertEditar(${i})" style="background:none;border:none;cursor:pointer;color:var(--text-accent);font-size:12px;padding:2px 5px" title="Editar">✎</button>
+        <button onclick="admCertEliminar(${i})" style="background:none;border:none;cursor:pointer;color:var(--text-danger);font-size:12px;padding:2px 5px" title="Eliminar">×</button>
+      </td>
+    </tr>`).join('')}</tbody>
+  </table>`;
+}
+
+function admCertAbrirModal() {
+  _admCertEditIdx = null;
+  document.getElementById('adm-cert-panel-titulo').textContent = 'Nueva certificación';
+  ['adm-cert-f-nombre','adm-cert-f-institucion','adm-cert-f-ano-obt','adm-cert-f-ano-venc'].forEach(id => {
+    const el = document.getElementById(id); if (el) el.value = '';
+  });
+  const chk = document.getElementById('adm-cert-f-vigente');
+  if (chk) chk.checked = false;
+  const p = document.getElementById('adm-cert-panel');
+  if (p) p.style.display = '';
+}
+
+function admCertEditar(idx) {
+  const c = _admCerts[idx];
+  if (!c) return;
+  _admCertEditIdx = idx;
+  document.getElementById('adm-cert-panel-titulo').textContent = 'Editar certificación';
+  const s = (id, v) => { const el = document.getElementById(id); if (el) el.value = v || ''; };
+  const ck = (id, v) => { const el = document.getElementById(id); if (el) el.checked = !!v; };
+  s('adm-cert-f-nombre', c.nombre);
+  s('adm-cert-f-institucion', c.institucion);
+  s('adm-cert-f-ano-obt', c.año_obtencion);
+  s('adm-cert-f-ano-venc', c.año_vencimiento);
+  ck('adm-cert-f-vigente', c.vigente);
+  const p = document.getElementById('adm-cert-panel');
+  if (p) p.style.display = '';
+}
+
+function admCertGuardar() {
+  const g = id => (document.getElementById(id)?.value || '').trim();
+  const nombre = g('adm-cert-f-nombre');
+  if (!nombre) { APP.toast.show('⚠️ Ingresa el nombre de la certificación.', 'warning'); return; }
+  const anoObt = parseInt(g('adm-cert-f-ano-obt'));
+  const anoVenc = parseInt(g('adm-cert-f-ano-venc'));
+  const dato = {
+    id: 'cert-' + Date.now(),
+    nombre,
+    institucion: g('adm-cert-f-institucion'),
+    año_obtencion: anoObt || null,
+    año_vencimiento: anoVenc || null,
+    vigente: document.getElementById('adm-cert-f-vigente')?.checked || false,
+  };
+  if (dato.año_vencimiento && dato.año_obtencion && dato.año_vencimiento < dato.año_obtencion) {
+    APP.toast.show('⚠️ Año vencimiento no puede ser anterior a año obtención.', 'warning'); return;
+  }
+  if (_admCertEditIdx !== null) {
+    _admCerts[_admCertEditIdx] = { ..._admCerts[_admCertEditIdx], ...dato, id: _admCerts[_admCertEditIdx].id };
+  } else {
+    _admCerts.push(dato);
+  }
+  admCertCerrarPanel();
+  admCertRender();
+}
+
+function admCertEliminar(idx) {
+  if (!confirm('¿Eliminar esta certificación?')) return;
+  _admCerts.splice(idx, 1);
+  admCertRender();
+}
+
+function admCertCerrarPanel() {
+  const p = document.getElementById('adm-cert-panel');
+  if (p) p.style.display = 'none';
+  _admCertEditIdx = null;
+}
+
+// ===== DOCUMENTOS =====
+function _admDocPreviewHtml(base64, tipo) {
+  const isImg = base64.startsWith('data:image/');
+  if (isImg) {
+    return '<div style="display:flex;align-items:center;gap:8px;margin-top:4px">' +
+      '<img src="' + base64 + '" style="max-width:80px;max-height:60px;border-radius:4px;border:0.5px solid var(--border)">' +
+      '<button class="btn" onclick="admDocEliminar(\'' + tipo + '\')" style="font-size:10px;padding:2px 6px;color:var(--text-danger)">× Eliminar</button></div>';
+  }
+  return '<div style="display:flex;align-items:center;gap:8px;margin-top:4px;font-size:11px;color:var(--text-muted)">' +
+    '<i class="ti ti-file-text" style="font-size:18px"></i> PDF cargado' +
+    '<button class="btn" onclick="admDocEliminar(\'' + tipo + '\')" style="font-size:10px;padding:2px 6px;color:var(--text-danger)">× Eliminar</button></div>';
+}
+
+function admDocPreview(input, previewId) {
+  const preview = document.getElementById(previewId);
+  if (!preview) return;
+  const file = input.files && input.files[0];
+  if (!file) { preview.innerHTML = ''; return; }
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    const base64 = e.target.result;
+    preview.dataset.base64 = base64;
+    const tipo = previewId.includes('titulo') ? 'titulo' : 'cv';
+    preview.innerHTML = _admDocPreviewHtml(base64, tipo);
+  };
+  reader.readAsDataURL(file);
+}
+
+function admDocEliminar(tipo) {
+  const preview = document.getElementById(tipo === 'titulo' ? 'adm-doc-titulo-preview' : 'adm-doc-cv-preview');
+  if (preview) { preview.innerHTML = ''; delete preview.dataset.base64; }
+  const input = document.getElementById(tipo === 'titulo' ? 'adm-f-doc-titulo' : 'adm-f-doc-cv');
+  if (input) input.value = '';
 }
 
 // ===== PERÍODO =====

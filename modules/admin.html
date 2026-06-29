@@ -333,4 +333,118 @@
       </tbody>
     </table>
   </div>
+
+<div id="adm-panel-editar" class="modal-overlay" style="display:none">
+  <div class="modal-grande">
+    <div class="modal-header">
+      <h2 id="adm-panel-titulo">Nuevo usuario</h2>
+      <button class="modal-close" onclick="adminCerrarModalUsuario()">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="g2">
+        <div class="fg"><label>Nombre</label><input id="adm-f-nombre" placeholder="Nombre"></div>
+        <div class="fg"><label>Apellido</label><input id="adm-f-apellido" placeholder="Apellido"></div>
+      </div>
+      <div class="g2">
+        <div class="fg"><label>RUT</label><input id="adm-f-rut" placeholder="12.345.678-9"></div>
+        <div class="fg"><label>WhatsApp</label><input id="adm-f-wz" type="tel" placeholder="+56 9 XXXX XXXX"></div>
+      </div>
+
+      <div class="fg" style="margin-bottom:12px">
+        <label>Rol <span style="color:#ef4444">*</span></label>
+        <select id="adm-f-rol" style="width:100%">
+          <option value="mecanico">Mecánico</option>
+          <option value="Administrador">Administrador</option>
+          <option value="Recepcionista">Recepcionista</option>
+          <option value="Contador">Contador</option>
+        </select>
+      </div>
+
+      <div class="div" style="margin:18px 0"></div>
+      <div style="font-size:13px;font-weight:500;margin-bottom:12px">Información profesional</div>
+
+      <div class="fg">
+        <label>Nivel educativo</label>
+        <select id="adm-f-nivel" onchange="admToggleFormacion()" style="width:100%">
+          <option value="sin_estudios">Sin estudios</option>
+          <option value="tecnico">Técnico</option>
+          <option value="profesional">Profesional</option>
+          <option value="especialista">Especialista</option>
+        </select>
+      </div>
+
+      <div id="adm-formacion-detalle" style="display:none;margin-top:10px">
+        <div class="g2">
+          <div class="fg"><label id="adm-lbl-carrera">Carrera/Especialidad</label><input id="adm-f-carrera" placeholder="Ej: Mecánica automotriz"></div>
+          <div class="fg"><label id="adm-lbl-institucion">Universidad/Instituto</label><input id="adm-f-institucion" placeholder="Ej: Universidad XYZ"></div>
+        </div>
+        <div class="g2">
+          <div class="fg"><label>Año de egreso</label><input id="adm-f-ano-egreso" type="number" min="1900" max="2030" placeholder="Ej: 2015"></div>
+          <div class="fg" style="align-self:flex-end;padding-bottom:6px">
+            <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px">
+              <input id="adm-f-titulo-val" type="checkbox"> Título validado/verificado
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <div class="div" style="margin:18px 0"></div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+        <div style="font-size:13px;font-weight:500">Certificaciones y cursos</div>
+        <button class="btn" onclick="admCertAbrirModal()" style="font-size:11px"><i class="ti ti-plus"></i> Agregar certificación</button>
+      </div>
+      <div id="adm-cert-tabla" style="overflow-x:auto">
+        <div style="font-size:11px;color:var(--text-muted);padding:8px 0">Sin certificaciones registradas.</div>
+      </div>
+
+      <div id="adm-cert-panel" class="card" style="display:none;margin:12px 0;padding:14px;border:0.5px solid var(--border-accent);background:var(--bg-accent)">
+        <div style="font-size:12px;font-weight:500;margin-bottom:10px;color:var(--text-accent)" id="adm-cert-panel-titulo">Nueva certificación</div>
+        <div class="g2">
+          <div class="fg"><label>Nombre certificación</label><input id="adm-cert-f-nombre" placeholder="Ej: Diagnosis avanzada motor"></div>
+          <div class="fg"><label>Institución que emite</label><input id="adm-cert-f-institucion" placeholder="Ej: Bosch"></div>
+        </div>
+        <div class="g3">
+          <div class="fg"><label>Año obtención</label><input id="adm-cert-f-ano-obt" type="number" min="1900" max="2030" placeholder="Ej: 2018"></div>
+          <div class="fg"><label>Año vencimiento</label><input id="adm-cert-f-ano-venc" type="number" min="1900" max="2030" placeholder="Opcional"></div>
+          <div class="fg" style="align-self:flex-end;padding-bottom:6px">
+            <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px">
+              <input id="adm-cert-f-vigente" type="checkbox"> Vigente
+            </label>
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:10px">
+          <button class="btn" onclick="admCertCerrarPanel()" style="font-size:11px">Cancelar</button>
+          <button class="btn bpa" onclick="admCertGuardar()" style="font-size:11px"><i class="ti ti-device-floppy"></i> Guardar</button>
+        </div>
+      </div>
+
+      <div class="div" style="margin:18px 0"></div>
+      <div style="font-size:13px;font-weight:500;margin-bottom:10px">Experiencia</div>
+      <div class="g2">
+        <div class="fg"><label>Años de experiencia</label><input id="adm-f-exp-anos" type="number" min="0" placeholder="Ej: 5"></div>
+      </div>
+      <div class="fg"><label>Especialidades que domina</label><textarea id="adm-f-exp-desc" rows="3" placeholder="Ej: Motor diesel, suspensión, frenos ABS"></textarea></div>
+
+      <div class="div" style="margin:18px 0"></div>
+      <div style="font-size:13px;font-weight:500;margin-bottom:10px">Documentos</div>
+      <div class="g2">
+        <div class="fg">
+          <label>Título/Certificado</label>
+          <input id="adm-f-doc-titulo" type="file" accept="image/*,application/pdf" onchange="admDocPreview(this,'adm-doc-titulo-preview')">
+          <div id="adm-doc-titulo-preview" style="margin-top:6px"></div>
+        </div>
+        <div class="fg">
+          <label>CV</label>
+          <input id="adm-f-doc-cv" type="file" accept="image/*,application/pdf" onchange="admDocPreview(this,'adm-doc-cv-preview')">
+          <div id="adm-doc-cv-preview" style="margin-top:6px"></div>
+        </div>
+      </div>
+
+      <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:20px;border-top:0.5px solid var(--border);padding-top:16px">
+        <button class="btn" onclick="adminCerrarModalUsuario()">Cancelar</button>
+        <button class="btn bpa" onclick="adminGuardarUsuario()" id="adm-guardar-btn">Guardar usuario</button>
+      </div>
+    </div>
+  </div>
+</div>
 </div>
