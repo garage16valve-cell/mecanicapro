@@ -265,11 +265,13 @@ function adminNuevoUsuario() {
     if (el) el.value = '';
   });
   const rol = document.getElementById('modal-user-rol');
-  if (rol) rol.value = 'mecanico';
+  if (rol) rol.value = '';
   const est = document.getElementById('modal-user-estado');
   if (est) est.value = 'activo';
-  const modal = document.getElementById('modal-editar-usuario');
-  if (modal) modal.style.display = 'block';
+  const titulo = document.getElementById('adm-panel-titulo');
+  if (titulo) titulo.textContent = 'Nuevo Usuario';
+  const panel = document.getElementById('adm-panel-editar');
+  if (panel) panel.style.display = 'block';
 }
 
 function adminEditarUsuario(id) {
@@ -282,11 +284,13 @@ function adminEditarUsuario(id) {
   s('rut', u.rut);
   s('whatsapp', u.whatsapp);
   const rol = document.getElementById('modal-user-rol');
-  if (rol) rol.value = u.rol || 'mecanico';
+  if (rol) rol.value = u.rol || '';
   const est = document.getElementById('modal-user-estado');
   if (est) est.value = u.estado || 'activo';
-  const modal = document.getElementById('modal-editar-usuario');
-  if (modal) modal.style.display = 'block';
+  const titulo = document.getElementById('adm-panel-titulo');
+  if (titulo) titulo.textContent = 'Editar Usuario';
+  const panel = document.getElementById('adm-panel-editar');
+  if (panel) panel.style.display = 'block';
 }
 
 function adminGuardarUsuario() {
@@ -323,8 +327,8 @@ function adminEliminarUsuario(id) {
 }
 
 function adminCerrarModalUsuario() {
-  const modal = document.getElementById('modal-editar-usuario');
-  if (modal) modal.style.display = 'none';
+  const panel = document.getElementById('adm-panel-editar');
+  if (panel) panel.style.display = 'none';
   _adminUsuarioEditandoId = null;
 }
 
