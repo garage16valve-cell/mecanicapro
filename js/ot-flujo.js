@@ -438,7 +438,10 @@ function otMostrarTabRecepcion(ot_id) {
 function otMostrarTabDiagnostico(ot_id) {
   const ots = APP.lsGet('ots', []);
   const ot = ots.find(o => o.id === ot_id);
-  if (!ot) return;
+  if (!ot) {
+    console.error('DEBUG: OT no encontrada', ot_id);
+    return;
+  }
 
   document.getElementById('ot-tab-recepcion').style.display = 'none';
   document.getElementById('ot-tab-diagnostico').style.display = '';
@@ -451,8 +454,12 @@ function otMostrarTabDiagnostico(ot_id) {
   document.getElementById('ot-diagnostico-input').value = ot.diagnostico || '';
   document.getElementById('ot-diagnostico-ot-id').value = ot_id;
 
+  console.log('DEBUG: Antes de otCargarServicios, container existe?', !!document.getElementById('ot-diagnostico-servicios-lista'));
+
   // Cargar servicios
   otCargarServicios(ot_id);
+
+  console.log('DEBUG: Después de otCargarServicios, HTML del container:', document.getElementById('ot-diagnostico-servicios-lista').innerHTML);
 
   // Highlight tab activo
   document.querySelectorAll('#ot-detalle-tabs button').forEach(btn => btn.style.borderBottomColor = 'transparent');
