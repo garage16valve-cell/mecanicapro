@@ -203,14 +203,6 @@ function admSetTab(tab) {
   if (reportesPage) reportesPage.style.display = tab === 'reportes' ? '' : 'none';
   if (tabUsuarios) tabUsuarios.style.display = tab === 'usuarios' ? '' : 'none';
   if (tabConfig) tabConfig.style.display = tab === 'config' ? '' : 'none';
-  const tabs = ['reportes', 'config', 'usuarios'];
-  tabs.forEach(t => {
-    const btn = document.getElementById('adm-tab-btn-' + t);
-    if (!btn) return;
-    const active = t === tab;
-    btn.style.borderBottomColor = active ? 'var(--fill-accent)' : 'transparent';
-    btn.style.color = active ? 'var(--text-accent)' : 'var(--text-secondary)';
-  });
   if (tab === 'usuarios' && typeof adminRenderUsuarios === 'function') adminRenderUsuarios();
   if (tab === 'config' && typeof tallerCargarDatos === 'function') tallerCargarDatos();
   if (tab === 'reportes') {
