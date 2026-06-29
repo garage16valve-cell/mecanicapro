@@ -435,6 +435,26 @@ function initExampleData() {
     });
   }
 
+  // Datos del taller
+  if (!APP.lsGet('taller_config')) {
+    APP.lsSet('taller_config', {
+      nombre_fantasia: 'Garage 16 Valve',
+      rut: '76.123.456-7',
+      telefono: '+56951234567',
+      email: 'info@garage16valve.cl',
+      direccion: 'Avenida Brasil 2543, Valparaíso',
+      ciudad: 'Valparaíso',
+      region: 'Valparaíso',
+      horario_inicio: '09:00',
+      horario_fin: '18:00',
+      horario_descanso_inicio: '13:00',
+      horario_descanso_fin: '14:00',
+      dias_laborales: ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes'],
+      logo_base64: '',
+      descripcion: 'Taller automotriz especializado en diagnóstico y reparación'
+    });
+  }
+
   // Sincronizar datos nuevos → legacy keys (compatibilidad)
   if (APP.lsGet('ots') && APP.lsGet('ots').length && (!APP.lsGet('mp_ots') || !APP.lsGet('mp_ots').length)) {
     APP.lsSet('mp_ots', APP.lsGet('ots'));
@@ -452,6 +472,14 @@ function initExampleData() {
   }
   if (APP.lsGet('proveedores') && APP.lsGet('proveedores').length && (!APP.lsGet('mp_proveedores') || !APP.lsGet('mp_proveedores').length)) {
     APP.lsSet('mp_proveedores', APP.lsGet('proveedores'));
+  }
+
+  // Sincronizar taller_config → mp_taller_config (compatibilidad)
+  const tc = APP.lsGet('taller_config');
+  if (tc) {
+    const mtc = APP.lsGet('mp_taller_config', {});
+    const sync = { ...mtc, nombre: mtc.nombre || tc.nombre_fantasia, rut: mtc.rut || tc.rut, direccion: mtc.direccion || tc.direccion, telefono: mtc.telefono || tc.telefono, horaInicio: mtc.horaInicio || tc.horario_inicio, horaFin: mtc.horaFin || tc.horario_fin };
+    APP.lsSet('mp_taller_config', sync);
   }
 
   console.log('✅ Datos de ejemplo inicializados correctamente');
@@ -579,3 +607,4 @@ initExampleData();
 nav('dashboard', document.querySelector('.ni.active'));
 APP.modoTaller.init();
 updateAllBadges();
+if (typeof tallerActualizarHeader === 'function') tallerActualizarHeader();

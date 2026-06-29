@@ -201,6 +201,7 @@ function init_admin() {
   repRenderEficiencia();
   _admCargarConfig();
   _admCargarConfigOperativa();
+  if (typeof tallerCargarDatos === 'function') tallerCargarDatos();
   _admCargarConfigRepuestos();
   _admRenderIntegraciones();
   _admPanelServicios();
@@ -683,6 +684,120 @@ function admCargarLogo(input) {
 function admEliminarLogo() {
   try { localStorage.removeItem('config_logo_taller'); } catch (e) { console.error(e); }
   _admCargarLogoPreview();
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// DATOS DEL TALLER — formulario completo
+// ═══════════════════════════════════════════════════════════════════
+
+function tallerCargarDatos() {
+  const config = APP.lsGet('taller_config') || {};
+  const s = (id, v) => { const el = document.getElementById(id); if (el) el.value = v ?? ''; };
+  s('taller-nombre-fantasia', config.nombre_fantasia);
+  s('taller-rut', config.rut);
+  s('taller-telefono', config.telefono);
+  s('taller-email', config.email);
+  s('taller-direccion', config.direccion);
+  s('taller-ciudad', config.ciudad);
+  s('taller-region', config.region);
+  s('taller-hora-inicio', config.horario_inicio || '09:00');
+  s('taller-hora-fin', config.horario_fin || '18:00');
+  s('taller-descanso-inicio', config.horario_descanso_inicio || '13:00');
+  s('taller-descanso-fin', config.horario_descanso_fin || '14:00');
+  s('taller-descripcion', config.descripcion);
+
+  // Logo
+  const img = document.getElementById('taller-logo-img');
+  const txt = document.getElementById('taller-logo-text');
+  if (config.logo_base64 && img && txt) {
+    img.src = config.logo_base64;
+    img.style.display = 'block';
+    txt.style.display = 'none';
+  }
+
+  // Días laborales
+  const dias = config.dias_laborales || [];
+  document.querySelectorAll('.taller-dias-check').forEach(cb => { cb.checked = dias.includes(cb.value); });
+}
+
+function tallerCargarLogo() {
+  const file = document.getElementById('taller-logo-upload')?.files?.[0];
+  if (!file) return;
+  if (file.size > 500000) { APP.toast.show('⚠️ El archivo supera 500KB. Elige uno más pequeño.', 'warning'); return; }
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    const base64 = e.target.result;
+    const img = document.getElementById('taller-logo-img');
+    const txt = document.getElementById('taller-logo-text');
+    if (img) { img.src = base64; img.style.display = 'block'; }
+    if (txt) txt.style.display = 'none';
+    const config = APP.lsGet('taller_config') || {};
+    config.logo_base64 = base64;
+    APP.lsSet('taller_config', config);
+    tallerActualizarHeader();
+    APP.toast.show('Logo cargado.');
+  };
+  reader.readAsDataURL(file);
+}
+
+function tallerEliminarLogo() {
+  const img = document.getElementById('taller-logo-img');
+  const txt = document.getElementById('taller-logo-text');
+  const up  = document.getElementById('taller-logo-upload');
+  if (img) { img.src = ''; img.style.display = 'none'; }
+  if (txt) txt.style.display = 'block';
+  if (up) up.value = '';
+  const config = APP.lsGet('taller_config') || {};
+  config.logo_base64 = '';
+  APP.lsSet('taller_config', config);
+  tallerActualizarHeader();
+  APP.toast.show('Logo eliminado.');
+}
+
+function tallerGuardarDatos() {
+  const g = id => (document.getElementById(id)?.value || '').trim();
+  const config = APP.lsGet('taller_config') || {};
+  config.nombre_fantasia = g('taller-nombre-fantasia');
+  config.rut = g('taller-rut');
+  config.telefono = g('taller-telefono');
+  config.email = g('taller-email');
+  config.direccion = g('taller-direccion');
+  config.ciudad = g('taller-ciudad');
+  config.region = g('taller-region');
+  config.horario_inicio = g('taller-hora-inicio');
+  config.horario_fin = g('taller-hora-fin');
+  config.horario_descanso_inicio = g('taller-descanso-inicio');
+  config.horario_descanso_fin = g('taller-descanso-fin');
+  config.descripcion = g('taller-descripcion');
+  config.dias_laborales = [];
+  document.querySelectorAll('.taller-dias-check:checked').forEach(cb => config.dias_laborales.push(cb.value));
+  APP.lsSet('taller_config', config);
+
+  // Sincronizar a mp_taller_config (compatibilidad)
+  const mtc = APP.lsGet('mp_taller_config', {});
+  APP.lsSet('mp_taller_config', { ...mtc, nombre: config.nombre_fantasia, rut: config.rut, direccion: config.direccion, telefono: config.telefono, horaInicio: config.horario_inicio, horaFin: config.horario_fin });
+
+  tallerActualizarHeader();
+  APP.toast.show('✅ Datos del taller guardados');
+}
+
+function tallerActualizarHeader() {
+  const config = APP.lsGet('taller_config') || {};
+  const logoEl = document.getElementById('sidebar-logo-img');
+  const defEl  = document.getElementById('sidebar-logo-default');
+  const nomEl  = document.getElementById('sidebar-taller-nombre');
+  const subEl  = document.getElementById('sidebar-taller-sub');
+
+  if (config.logo_base64 && logoEl) {
+    logoEl.src = config.logo_base64;
+    logoEl.style.display = 'block';
+    if (defEl) defEl.style.display = 'none';
+  } else {
+    if (logoEl) logoEl.style.display = 'none';
+    if (defEl) defEl.style.display = 'flex';
+  }
+  if (nomEl) nomEl.textContent = config.nombre_fantasia || 'MecánicaPro';
+  if (subEl) subEl.textContent = (config.ciudad ? config.ciudad + ', ' : '') + (config.region || 'Taller Chile');
 }
 
 // ===== CONFIGURACIÓN OPERATIVA =====
