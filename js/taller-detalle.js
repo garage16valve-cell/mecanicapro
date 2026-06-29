@@ -392,8 +392,8 @@ function _diagSeleccionarServicio(id) {
   const servicio = servicios.find(s => s.id === id);
   if (!servicio) return;
   document.getElementById('diag-svc-nombre').value = servicio.nombre;
-  document.getElementById('diag-svc-horas').value = servicio.horas || servicio.horasEst || servicio.horas_estimadas || 0;
-  document.getElementById('diag-svc-valor').value = servicio.valor || servicio.precioFijo || servicio.precio_venta || 0;
+  document.getElementById('diag-svc-horas').value = servicio.horasEst != null ? servicio.horasEst : (servicio.horas || servicio.horas_estimadas || 0);
+  document.getElementById('diag-svc-valor').value = servicio.precioFijo != null ? servicio.precioFijo : (servicio.valor || servicio.precio_venta || servicio.precioMinVenta || 0);
   document.getElementById('diag-svc-seleccionado-id').value = id;
   document.getElementById('diag-svc-info').style.display = 'block';
   const dropdown = document.getElementById('diag-svc-sugerencias');

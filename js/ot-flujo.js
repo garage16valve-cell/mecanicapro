@@ -2100,6 +2100,32 @@ window.otRecalcularCotizacionTab = otRecalcularCotizacionTab;
 window.otRecalcularCotizacionPanel = otRecalcularCotizacionPanel;
 window.otGuardarServicioAuto = otGuardarServicioAuto;
 window.otCargarRepuestosSugeridos = otCargarRepuestosSugeridos;
+function otRecalcularPanelRepuestos() {
+  const tabla = document.querySelector('#ot-panel-repuestos-tabla table tbody');
+  if (!tabla) return;
+  let subRep = 0;
+  tabla.querySelectorAll('tr').forEach(tr => {
+    const cant = parseFloat(tr.querySelector('.ot-rep-cant')?.value) || 0;
+    const precio = parseFloat(tr.querySelector('.ot-rep-precio')?.value) || 0;
+    const sub = cant * precio;
+    subRep += sub;
+    const el = tr.querySelector('.ot-rep-subtotal');
+    if (el) el.textContent = '$' + sub.toLocaleString('es-CL');
+  });
+  const horas = parseFloat(document.getElementById('ot-panel-horas')?.value) || 0;
+  const config = APP.lsGet('taller_config', {});
+  const tarifa = config.tarifa_hora || 0;
+  const manoObra = horas * tarifa;
+  const subtotal = subRep + manoObra;
+  const iva = subtotal * 0.19;
+  const total = subtotal + iva;
+  const g = id => document.getElementById(id);
+  if (g('ot-panel-subtotal-rep')) g('ot-panel-subtotal-rep').textContent = '$' + subRep.toLocaleString('es-CL');
+  if (g('ot-panel-mano-obra')) g('ot-panel-mano-obra').textContent = '$' + manoObra.toLocaleString('es-CL');
+  if (g('ot-panel-subtotal')) g('ot-panel-subtotal').textContent = '$' + subtotal.toLocaleString('es-CL');
+  if (g('ot-panel-iva')) g('ot-panel-iva').textContent = '$' + iva.toLocaleString('es-CL');
+  if (g('ot-panel-total')) g('ot-panel-total').textContent = '$' + total.toLocaleString('es-CL');
+}
 window.otRecalcularPanelRepuestos = otRecalcularPanelRepuestos;
 window.otPanelAgregarFilaRepuesto = otPanelAgregarFilaRepuesto;
 window.otGuardarPanelRepuestos = otGuardarPanelRepuestos;

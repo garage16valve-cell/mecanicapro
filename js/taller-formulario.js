@@ -346,8 +346,8 @@ function nfBuscarServicio(q) {
     return;
   }
   drop.innerHTML = matches.map(s => {
-    const precio = s.valor || s.precioFijo || s.precio_venta || 0;
-    const horas = s.horas || s.horasEst || s.horas_estimadas || 0;
+    const horas = s.horasEst != null ? s.horasEst : (s.horas || s.horas_estimadas || 0);
+    const precio = s.precioFijo != null ? s.precioFijo : (s.valor || s.precio_venta || s.precioMinVenta || 0);
     return `<div onclick="nfSelServicio('${_nfEsc(s.nombre)}',${horas},${precio})"
       style="padding:8px 12px;cursor:pointer;border-bottom:0.5px solid var(--border);font-size:12px">
       <div style="font-weight:500">${_nfEsc(s.nombre)}</div>
@@ -573,8 +573,8 @@ function nfAgregarSugerencia(servicioNombre) {
   const svc = servicios.find(s => (s.nombre || '').toLowerCase() === servicioNombre.toLowerCase());
   document.getElementById('nf-svc-nombre').value = servicioNombre;
   if (svc) {
-    document.getElementById('nf-svc-horas').value = svc.horas || svc.horasEst || '';
-    document.getElementById('nf-svc-valor').value = svc.valor || svc.precioFijo || '';
+    document.getElementById('nf-svc-horas').value = svc.horasEst != null ? svc.horasEst : (svc.horas || svc.horas_estimadas || '');
+    document.getElementById('nf-svc-valor').value = svc.precioFijo != null ? svc.precioFijo : (svc.valor || svc.precio_venta || '');
     if (svc.repuestos || svc.repuestosSugeridos) {
       const reps = svc.repuestos || svc.repuestosSugeridos || [];
       nfRepuestos = reps.map(r => ({
