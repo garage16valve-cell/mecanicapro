@@ -268,10 +268,10 @@ function adminNuevoUsuario() {
   if (rol) rol.value = '';
   const est = document.getElementById('modal-user-estado');
   if (est) est.value = 'activo';
-  const titulo = document.getElementById('adm-panel-titulo');
+  const titulo = document.getElementById('adm-modal-titulo');
   if (titulo) titulo.textContent = 'Nuevo Usuario';
-  const panel = document.getElementById('adm-panel-editar');
-  if (panel) panel.style.display = 'block';
+  const m = document.getElementById('modal-editar-usuario');
+  if (m) m.style.display = 'flex';
 }
 
 function adminEditarUsuario(id) {
@@ -287,10 +287,10 @@ function adminEditarUsuario(id) {
   if (rol) rol.value = u.rol || '';
   const est = document.getElementById('modal-user-estado');
   if (est) est.value = u.estado || 'activo';
-  const titulo = document.getElementById('adm-panel-titulo');
+  const titulo = document.getElementById('adm-modal-titulo');
   if (titulo) titulo.textContent = 'Editar Usuario';
-  const panel = document.getElementById('adm-panel-editar');
-  if (panel) panel.style.display = 'block';
+  const m = document.getElementById('modal-editar-usuario');
+  if (m) m.style.display = 'flex';
 }
 
 function adminGuardarUsuario() {
@@ -309,9 +309,9 @@ function adminGuardarUsuario() {
     usuarios.push({ id: Date.now(), nombre, apellido, rut, whatsapp, rol, color: '#3B82F6', pin: '0000', estado, fecha_creacion: Date.now() });
   }
   APP.lsSet('usuarios', usuarios);
-  document.getElementById('adm-panel-mensaje').style.display = 'block';
+  document.getElementById('adm-modal-mensaje').style.display = 'block';
   setTimeout(() => {
-    document.getElementById('adm-panel-mensaje').style.display = 'none';
+    document.getElementById('adm-modal-mensaje').style.display = 'none';
   }, 2000);
   adminCerrarModalUsuario();
   adminRenderUsuarios(document.getElementById('adm-usuarios-buscar')?.value);
@@ -327,8 +327,8 @@ function adminEliminarUsuario(id) {
 }
 
 function adminCerrarModalUsuario() {
-  const panel = document.getElementById('adm-panel-editar');
-  if (panel) panel.style.display = 'none';
+  const m = document.getElementById('modal-editar-usuario');
+  if (m) m.style.display = 'none';
   _adminUsuarioEditandoId = null;
 }
 
@@ -813,13 +813,114 @@ function admEliminarLogo() {
 // DATOS DEL TALLER — formulario completo + config operativa
 // ═══════════════════════════════════════════════════════════════════
 
+// ===== CASCADA PAÍS-REGIÓN-CIUDAD-COMUNA =====
+const _admRegiones = {
+  Chile: ['Metropolitana', 'Valparaíso', 'Biobío'],
+  Argentina: ['Buenos Aires', 'Córdoba'],
+  Perú: ['Lima', 'Arequipa']
+};
+const _admCiudades = {
+  Metropolitana: ['Santiago', 'Puente Alto', 'La Florida'],
+  Valparaíso: ['Valparaíso', 'Viña del Mar'],
+  Biobío: ['Concepción', 'Los Ángeles'],
+  'Buenos Aires': ['La Plata', 'Lomas de Zamora'],
+  Córdoba: ['Córdoba capital', 'Río Cuarto'],
+  Lima: ['Lima Metropolitana', 'Callao'],
+  Arequipa: ['Arequipa capital']
+};
+const _admComunas = {
+  Santiago: ['Providencia', 'Ñuñoa', 'Las Condes'],
+  'Puente Alto': ['Puente Alto'],
+  'La Florida': ['La Florida'],
+  Valparaíso: ['Cerro Barón', 'Gálvez'],
+  'Viña del Mar': ['Viña del Mar'],
+  Concepción: ['Chillán', 'Talcahuano'],
+  'Los Ángeles': ['Los Ángeles'],
+  'La Plata': ['La Plata'],
+  'Lomas de Zamora': ['Lomas de Zamora'],
+  'Córdoba capital': ['Córdoba capital'],
+  'Río Cuarto': ['Río Cuarto'],
+  'Lima Metropolitana': ['Lima Metropolitana'],
+  Callao: ['Callao'],
+  'Arequipa capital': ['Arequipa capital']
+};
+
+function cargarRegiones() {
+  const pais = document.getElementById('taller-pais')?.value || '';
+  const selRegion = document.getElementById('taller-region');
+  const selCiudad = document.getElementById('taller-ciudad');
+  const selComuna = document.getElementById('taller-comuna');
+  if (!selRegion) return;
+  selRegion.innerHTML = '<option value="">— Seleccionar región —</option>';
+  selCiudad.innerHTML = '<option value="">— Seleccionar ciudad —</option>';
+  selComuna.innerHTML = '<option value="">— Seleccionar comuna —</option>';
+  if (!pais) return;
+  const regiones = _admRegiones[pais] || [];
+  regiones.forEach(r => {
+    const opt = document.createElement('option');
+    opt.value = r; opt.textContent = r;
+    selRegion.appendChild(opt);
+  });
+}
+
+function cargarCiudades() {
+  const region = document.getElementById('taller-region')?.value || '';
+  const selCiudad = document.getElementById('taller-ciudad');
+  const selComuna = document.getElementById('taller-comuna');
+  if (!selCiudad) return;
+  selCiudad.innerHTML = '<option value="">— Seleccionar ciudad —</option>';
+  selComuna.innerHTML = '<option value="">— Seleccionar comuna —</option>';
+  if (!region) return;
+  const ciudades = _admCiudades[region] || [];
+  ciudades.forEach(c => {
+    const opt = document.createElement('option');
+    opt.value = c; opt.textContent = c;
+    selCiudad.appendChild(opt);
+  });
+}
+
+function cargarComunas() {
+  const ciudad = document.getElementById('taller-ciudad')?.value || '';
+  const selComuna = document.getElementById('taller-comuna');
+  if (!selComuna) return;
+  selComuna.innerHTML = '<option value="">— Seleccionar comuna —</option>';
+  if (!ciudad) return;
+  const comunas = _admComunas[ciudad] || [];
+  comunas.forEach(c => {
+    const opt = document.createElement('option');
+    opt.value = c; opt.textContent = c;
+    selComuna.appendChild(opt);
+  });
+}
+
+function actualizarHeaderNombreFantasia() {
+  const val = document.getElementById('taller-nombre-fantasia')?.value || 'MecánicaPro';
+  const nomEl = document.getElementById('sidebar-taller-nombre');
+  if (nomEl) nomEl.textContent = val || 'MecánicaPro';
+}
+
 function tallerCargarDatos() {
   const config = APP.lsGet('taller_config') || {};
   const s = (id, v) => { const el = document.getElementById(id); if (el) el.value = v ?? ''; };
   s('taller-nombre-fantasia', config.nombre_fantasia);
+  s('taller-nombre-empresa', config.nombre_empresa);
   s('taller-rut', config.rut);
-  s('taller-direccion', config.direccion);
+  s('taller-pais', config.pais || '');
+  // Cargar cascada si hay país
+  if (config.pais) {
+    cargarRegiones();
+    s('taller-region', config.region || '');
+    if (config.region) {
+      cargarCiudades();
+      s('taller-ciudad', config.ciudad || '');
+      if (config.ciudad) {
+        cargarComunas();
+        s('taller-comuna', config.comuna || '');
+      }
+    }
+  }
   s('taller-telefono', config.telefono);
+  s('taller-email', config.email || '');
   s('taller-link-agenda', config.link_agenda || '');
   s('taller-hora-inicio', config.hora_inicio || '09:00');
   s('taller-hora-fin', config.hora_fin || '18:00');
@@ -874,9 +975,14 @@ function tallerGuardarDatos() {
   const g = id => (document.getElementById(id)?.value || '').trim();
   const config = APP.lsGet('taller_config') || {};
   config.nombre_fantasia = g('taller-nombre-fantasia');
+  config.nombre_empresa = g('taller-nombre-empresa');
   config.rut = g('taller-rut');
-  config.direccion = g('taller-direccion');
+  config.pais = g('taller-pais');
+  config.region = g('taller-region');
+  config.ciudad = g('taller-ciudad');
+  config.comuna = g('taller-comuna');
   config.telefono = g('taller-telefono');
+  config.email = g('taller-email');
   config.link_agenda = g('taller-link-agenda');
   config.hora_inicio = g('taller-hora-inicio') || '09:00';
   config.hora_fin = g('taller-hora-fin') || '18:00';
@@ -891,9 +997,15 @@ function tallerGuardarDatos() {
   APP.lsSet('mp_taller_config', {
     ...mtc,
     nombre: config.nombre_fantasia,
+    razonSocial: config.nombre_empresa,
     rut: config.rut,
-    direccion: config.direccion,
+    pais: config.pais,
+    region: config.region,
+    ciudad: config.ciudad,
+    comuna: config.comuna,
+    direccion: config.ciudad + ', ' + config.region + ', ' + config.pais,
     telefono: config.telefono,
+    email: config.email,
     agenda: config.link_agenda,
     horaInicio: config.hora_inicio,
     horaFin: config.hora_fin,
@@ -923,7 +1035,7 @@ function tallerActualizarHeader() {
     if (defEl) defEl.style.display = 'flex';
   }
   if (nomEl) nomEl.textContent = config.nombre_fantasia || 'MecánicaPro';
-  if (subEl) subEl.textContent = (config.ciudad ? config.ciudad + ', ' : '') + (config.region || 'Taller Valparaíso');
+  if (subEl) subEl.textContent = config.nombre_empresa || (config.ciudad ? config.ciudad + ', ' + config.pais : 'Taller Valparaíso');
 }
 
 // ===== CONFIGURACIÓN OPERATIVA =====
@@ -1043,14 +1155,4 @@ function adminRenderReportes() {
   if (typeof _admKPIs === 'function') _admKPIs();
 }
 
-// ===== USUARIOS TABS =====
-function admSetUsersTab(tabName) {
-  document.getElementById('adm-usuarios-content').style.display = tabName === 'usuarios' ? 'block' : 'none';
-  document.getElementById('adm-roles-content').style.display = tabName === 'roles' ? 'block' : 'none';
-  
-  document.getElementById('adm-users-tab-btn').style.borderBottomColor = tabName === 'usuarios' ? 'var(--fill-accent)' : 'transparent';
-  document.getElementById('adm-users-tab-btn').style.color = tabName === 'usuarios' ? 'var(--text-accent)' : 'var(--text-secondary)';
-  
-  document.getElementById('adm-roles-tab-btn').style.borderBottomColor = tabName === 'roles' ? 'var(--fill-accent)' : 'transparent';
-  document.getElementById('adm-roles-tab-btn').style.color = tabName === 'roles' ? 'var(--text-accent)' : 'var(--text-secondary)';
-}
+
