@@ -603,6 +603,48 @@ function otCerrarDetalle() {
   if (el) el.remove();
 }
 
+function otToggleEditDetalle(ot_id) {
+  const inputs = document.querySelectorAll('#ot-detalle-cliente-fields input, #ot-detalle-vehiculo-fields input');
+  const editando = inputs[0]?.hasAttribute('readonly');
+  inputs.forEach(el => {
+    if (editando) el.removeAttribute('readonly'); else el.setAttribute('readonly', '');
+  });
+  const btn = document.getElementById('det-btn-editar-ot');
+  const guardar = document.getElementById('det-btn-guardar-ot');
+  if (btn) btn.innerHTML = editando ? '<i class="ti ti-x"></i> Cancelar' : '<i class="ti ti-edit"></i> Editar';
+  if (guardar) guardar.style.display = editando ? '' : 'none';
+}
+
+function otGuardarEditDetalle(ot_id) {
+  const ots = APP.lsGet('ots', []);
+  const ot = ots.find(o => o.id === ot_id);
+  if (!ot) { APP.toast.show('⚠️ OT no encontrada', 'error'); return; }
+  const g = id => document.getElementById(id)?.value?.trim() || '';
+  const cambios = {};
+  const mapeo = {
+    'ot-det-nombre': ['cliente_nombre', 'clienteNombre'],
+    'ot-det-rut': ['cliente_rut', 'rut'],
+    'ot-det-whatsapp': ['cliente_whatsapp', 'wz'],
+    'ot-det-email': ['cliente_email', 'mail'],
+    'ot-det-marca': ['vehiculo_marca', 'marca'],
+    'ot-det-modelo': ['vehiculo_modelo', 'modelo'],
+    'ot-det-anio': ['vehiculo_anio', 'anio'],
+    'ot-det-patente': ['patente'],
+    'ot-det-motor': ['vehiculo_motor', 'motor'],
+    'ot-det-chasis': ['vehiculo_chasis', 'chasis'],
+    'ot-det-km': ['vehiculo_km_entrada', 'km_entrada'],
+    'ot-det-color': ['vehiculo_color', 'color'],
+  };
+  Object.entries(mapeo).forEach(([elId, campos]) => {
+    const val = g(elId);
+    campos.forEach(c => { ot[c] = val; cambios[c] = val; });
+  });
+  ot.fecha_modificacion = new Date().toISOString();
+  APP.lsSet('ots', ots);
+  APP.toast.show('✅ Datos de cliente y vehículo actualizados', 'success');
+  otToggleEditDetalle(ot_id);
+}
+
 function otMostrarDetalle(ot_id) {
   const ots = APP.lsGet('ots', []);
   const ot = ots.find(o => o.id === ot_id);
@@ -610,6 +652,8 @@ function otMostrarDetalle(ot_id) {
     APP.toast.show('⚠️ OT no encontrada', 'error');
     return;
   }
+
+  const _v = (nuevo, antiguo) => ot[nuevo] ?? ot[antiguo] ?? '';
 
   // Servicios
   const servicios_default = [
@@ -648,6 +692,8 @@ function otMostrarDetalle(ot_id) {
     ot.estado === 'esperando_aprobacion' || ot.estado === 'aprobado' ? '#ca8a04' :
     ot.estado === 'recepcion' || ot.estado === 'agendado' ? '#2563eb' : '#7c3aed';
 
+  const _input = (id, val, opts = '') => `<input id="${id}" value="${_esc(val)}" ${opts} style="width:100%;padding:8px;border:0.5px solid var(--border);border-radius:var(--radius);background:var(--surface-2);color:var(--text-primary);font-size:12px;box-sizing:border-box" readonly>`;
+
   const html = `
     <div id="ot-detalle-overlay" style="position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);z-index:1000;overflow-y:auto;padding:20px" onclick="if(event.target===this)otCerrarDetalle()">
       <div style="background:var(--bg-primary);max-width:840px;margin:20px auto;border-radius:8px;box-shadow:0 10px 40px rgba(0,0,0,0.3)">
@@ -664,35 +710,39 @@ function otMostrarDetalle(ot_id) {
               </span>
             </div>
           </div>
-          <button onclick="otCerrarDetalle()" style="background:none;border:none;font-size:24px;cursor:pointer;color:var(--text-muted);line-height:1">×</button>
+          <div style="display:flex;gap:6px">
+            <button id="det-btn-editar-ot" class="btn" onclick="otToggleEditDetalle('${ot_id}')" style="font-size:11px"><i class="ti ti-edit"></i> Editar</button>
+            <button id="det-btn-guardar-ot" class="btn bpa" onclick="otGuardarEditDetalle('${ot_id}')" style="font-size:11px;display:none"><i class="ti ti-device-floppy"></i> Guardar</button>
+            <button onclick="otCerrarDetalle()" style="background:none;border:none;font-size:24px;cursor:pointer;color:var(--text-muted);line-height:1">×</button>
+          </div>
         </div>
 
         <!-- Body -->
-        <div style="padding:20px;max-height:75vh;overflow-y:auto;display:flex;flex-direction:column;gap:16px">
+        <div id="ot-detalle-body" style="padding:20px;max-height:75vh;overflow-y:auto;display:flex;flex-direction:column;gap:16px">
 
           <!-- Cliente -->
           <div class="card">
             <div class="ch"><span class="ct">👤 Cliente</span></div>
-            <div class="fgrid2">
-              <div><label style="font-size:11px;color:var(--text-muted)">Nombre</label><div style="font-weight:500;font-size:13px">${ot.cliente_nombre || '—'}</div></div>
-              <div><label style="font-size:11px;color:var(--text-muted)">RUT</label><div style="font-size:13px">${ot.cliente_rut || ot.rut || '—'}</div></div>
-              <div><label style="font-size:11px;color:var(--text-muted)">WhatsApp</label><div style="font-size:13px">${ot.cliente_whatsapp || ot.whatsapp || '—'}</div></div>
-              <div><label style="font-size:11px;color:var(--text-muted)">Email</label><div style="font-size:13px">${ot.cliente_email || ot.email || '—'}</div></div>
+            <div class="fgrid2" id="ot-detalle-cliente-fields">
+              <div><label style="font-size:11px;color:var(--text-muted)">Nombre</label>${_input('ot-det-nombre', _v('cliente_nombre','clienteNombre'))}</div>
+              <div><label style="font-size:11px;color:var(--text-muted)">RUT</label>${_input('ot-det-rut', _v('cliente_rut','rut'))}</div>
+              <div><label style="font-size:11px;color:var(--text-muted)">WhatsApp</label>${_input('ot-det-whatsapp', _v('cliente_whatsapp','wz'))}</div>
+              <div><label style="font-size:11px;color:var(--text-muted)">Email</label>${_input('ot-det-email', _v('cliente_email','mail'))}</div>
             </div>
           </div>
 
           <!-- Vehículo -->
           <div class="card">
             <div class="ch"><span class="ct">🚗 Vehículo</span></div>
-            <div class="fgrid2">
-              <div><label style="font-size:11px;color:var(--text-muted)">Marca</label><div style="font-weight:500">${ot.vehiculo_marca || ot.marca || '—'}</div></div>
-              <div><label style="font-size:11px;color:var(--text-muted)">Modelo</label><div style="font-weight:500">${ot.vehiculo_modelo || ot.modelo || '—'}</div></div>
-              <div><label style="font-size:11px;color:var(--text-muted)">Año</label><div>${ot.vehiculo_anio || ot.anio || '—'}</div></div>
-              <div><label style="font-size:11px;color:var(--text-muted)">Patente</label><div style="font-family:var(--font-mono)">${ot.patente || '—'}</div></div>
-              <div><label style="font-size:11px;color:var(--text-muted)">Motor</label><div>${ot.vehiculo_motor || ot.motor || '—'}</div></div>
-              <div><label style="font-size:11px;color:var(--text-muted)">Chasis/VIN</label><div>${ot.vehiculo_chasis || ot.chasis || ot.vin || '—'}</div></div>
-              <div><label style="font-size:11px;color:var(--text-muted)">Kilometraje</label><div>${ot.vehiculo_km_entrada || ot.km_entrada || ot.km ? (Number(ot.vehiculo_km_entrada||ot.km_entrada||ot.km||0).toLocaleString('es-CL')+' km') : '—'}</div></div>
-              <div><label style="font-size:11px;color:var(--text-muted)">Color</label><div>${ot.vehiculo_color || ot.color || '—'}</div></div>
+            <div class="fgrid2" id="ot-detalle-vehiculo-fields">
+              <div><label style="font-size:11px;color:var(--text-muted)">Marca</label>${_input('ot-det-marca', _v('vehiculo_marca','marca'))}</div>
+              <div><label style="font-size:11px;color:var(--text-muted)">Modelo</label>${_input('ot-det-modelo', _v('vehiculo_modelo','modelo'))}</div>
+              <div><label style="font-size:11px;color:var(--text-muted)">Año</label>${_input('ot-det-anio', _v('vehiculo_anio','anio'))}</div>
+              <div><label style="font-size:11px;color:var(--text-muted)">Patente</label>${_input('ot-det-patente', ot.patente || '')}</div>
+              <div><label style="font-size:11px;color:var(--text-muted)">Motor</label>${_input('ot-det-motor', _v('vehiculo_motor','motor'))}</div>
+              <div><label style="font-size:11px;color:var(--text-muted)">Chasis/VIN</label>${_input('ot-det-chasis', _v('vehiculo_chasis','chasis') || ot.vin || '')}</div>
+              <div><label style="font-size:11px;color:var(--text-muted)">Kilometraje</label>${_input('ot-det-km', _v('vehiculo_km_entrada','km_entrada') || ot.km || '')}</div>
+              <div><label style="font-size:11px;color:var(--text-muted)">Color</label>${_input('ot-det-color', _v('vehiculo_color','color'))}</div>
             </div>
           </div>
 
