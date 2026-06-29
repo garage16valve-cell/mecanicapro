@@ -190,14 +190,7 @@ function _renderOTCard(ot) {
       onclick="retrocederOT('${ot.id}')">
       <i class="ti ti-arrow-left"></i> Retroceder
     </button>
-    <button class="btn kanban-btn" title="Editar OT - Abrir panel con tabs"
-      onclick="otAbrirParaEditar('${ot.id}')">
-      <i class="ti ti-edit"></i> Editar
-    </button>
-    <button class="btn kanban-btn bpa" title="Ver detalle completo de la OT"
-      onclick="otMostrarDetalle('${ot.id}')">
-      <i class="ti ti-list-details"></i> Detalle
-    </button>
+
     <button class="btn kanban-btn" title="WhatsApp cliente"
       onclick="vistaClienteOT('${ot.id}')" style="color:#25D366;border-color:#25D366">
       <i class="ti ti-brand-whatsapp"></i>
@@ -234,12 +227,16 @@ function avanzarOT(id) {
   if (!ot) return;
   const idx = KANBAN_FASES.findIndex(f => f.id === (ot.fase || 'recepcion'));
   if (idx >= KANBAN_FASES.length - 1) return;
-  const nuevaFase = KANBAN_FASES[idx + 1];
-  ot.fase = nuevaFase.id;
-  _logEvento(ot, `Avanzó a ${nuevaFase.label}`);
-  APP.lsSet('ots', ots);
-  renderKanban();
-  showToast(`OT #${id} avanzó a ${nuevaFase.label}`);
+  if (typeof otAvanzarFase === 'function') {
+    otAvanzarFase(id);
+  } else {
+    const nuevaFase = KANBAN_FASES[idx + 1];
+    ot.fase = nuevaFase.id;
+    _logEvento(ot, `Avanzó a ${nuevaFase.label}`);
+    APP.lsSet('ots', ots);
+    renderKanban();
+    showToast(`OT #${id} avanzó a ${nuevaFase.label}`);
+  }
 }
 
 function retrocederOT(id) {

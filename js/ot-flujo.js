@@ -44,13 +44,12 @@ function otGuardarSintomas(ot_id, sintomas) {
   APP.toast.show('✅ Síntomas guardados. Ir a diagnóstico', 'success');
 }
 
-// DIAGNÓSTICO
+// DIAGNÓSTICO (standalone panel, legacy)
 function otAbrirDiagnostico(ot_id) {
   const ots = APP.lsGet('ots', []);
   const ot = ots.find(o => o.id === ot_id);
   if (!ot) return;
 
-  // Panel izq: síntomas read-only
   document.getElementById('ot-diagnostico-sintomas-display').innerHTML = `
     <div class="card">
       <div class="ch"><span class="ct">📋 Síntomas del cliente</span></div>
@@ -58,11 +57,8 @@ function otAbrirDiagnostico(ot_id) {
     </div>
   `;
 
-  // Panel centro: input diagnóstico
-  document.getElementById('ot-diagnostico-input').value = ot.diagnostico || '';
-
-  // Panel derecha: servicios
-  otCargarServicios(ot_id);
+  const panelInput = document.getElementById('ot-diagnostico-input-panel') || document.getElementById('ot-diagnostico-input');
+  if (panelInput) panelInput.value = ot.diagnostico || '';
 
   document.getElementById('ot-diagnostico-ot-id-hidden').value = ot_id;
   document.getElementById('ot-diagnostico-panel').style.display = '';
@@ -460,13 +456,6 @@ function otMostrarTabDiagnostico(ot_id) {
   document.getElementById('ot-diagnostico-input').value = ot.diagnostico || '';
   document.getElementById('ot-diagnostico-ot-id').value = ot_id;
 
-  console.log('DEBUG: Antes de otCargarServicios, container existe?', !!document.getElementById('ot-servicios-checkboxes'));
-
-  // Cargar servicios
-  otCargarServicios(ot_id);
-
-  console.log('DEBUG: Después de otCargarServicios, HTML del container:', document.getElementById('ot-servicios-checkboxes')?.innerHTML);
-
   // Highlight tab activo
   document.querySelectorAll('#ot-detalle-tabs button').forEach(btn => btn.style.borderBottomColor = 'transparent');
   document.getElementById('ot-btn-diagnostico').style.borderBottomColor = 'var(--fill-accent)';
@@ -787,6 +776,766 @@ function otMostrarDetalle(ot_id) {
   document.body.appendChild(div.firstElementChild);
 }
 
+// ===== SISTEMA FLUJO 8 ESTADOS =====
+
+function _otCerrarPanelFase() {
+  const el = document.getElementById('ot-panel-fase-overlay');
+  if (el) el.remove();
+}
+
+function _otAvanzarAFase(ot_id, sigFase, sigLabel) {
+  const ots = APP.lsGet('ots', []);
+  const ot = ots.find(o => o.id === ot_id);
+  if (!ot) return;
+  ot.fase = sigFase;
+  ot.historial_eventos = ot.historial_eventos || [];
+  ot.historial_eventos.push({ fecha: Date.now(), fase: sigFase, accion: `Avanzó a ${sigLabel}`, usuario: 'Sistema', descripcion: '' });
+  ot.fecha_modificacion = new Date().toISOString();
+  APP.lsSet('ots', ots);
+  _otCerrarPanelFase();
+  if (typeof renderKanban === 'function') renderKanban();
+  APP.toast.show(`✅ OT #${ot_id} avanzó a ${sigLabel}`, 'success');
+}
+
+function _otOverlay(contenido) {
+  _otCerrarPanelFase();
+  const d = document.createElement('div');
+  d.innerHTML = `<div id="ot-panel-fase-overlay" style="position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);z-index:1050;overflow-y:auto;padding:20px" onclick="if(event.target===this)_otCerrarPanelFase()"><div style="background:var(--bg-primary);max-width:800px;margin:20px auto;border-radius:8px;box-shadow:0 10px 40px rgba(0,0,0,0.3)">${contenido}</div></div>`;
+  document.body.appendChild(d.firstElementChild);
+}
+
+function _otBtnCerrar() {
+  return `<button onclick="_otCerrarPanelFase()" style="background:none;border:none;font-size:24px;cursor:pointer;color:var(--text-muted);line-height:1">×</button>`;
+}
+
+function _otHeader(ot, titulo) {
+  return `<div style="background:var(--surface-1);padding:16px 20px;border-bottom:0.5px solid var(--border);display:flex;align-items:center;justify-content:space-between;border-radius:8px 8px 0 0"><div><div style="font-size:16px;font-weight:600;color:var(--text-primary)">${titulo} — OT #${ot.id}</div><div style="font-size:12px;color:var(--text-muted);margin-top:2px">${ot.vehiculo_marca||''} ${ot.vehiculo_modelo||''} · ${ot.cliente_nombre||'—'} · ${ot.patente||'—'}</div></div>${_otBtnCerrar()}</div>`;
+}
+
+function _otFooter(buttons) {
+  return `<div style="padding:14px 20px;border-top:0.5px solid var(--border);background:var(--surface-1);border-radius:0 0 8px 8px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;justify-content:flex-end">${buttons}</div>`;
+}
+
+function _otBody(html) {
+  return `<div style="padding:20px;max-height:70vh;overflow-y:auto;display:flex;flex-direction:column;gap:16px">${html}</div>`;
+}
+
+function _otCard(titulo, contenido) {
+  return `<div class="card"><div class="ch"><span class="ct">${titulo}</span></div>${contenido}</div>`;
+}
+
+function _otReadonly(label, valor) {
+  return `<div><label style="font-size:11px;color:var(--text-muted)">${label}</label><div style="font-size:13px;font-weight:500">${valor||'—'}</div></div>`;
+}
+
+function _otGrid2(items) {
+  return `<div class="fgrid2">${items.join('')}</div>`;
+}
+
+// ===== DISPATCHER =====
+function otAvanzarFase(ot_id) {
+  const ots = APP.lsGet('ots', []);
+  const ot = ots.find(o => o.id === ot_id);
+  if (!ot) return;
+  const fase = ot.fase || 'recepcion';
+  const cmd = { recepcion: 'otAbrirPanelRecepcion', diagnostico: 'otAbrirPanelDiagnostico', repuestos: 'otAbrirPanelRepuestos', aprobacion: 'otAbrirPanelAprobacion', reparacion: 'otAbrirPanelReparacion', control: 'otAbrirPanelControl', entrega: 'otAbrirPanelEntrega' }[fase];
+  if (cmd && typeof window[cmd] === 'function') window[cmd](ot_id);
+  else APP.toast.show('⚠️ No hay panel disponible para esta fase', 'warning');
+}
+
+// ===== PANEL 1: RECEPCIÓN =====
+function otAbrirPanelRecepcion(ot_id) {
+  const ots = APP.lsGet('ots', []);
+  const ot = ots.find(o => o.id === ot_id);
+  if (!ot) return;
+
+  _otOverlay(`
+    ${_otHeader(ot, '🚶 Recepción — Anotar síntomas')}
+    ${_otBody(`
+      ${_otCard('📋 Datos del vehículo', _otGrid2([
+        _otReadonly('Marca', ot.vehiculo_marca||ot.marca),
+        _otReadonly('Modelo', ot.vehiculo_modelo||ot.modelo),
+        _otReadonly('Año', ot.vehiculo_anio||ot.anio),
+        _otReadonly('Patente', ot.patente),
+        _otReadonly('Motor', ot.vehiculo_motor||ot.motor),
+        _otReadonly('Chasis', ot.vehiculo_chasis||ot.chasis||ot.vin),
+        _otReadonly('Kilometraje', ot.vehiculo_km_entrada||ot.km_entrada?Number(ot.vehiculo_km_entrada||ot.km_entrada).toLocaleString('es-CL')+' km':null),
+        _otReadonly('Cliente', ot.cliente_nombre),
+      ]))}
+      <div class="card">
+        <div class="ch"><span class="ct">📝 Síntomas del cliente</span></div>
+        <div class="fg">
+          <label>¿Qué síntomas tiene el vehículo? <span style="color:#ef4444">*</span></label>
+          <textarea id="ot-panel-sintomas" placeholder="Ej: Ruido al frenar, vibración en el volante..." style="min-height:120px">${ot.sintomas||''}</textarea>
+        </div>
+      </div>
+    `)}
+    ${_otFooter(`
+      <button class="btn" onclick="_otCerrarPanelFase()" style="font-size:12px">Cancelar</button>
+      <button class="btn bpa" onclick="otGuardarPanelRecepcion('${ot_id}')" style="font-size:12px"><i class="ti ti-device-floppy"></i> Guardar y avanzar a Diagnóstico</button>
+    `)}
+  `);
+}
+
+function otGuardarPanelRecepcion(ot_id) {
+  const sintomas = document.getElementById('ot-panel-sintomas')?.value?.trim();
+  if (!sintomas) { APP.toast.show('⚠️ Anotar síntomas es obligatorio', 'warning'); return; }
+  const ots = APP.lsGet('ots', []);
+  const ot = ots.find(o => o.id === ot_id);
+  if (!ot) return;
+  ot.sintomas = sintomas;
+  ot.estado = 'diagnostico';
+  ot.fecha_modificacion = new Date().toISOString();
+  _otAvanzarAFase(ot_id, 'diagnostico', 'Diagnóstico');
+}
+
+// ===== PANEL 2: DIAGNÓSTICO =====
+function otAbrirPanelDiagnostico(ot_id) {
+  const ots = APP.lsGet('ots', []);
+  const ot = ots.find(o => o.id === ot_id);
+  if (!ot) return;
+  const sf = '-overlay';
+
+  _otOverlay(`
+    <style>
+      .ot-sug-item:hover{background:var(--surface-2)}
+      .ot-sug-item{cursor:pointer;padding:8px 12px;font-size:12px;border-bottom:0.5px solid var(--border);transition:background 0.1s}
+      .ot-sug-item:last-child{border-bottom:none}
+    </style>
+    ${_otHeader(ot, '🔍 Diagnóstico — Anotar diagnóstico y asignar servicios')}
+    ${_otBody(`
+      ${_otCard('📋 Síntomas registrados', `<div style="padding:10px;background:var(--surface-1);border-radius:var(--radius);font-size:12px;line-height:1.6;color:var(--text-secondary)">${ot.sintomas||'Sin síntomas'}</div>`)}
+      <div class="card">
+        <div class="ch"><span class="ct">🔍 Diagnóstico técnico</span></div>
+        <div class="fg">
+          <label>¿Cuál es el diagnóstico? <span style="color:#ef4444">*</span></label>
+          <textarea id="ot-panel-diagnostico" placeholder="Describe el problema técnico encontrado..." style="min-height:120px">${ot.diagnostico||''}</textarea>
+        </div>
+      </div>
+      <div class="card">
+        <div class="ch"><span class="ct">🔧 Buscar servicio</span></div>
+        <div class="fg" style="position:relative">
+          <label>Escribe el nombre del servicio</label>
+          <input id="ot-buscador-servicios${sf}" type="text" placeholder="Ej: Cambio de frenos, Alineación…" autocomplete="off" oninput="otBuscadorServicios(this.value,'${sf}')" onblur="setTimeout(()=>{const d=document.getElementById('ot-sugerencias-servicios${sf}');if(d)d.style.display='none'},200)" style="width:100%;padding:10px 12px;border:0.5px solid var(--border);border-radius:var(--radius);background:var(--surface-2);color:var(--text-primary);font-size:12px;box-sizing:border-box">
+          <div id="ot-sugerencias-servicios${sf}" style="display:none;position:absolute;top:100%;left:0;right:0;background:var(--surface-1);border:0.5px solid var(--border);border-radius:0 0 var(--radius) var(--radius);z-index:100;max-height:200px;overflow-y:auto;box-shadow:0 4px 12px rgba(0,0,0,0.15)"></div>
+        </div>
+      </div>
+      <div id="ot-panel-datos-servicio${sf}" style="display:none" class="card">
+        <div class="ch"><span class="ct">📋 Datos del servicio</span></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px">
+          <div class="fg">
+            <label>Nombre del servicio</label>
+            <input id="ot-servicio-nombre${sf}" type="text" style="width:100%;padding:8px;border:0.5px solid var(--border);border-radius:var(--radius);background:var(--surface-2);color:var(--text-primary);font-size:12px;box-sizing:border-box">
+          </div>
+          <div class="fg">
+            <label>Horas estimadas</label>
+            <input id="ot-servicio-horas${sf}" type="number" step="0.5" min="0" value="0" style="width:100%;padding:8px;border:0.5px solid var(--border);border-radius:var(--radius);background:var(--surface-2);color:var(--text-primary);font-size:12px;box-sizing:border-box">
+          </div>
+          <div class="fg">
+            <label>Valor CLP</label>
+            <input id="ot-servicio-valor${sf}" type="number" min="0" value="0" style="width:100%;padding:8px;border:0.5px solid var(--border);border-radius:var(--radius);background:var(--surface-2);color:var(--text-primary);font-size:12px;box-sizing:border-box">
+          </div>
+        </div>
+        <input type="hidden" id="ot-servicio-seleccionado-id${sf}">
+      </div>
+      <div class="card">
+        <div class="ch"><span class="ct">📦 Repuestos</span></div>
+        <div id="ot-panel-repuestos-container${sf}" style="overflow-x:auto;margin-bottom:10px">
+          <table style="width:100%;border-collapse:collapse;font-size:11px;min-width:500px">
+            <thead>
+              <tr style="background:var(--surface-2);border-bottom:0.5px solid var(--border)">
+                <th style="text-align:left;padding:8px;font-size:10px;font-weight:600;color:var(--text-muted);text-transform:uppercase">Repuesto</th>
+                <th style="text-align:center;padding:8px;font-size:10px;font-weight:600;color:var(--text-muted);text-transform:uppercase">Cantidad</th>
+                <th style="text-align:right;padding:8px;font-size:10px;font-weight:600;color:var(--text-muted);text-transform:uppercase">Precio</th>
+                <th style="text-align:center;padding:8px;width:40px"></th>
+              </tr>
+            </thead>
+            <tbody id="ot-panel-repuestos-tbody${sf}">
+              <tr id="ot-panel-repuestos-vacio${sf}">
+                <td colspan="4" style="text-align:center;padding:20px;color:var(--text-muted);font-size:11px">Selecciona un servicio para ver repuestos sugeridos</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <button class="btn bpa" onclick="otAgregarRepuestoManual('${sf}')" style="width:100%;justify-content:center;font-size:11px"><i class="ti ti-plus"></i> Agregar repuesto manual</button>
+      </div>
+    `)}
+    ${_otFooter(`
+      <button class="btn" onclick="_otCerrarPanelFase()" style="font-size:12px">Cancelar</button>
+      <button class="btn bpa" onclick="otGuardarYAvanzarRepuestos('${sf}','${ot_id}')" style="font-size:12px"><i class="ti ti-device-floppy"></i> Guardar y avanzar a Repuestos</button>
+    `)}
+  `);
+}
+
+// ===== PANEL 2b: Guardar diagnóstico (tab) =====
+function otGuardarPanelDiagnostico(ot_id) {
+  const ots = APP.lsGet('ots', []);
+  const ot = ots.find(o => o.id === ot_id);
+  if (!ot) return;
+  const diagnostico = document.getElementById('ot-diagnostico-input')?.value?.trim();
+  if (!diagnostico) { APP.toast.show('⚠️ Anotar diagnóstico es obligatorio', 'warning'); return; }
+  ot.diagnostico = diagnostico;
+  ot.estado = 'repuestos';
+  ot.fecha_modificacion = new Date().toISOString();
+  APP.lsSet('ots', ots);
+  _otAvanzarAFase(ot_id, 'repuestos', 'Repuestos');
+}
+
+// ===== BÚSQUEDA Y SELECCIÓN DE SERVICIOS =====
+function otBuscadorServicios(texto, suffix = '') {
+  const dropdown = document.getElementById('ot-sugerencias-servicios' + suffix);
+  if (!dropdown) return;
+  if (!texto || texto.length < 1) { dropdown.style.display = 'none'; return; }
+  const t = texto.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  const servDefault = [{id:'serv-1',nombre:'Cambio aceite',horas:0.5,precio_venta:25000},{id:'serv-2',nombre:'Cambio filtro',horas:0.25,precio_venta:12000},{id:'serv-3',nombre:'Cambio de frenos',horas:1.5,precio_venta:45000},{id:'serv-4',nombre:'Alineación',horas:1,precio_venta:22000},{id:'serv-5',nombre:'Balanceo de ruedas',horas:0.75,precio_venta:18000}];
+  const servicios = APP.lsGet('mp_servicios', servDefault);
+  const filtrados = servicios.filter(s => s.nombre.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').includes(t));
+  if (filtrados.length === 0) { dropdown.style.display = 'none'; return; }
+  dropdown.innerHTML = filtrados.map(s => `<div class="ot-sug-item" onclick="otRellenarServicioSeleccionado('${s.id}','${suffix}')">${s.nombre} <span style="color:var(--text-muted);font-size:10px">${s.horas_estimadas||s.horas||0}h · $${(s.precio_venta||0).toLocaleString('es-CL')}</span></div>`).join('');
+  dropdown.style.display = 'block';
+}
+
+function otRellenarServicioSeleccionado(servicio_id, suffix = '') {
+  const servDefault = [{id:'serv-1',nombre:'Cambio aceite',horas:0.5,precio_venta:25000,repuestos:[]},{id:'serv-2',nombre:'Cambio filtro',horas:0.25,precio_venta:12000,repuestos:[]},{id:'serv-3',nombre:'Cambio de frenos',horas:1.5,precio_venta:45000,repuestos:[{nombre:'Pastillas freno',cantidad:1,precio:15000},{nombre:'Discos freno',cantidad:2,precio:25000}]},{id:'serv-4',nombre:'Alineación',horas:1,precio_venta:22000,repuestos:[]},{id:'serv-5',nombre:'Balanceo de ruedas',horas:0.75,precio_venta:18000,repuestos:[]}];
+  const servicios = APP.lsGet('mp_servicios', servDefault);
+  const servicio = servicios.find(s => s.id === servicio_id);
+  if (!servicio) return;
+  const sf = suffix;
+  document.getElementById('ot-servicio-nombre' + sf).value = servicio.nombre;
+  document.getElementById('ot-servicio-horas' + sf).value = servicio.horas_estimadas || servicio.horas || 0;
+  document.getElementById('ot-servicio-valor' + sf).value = servicio.precio_venta || 0;
+  document.getElementById('ot-servicio-seleccionado-id' + sf).value = servicio_id;
+  document.getElementById('ot-panel-datos-servicio' + sf).style.display = 'block';
+  const dropdown = document.getElementById('ot-sugerencias-servicios' + sf);
+  if (dropdown) dropdown.style.display = 'none';
+  const repuestos = servicio.repuestos || [];
+  if (repuestos.length > 0) {
+    otCargarRepuestosTabla(repuestos, sf);
+  } else {
+    const repuestosBase = APP.lsGet('repuestos', []);
+    const sugeridos = repuestosBase.filter(r => servicio.nombre.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').includes(r.categoria ? r.categoria.toLowerCase() : ''));
+    otCargarRepuestosTabla(sugeridos.slice(0,5).map(r => ({nombre:r.nombre,cantidad:1,precio:r.precio_venta||0})), sf);
+  }
+}
+
+function otCargarRepuestosTabla(repuestos, suffix = '') {
+  const sf = suffix;
+  const tbody = document.getElementById('ot-panel-repuestos-tbody' + sf);
+  const vacio = document.getElementById('ot-panel-repuestos-vacio' + sf);
+  if (!tbody) return;
+  if (!repuestos || repuestos.length === 0) {
+    if (vacio) vacio.style.display = '';
+    tbody.innerHTML = vacio ? vacio.outerHTML : '<tr><td colspan="4" style="text-align:center;padding:20px;color:var(--text-muted);font-size:11px">Sin repuestos</td></tr>';
+    return;
+  }
+  if (vacio) vacio.style.display = 'none';
+  tbody.innerHTML = repuestos.map((r, i) => `
+    <tr style="border-bottom:0.5px solid var(--border)">
+      <td style="padding:6px"><input type="text" value="${r.nombre||''}" placeholder="Nombre repuesto" id="ot-rep-nombre${sf}-${i}" style="width:100%;padding:6px;border:0.5px solid var(--border);border-radius:var(--radius);background:var(--surface-2);color:var(--text-primary);font-size:11px;box-sizing:border-box"></td>
+      <td style="padding:6px;text-align:center"><input type="number" min="1" value="${r.cantidad||1}" id="ot-rep-cant${sf}-${i}" style="width:60px;padding:6px;border:0.5px solid var(--border);border-radius:var(--radius);background:var(--surface-2);color:var(--text-primary);font-size:11px;text-align:center;box-sizing:border-box"></td>
+      <td style="padding:6px;text-align:right"><input type="number" min="0" value="${r.precio||r.precio_unitario||0}" id="ot-rep-precio${sf}-${i}" style="width:100px;padding:6px;border:0.5px solid var(--border);border-radius:var(--radius);background:var(--surface-2);color:var(--text-primary);font-size:11px;text-align:right;box-sizing:border-box"></td>
+      <td style="padding:6px;text-align:center"><button onclick="otEliminarFilaRepuesto(${i},'${sf}')" style="background:none;border:none;cursor:pointer;color:#ef4444;font-size:14px;padding:4px"><i class="ti ti-trash"></i></button></td>
+    </tr>
+  `).join('');
+}
+
+function otAgregarRepuestoManual(suffix = '') {
+  const sf = suffix;
+  const tbody = document.getElementById('ot-panel-repuestos-tbody' + sf);
+  if (!tbody) return;
+  const vacio = document.getElementById('ot-panel-repuestos-vacio' + sf);
+  if (vacio) vacio.style.display = 'none';
+  const filas = tbody.querySelectorAll('tr').length;
+  const tr = document.createElement('tr');
+  tr.style.borderBottom = '0.5px solid var(--border)';
+  tr.innerHTML = `
+    <td style="padding:6px"><input type="text" placeholder="Nombre repuesto" id="ot-rep-nombre${sf}-${filas}" style="width:100%;padding:6px;border:0.5px solid var(--border);border-radius:var(--radius);background:var(--surface-2);color:var(--text-primary);font-size:11px;box-sizing:border-box"></td>
+    <td style="padding:6px;text-align:center"><input type="number" min="1" value="1" id="ot-rep-cant${sf}-${filas}" style="width:60px;padding:6px;border:0.5px solid var(--border);border-radius:var(--radius);background:var(--surface-2);color:var(--text-primary);font-size:11px;text-align:center;box-sizing:border-box"></td>
+    <td style="padding:6px;text-align:right"><input type="number" min="0" value="0" id="ot-rep-precio${sf}-${filas}" style="width:100px;padding:6px;border:0.5px solid var(--border);border-radius:var(--radius);background:var(--surface-2);color:var(--text-primary);font-size:11px;text-align:right;box-sizing:border-box"></td>
+    <td style="padding:6px;text-align:center"><button onclick="otEliminarFilaRepuesto(${filas},'${sf}')" style="background:none;border:none;cursor:pointer;color:#ef4444;font-size:14px;padding:4px"><i class="ti ti-trash"></i></button></td>
+  `;
+  tbody.appendChild(tr);
+}
+
+function otEliminarFilaRepuesto(index, suffix = '') {
+  const sf = suffix;
+  const tbody = document.getElementById('ot-panel-repuestos-tbody' + sf);
+  if (!tbody) return;
+  const filas = tbody.querySelectorAll('tr');
+  if (filas.length <= 1) {
+    const vacio = document.getElementById('ot-panel-repuestos-vacio' + sf);
+    if (vacio) vacio.style.display = '';
+    tbody.innerHTML = vacio ? vacio.outerHTML : '<tr><td colspan="4" style="text-align:center;padding:20px;color:var(--text-muted);font-size:11px">Sin repuestos</td></tr>';
+    return;
+  }
+  const fila = filas[index];
+  if (fila) fila.remove();
+}
+
+function otGuardarYAvanzarRepuestos(suffix = '', ot_id_param = '') {
+  const sf = suffix;
+  const diagnosticoEl = document.getElementById('ot-diagnostico-input' + sf) || document.getElementById('ot-panel-diagnostico') || document.getElementById('ot-diagnostico-input');
+  const diagnostico = diagnosticoEl ? diagnosticoEl.value?.trim() : '';
+  if (!diagnostico) { APP.toast.show('⚠️ Anotar diagnóstico es obligatorio', 'warning'); return; }
+  const servicioId = document.getElementById('ot-servicio-seleccionado-id' + sf)?.value;
+  if (!servicioId) { APP.toast.show('⚠️ Selecciona un servicio primero', 'warning'); return; }
+  const servicioNombre = document.getElementById('ot-servicio-nombre' + sf)?.value?.trim();
+  if (!servicioNombre) { APP.toast.show('⚠️ El nombre del servicio es obligatorio', 'warning'); return; }
+  const horas = parseFloat(document.getElementById('ot-servicio-horas' + sf)?.value) || 0;
+  const valor = parseInt(document.getElementById('ot-servicio-valor' + sf)?.value) || 0;
+  const tbody = document.getElementById('ot-panel-repuestos-tbody' + sf);
+  const repuestosGuardar = [];
+  if (tbody) {
+    const filas = tbody.querySelectorAll('tr');
+    filas.forEach((tr, i) => {
+      const nombre = document.getElementById('ot-rep-nombre' + sf + '-' + i)?.value?.trim();
+      if (!nombre) return;
+      const cantidad = parseInt(document.getElementById('ot-rep-cant' + sf + '-' + i)?.value) || 1;
+      const precio = parseInt(document.getElementById('ot-rep-precio' + sf + '-' + i)?.value) || 0;
+      repuestosGuardar.push({ nombre, cantidad, precio_unitario: precio });
+    });
+  }
+  const ots = APP.lsGet('ots', []);
+  const id = ot_id_param || document.getElementById('ot-diagnostico-ot-id' + sf)?.value;
+  const ot = ots.find(o => o.id === id);
+  if (!ot) { APP.toast.show('⚠️ OT no encontrada', 'error'); return; }
+  ot.diagnostico = diagnostico;
+  ot.servicio_seleccionado = { id: servicioId, nombre: servicioNombre, horas, valor };
+  ot.servicios_diagnostico = [servicioId];
+  ot.servicios_seleccionados = [servicioId];
+  if (!ot.cotizacion) ot.cotizacion = { repuestos: [], mano_obra: 0 };
+  ot.cotizacion.repuestos = repuestosGuardar;
+  ot.cotizacion.mano_obra = valor;
+  ot.cotizacion.mano_obra_horas = horas;
+  ot.estado = 'repuestos';
+  ot.fecha_modificacion = new Date().toISOString();
+  APP.lsSet('ots', ots);
+  if (typeof _otAvanzarAFase === 'function') {
+    _otAvanzarAFase(ot.id, 'repuestos', 'Repuestos');
+  }
+}
+
+// ===== PANEL 3: REPUESTOS =====
+function otAbrirPanelRepuestos(ot_id) {
+  const ots = APP.lsGet('ots', []);
+  const ot = ots.find(o => o.id === ot_id);
+  if (!ot) return;
+  if (!ot.cotizacion) ot.cotizacion = { repuestos: [], mano_obra: 0, mano_obra_horas: 0 };
+
+  const config = APP.lsGet('taller_config', {});
+  const tarifa = config.tarifa_hora || 0;
+  const repuestos = ot.cotizacion.repuestos || [];
+
+  const repHtml = repuestos.length > 0
+    ? `<table style="width:100%;border-collapse:collapse;font-size:12px">
+        <thead><tr style="background:var(--surface-2);border-bottom:0.5px solid var(--border)">
+          <th style="text-align:left;padding:8px;font-size:10px;font-weight:600;color:var(--text-muted);text-transform:uppercase">Repuesto</th>
+          <th style="text-align:center;padding:8px;font-size:10px;font-weight:600;color:var(--text-muted);text-transform:uppercase">Cant.</th>
+          <th style="text-align:right;padding:8px;font-size:10px;font-weight:600;color:var(--text-muted);text-transform:uppercase">Precio</th>
+          <th style="text-align:right;padding:8px;font-size:10px;font-weight:600;color:var(--text-muted);text-transform:uppercase">Subtotal</th>
+          <th style="text-align:center;padding:8px;width:40px"></th>
+        </tr></thead>
+        <tbody>
+          ${repuestos.map((r,i) => `
+            <tr style="border-bottom:0.5px solid var(--border)">
+              <td style="padding:6px"><input class="ot-rep-nombre" value="${r.nombre||''}" style="width:100%;padding:4px 6px;border:0.5px solid var(--border);border-radius:4px;background:var(--surface-1);color:var(--text-primary)"></td>
+              <td style="padding:6px;text-align:center"><input class="ot-rep-cant" type="number" min="1" value="${r.cantidad||1}" style="width:50px;text-align:center;padding:4px;border:0.5px solid var(--border);border-radius:4px;background:var(--surface-1);color:var(--text-primary)"></td>
+              <td style="padding:6px;text-align:right"><input class="ot-rep-precio" type="number" min="0" value="${r.precio_unitario||0}" style="width:90px;text-align:right;padding:4px;border:0.5px solid var(--border);border-radius:4px;background:var(--surface-1);color:var(--text-primary)"></td>
+              <td style="padding:6px;text-align:right;font-weight:500" class="ot-rep-subtotal">$${((r.cantidad||0)*(r.precio_unitario||0)).toLocaleString('es-CL')}</td>
+              <td style="padding:6px;text-align:center"><button class="btn" style="font-size:10px;padding:2px 6px;color:var(--text-danger)" onclick="this.closest('tr').remove();otRecalcularPanelRepuestos()"><i class="ti ti-trash"></i></button></td>
+            </tr>`).join('')}
+        </tbody>
+      </table>`
+    : '<div style="text-align:center;color:var(--text-muted);padding:20px;font-size:12px">Sin repuestos agregados. Usa el botón "+ Agregar repuesto"</div>';
+
+  _otOverlay(`
+    ${_otHeader(ot, '🔧 Repuestos — Editar repuestos y mano de obra')}
+    ${_otBody(`
+      ${_otCard('🔍 Diagnóstico', `<div style="padding:10px;background:var(--surface-1);border-radius:var(--radius);font-size:12px;line-height:1.6;color:var(--text-secondary)">${ot.diagnostico||'Sin diagnóstico'}</div>`)}
+      <div class="card">
+        <div class="ch"><span class="ct">📦 Repuestos</span></div>
+        <div id="ot-panel-repuestos-tabla" style="overflow-x:auto;margin-bottom:10px">${repHtml}</div>
+        <button class="btn bpa" style="width:100%;justify-content:center;font-size:11px" onclick="otPanelAgregarFilaRepuesto()"><i class="ti ti-plus"></i> Agregar repuesto manual</button>
+      </div>
+      <div class="card">
+        <div class="ch"><span class="ct">💼 Mano de obra</span></div>
+        <div class="fgrid2">
+          <div class="fg"><label>Horas</label><input id="ot-panel-horas" type="number" min="0" step="0.5" value="${ot.cotizacion.mano_obra_horas||0}" oninput="otRecalcularPanelRepuestos()" style="padding:8px;border:0.5px solid var(--border);border-radius:var(--radius);background:var(--surface-1);color:var(--text-primary)"></div>
+          <div class="fg"><label>Tarifa/hora</label><input type="text" readonly value="$${tarifa.toLocaleString('es-CL')}" style="padding:8px;border:0.5px solid var(--border);border-radius:var(--radius);background:var(--surface-2);color:var(--text-muted)"></div>
+        </div>
+      </div>
+      <div id="ot-panel-totales" style="background:var(--surface-1);padding:16px;border-radius:var(--radius);border:0.5px solid var(--border)">
+        <div style="display:flex;justify-content:space-between;padding:4px 0;font-size:12px"><span>Subtotal repuestos</span><span id="ot-panel-subtotal-rep">$0</span></div>
+        <div style="display:flex;justify-content:space-between;padding:4px 0;font-size:12px"><span>Mano de obra</span><span id="ot-panel-mano-obra">$0</span></div>
+        <div style="display:flex;justify-content:space-between;padding:4px 0;font-size:12px"><span>Subtotal</span><span id="ot-panel-subtotal" style="font-weight:500">$0</span></div>
+        <div style="display:flex;justify-content:space-between;padding:4px 0;font-size:12px;color:var(--text-muted)"><span>IVA 19%</span><span id="ot-panel-iva">$0</span></div>
+        <div style="display:flex;justify-content:space-between;padding:8px 0 0;font-size:14px;font-weight:700;border-top:0.5px solid var(--border);margin-top:4px;color:var(--text-accent)"><span>TOTAL</span><span id="ot-panel-total">$0</span></div>
+      </div>
+    `)}
+    ${_otFooter(`
+      <button class="btn" onclick="_otCerrarPanelFase()" style="font-size:12px">Cancelar</button>
+      <button class="btn bpa" onclick="otGuardarPanelRepuestos('${ot_id}')" style="font-size:12px"><i class="ti ti-device-floppy"></i> Guardar y avanzar a Aprobación</button>
+    `)}
+  `);
+  otRecalcularPanelRepuestos();
+}
+
+function otRecalcularPanelRepuestos() {
+  const filas = document.querySelectorAll('#ot-panel-repuestos-tabla table tbody tr') || [];
+  let subRep = 0;
+  filas.forEach(tr => {
+    const cant = parseFloat(tr.querySelector('.ot-rep-cant')?.value) || 0;
+    const precio = parseFloat(tr.querySelector('.ot-rep-precio')?.value) || 0;
+    const sub = cant * precio;
+    subRep += sub;
+    const td = tr.querySelector('.ot-rep-subtotal');
+    if (td) td.textContent = '$' + sub.toLocaleString('es-CL');
+  });
+  const horas = parseFloat(document.getElementById('ot-panel-horas')?.value) || 0;
+  const config = APP.lsGet('taller_config', {});
+  const tarifa = config.tarifa_hora || 0;
+  const manoObra = horas * tarifa;
+  const subtotal = subRep + manoObra;
+  const iva = subtotal * 0.19;
+  const total = subtotal + iva;
+  const g = id => document.getElementById(id);
+  if (g('ot-panel-subtotal-rep')) g('ot-panel-subtotal-rep').textContent = '$' + subRep.toLocaleString('es-CL');
+  if (g('ot-panel-mano-obra')) g('ot-panel-mano-obra').textContent = '$' + manoObra.toLocaleString('es-CL');
+  if (g('ot-panel-subtotal')) g('ot-panel-subtotal').textContent = '$' + subtotal.toLocaleString('es-CL');
+  if (g('ot-panel-iva')) g('ot-panel-iva').textContent = '$' + iva.toLocaleString('es-CL');
+  if (g('ot-panel-total')) g('ot-panel-total').textContent = '$' + total.toLocaleString('es-CL');
+}
+
+function otPanelAgregarFilaRepuesto() {
+  const tabla = document.querySelector('#ot-panel-repuestos-tabla table tbody');
+  if (!tabla) {
+    document.getElementById('ot-panel-repuestos-tabla').innerHTML = `
+      <table style="width:100%;border-collapse:collapse;font-size:12px">
+        <thead><tr style="background:var(--surface-2);border-bottom:0.5px solid var(--border)">
+          <th style="text-align:left;padding:8px;font-size:10px;font-weight:600;color:var(--text-muted);text-transform:uppercase">Repuesto</th>
+          <th style="text-align:center;padding:8px;font-size:10px;font-weight:600;color:var(--text-muted);text-transform:uppercase">Cant.</th>
+          <th style="text-align:right;padding:8px;font-size:10px;font-weight:600;color:var(--text-muted);text-transform:uppercase">Precio</th>
+          <th style="text-align:right;padding:8px;font-size:10px;font-weight:600;color:var(--text-muted);text-transform:uppercase">Subtotal</th>
+          <th style="text-align:center;padding:8px;width:40px"></th>
+        </tr></thead>
+        <tbody></tbody>
+      </table>`;
+  }
+  const tbody = document.querySelector('#ot-panel-repuestos-tabla table tbody');
+  const tr = document.createElement('tr');
+  tr.style.borderBottom = '0.5px solid var(--border)';
+  tr.innerHTML = `
+    <td style="padding:6px"><input class="ot-rep-nombre" placeholder="Nombre repuesto" style="width:100%;padding:4px 6px;border:0.5px solid var(--border);border-radius:4px;background:var(--surface-1);color:var(--text-primary)"></td>
+    <td style="padding:6px;text-align:center"><input class="ot-rep-cant" type="number" min="1" value="1" style="width:50px;text-align:center;padding:4px;border:0.5px solid var(--border);border-radius:4px;background:var(--surface-1);color:var(--text-primary)" oninput="otRecalcularPanelRepuestos()"></td>
+    <td style="padding:6px;text-align:right"><input class="ot-rep-precio" type="number" min="0" value="0" style="width:90px;text-align:right;padding:4px;border:0.5px solid var(--border);border-radius:4px;background:var(--surface-1);color:var(--text-primary)" oninput="otRecalcularPanelRepuestos()"></td>
+    <td style="padding:6px;text-align:right;font-weight:500" class="ot-rep-subtotal">$0</td>
+    <td style="padding:6px;text-align:center"><button class="btn" style="font-size:10px;padding:2px 6px;color:var(--text-danger)" onclick="this.closest('tr').remove();otRecalcularPanelRepuestos()"><i class="ti ti-trash"></i></button></td>
+  `;
+  tbody.appendChild(tr);
+  otRecalcularPanelRepuestos();
+}
+
+function otGuardarPanelRepuestos(ot_id) {
+  const ots = APP.lsGet('ots', []);
+  const ot = ots.find(o => o.id === ot_id);
+  if (!ot) return;
+  if (!ot.cotizacion) ot.cotizacion = { repuestos: [] };
+
+  const filas = document.querySelectorAll('#ot-panel-repuestos-tabla table tbody tr') || [];
+  const repuestos = [];
+  filas.forEach(tr => {
+    const nombre = tr.querySelector('.ot-rep-nombre')?.value?.trim();
+    if (!nombre) return;
+    const cantidad = parseInt(tr.querySelector('.ot-rep-cant')?.value) || 1;
+    const precio_unitario = parseFloat(tr.querySelector('.ot-rep-precio')?.value) || 0;
+    repuestos.push({ nombre, cantidad, precio_unitario });
+  });
+
+  const horas = parseFloat(document.getElementById('ot-panel-horas')?.value) || 0;
+  const config = APP.lsGet('taller_config', {});
+  const tarifa = config.tarifa_hora || 0;
+
+  ot.cotizacion.repuestos = repuestos;
+  ot.cotizacion.mano_obra_horas = horas;
+  ot.cotizacion.mano_obra = horas * tarifa;
+  ot.estado = 'aprobacion';
+  ot.fecha_modificacion = new Date().toISOString();
+
+  APP.lsSet('ots', ots);
+  _otAvanzarAFase(ot_id, 'aprobacion', 'Aprobación');
+}
+
+// ===== PANEL 4: APROBACIÓN =====
+function otAbrirPanelAprobacion(ot_id) {
+  const ots = APP.lsGet('ots', []);
+  const ot = ots.find(o => o.id === ot_id);
+  if (!ot) return;
+  if (!ot.cotizacion) ot.cotizacion = { repuestos: [], mano_obra: 0 };
+
+  const repuestos = ot.cotizacion.repuestos || [];
+  const subRep = repuestos.reduce((s, r) => s + ((r.cantidad||0)*(r.precio_unitario||0)), 0);
+  const manoObra = ot.cotizacion.mano_obra || 0;
+  const subtotal = subRep + manoObra;
+  const iva = subtotal * 0.19;
+  const total = subtotal + iva;
+
+  const repHtml = repuestos.length > 0
+    ? `<table style="width:100%;border-collapse:collapse;font-size:12px">
+        <thead><tr style="background:var(--surface-2);border-bottom:0.5px solid var(--border)">
+          <th style="text-align:left;padding:8px;font-size:10px;font-weight:600;color:var(--text-muted);text-transform:uppercase">Repuesto</th>
+          <th style="text-align:center;padding:8px;font-size:10px;font-weight:600;color:var(--text-muted);text-transform:uppercase">Cant.</th>
+          <th style="text-align:right;padding:8px;font-size:10px;font-weight:600;color:var(--text-muted);text-transform:uppercase">Precio</th>
+          <th style="text-align:right;padding:8px;font-size:10px;font-weight:600;color:var(--text-muted);text-transform:uppercase">Subtotal</th>
+        </tr></thead>
+        <tbody>${repuestos.map(r => `<tr style="border-bottom:0.5px solid var(--border)"><td style="padding:8px">${r.nombre||'—'}</td><td style="padding:8px;text-align:center">${r.cantidad||0}</td><td style="padding:8px;text-align:right">$${(r.precio_unitario||0).toLocaleString('es-CL')}</td><td style="padding:8px;text-align:right;font-weight:500">$${((r.cantidad||0)*(r.precio_unitario||0)).toLocaleString('es-CL')}</td></tr>`).join('')}</tbody>
+      </table>`
+    : '<div style="text-align:center;color:var(--text-muted);padding:10px">Sin repuestos</div>';
+
+  _otOverlay(`
+    ${_otHeader(ot, '✓ Aprobación — Esperando respuesta del cliente')}
+    ${_otBody(`
+      ${_otCard('🔍 Diagnóstico', `<div style="padding:10px;background:var(--surface-1);border-radius:var(--radius);font-size:12px;line-height:1.6;color:var(--text-secondary)">${ot.diagnostico||'Sin diagnóstico'}</div>`)}
+      ${_otCard('📦 Repuestos', `<div style="overflow-x:auto">${repHtml}</div>`)}
+      ${manoObra > 0 ? _otCard('💼 Mano de obra', `<div style="padding:8px;font-size:13px;font-weight:500">${ot.cotizacion.mano_obra_horas||0}h — $${manoObra.toLocaleString('es-CL')}</div>`) : ''}
+      <div style="background:var(--surface-1);padding:16px;border-radius:var(--radius);border:0.5px solid var(--border)">
+        <div style="display:flex;justify-content:space-between;padding:4px 0;font-size:12px"><span>Subtotal</span><span style="font-weight:500">$${subtotal.toLocaleString('es-CL')}</span></div>
+        <div style="display:flex;justify-content:space-between;padding:4px 0;font-size:12px;color:var(--text-muted)"><span>IVA 19%</span><span>$${iva.toLocaleString('es-CL')}</span></div>
+        <div style="display:flex;justify-content:space-between;padding:8px 0 0;font-size:14px;font-weight:700;border-top:0.5px solid var(--border);margin-top:4px;color:var(--text-accent)"><span>TOTAL</span><span>$${total.toLocaleString('es-CL')}</span></div>
+      </div>
+      <div style="background:#fef9c3;border:0.5px solid #d97706;border-radius:var(--radius);padding:14px;text-align:center;font-size:12px;color:#92400e">
+        <i class="ti ti-clock"></i> Esperando aprobación del cliente<br>
+        <span style="font-size:11px;opacity:.8">Cotización enviada — pendiente de respuesta</span>
+      </div>
+    `)}
+    ${_otFooter(`
+      <button class="btn" style="color:#dc2626;border-color:#fca5a5" onclick="otRechazarAprobacion('${ot_id}')" style="font-size:12px"><i class="ti ti-x"></i> Rechazado</button>
+      <button class="btn bpa" onclick="otAprobarCotizacion('${ot_id}')" style="font-size:12px"><i class="ti ti-check"></i> ✓ Aprobado por cliente</button>
+    `)}
+  `);
+}
+
+function otAprobarCotizacion(ot_id) {
+  const ots = APP.lsGet('ots', []);
+  const ot = ots.find(o => o.id === ot_id);
+  if (!ot) return;
+  ot.aprobacion_cliente = true;
+  ot.fecha_aprobacion = new Date().toISOString();
+  ot.estado = 'reparacion';
+  _otAvanzarAFase(ot_id, 'reparacion', 'Reparación');
+}
+
+function otRechazarAprobacion(ot_id) {
+  const ots = APP.lsGet('ots', []);
+  const ot = ots.find(o => o.id === ot_id);
+  if (!ot) return;
+  ot.aprobacion_cliente = false;
+  ot.estado = 'repuestos';
+  APP.lsSet('ots', ots);
+  _otCerrarPanelFase();
+  if (typeof renderKanban === 'function') renderKanban();
+  APP.toast.show('⏪ Cotización rechazada — vuelve a Repuestos para re-editar', 'warning');
+  setTimeout(() => otAbrirPanelRepuestos(ot_id), 300);
+}
+
+// ===== PANEL 5: REPARACIÓN =====
+function otAbrirPanelReparacion(ot_id) {
+  const ots = APP.lsGet('ots', []);
+  const ot = ots.find(o => o.id === ot_id);
+  if (!ot) return;
+
+  const servDefault = [
+    {id:'serv-1',nombre:'Cambio aceite',horas:0.5},{id:'serv-2',nombre:'Cambio filtro',horas:0.25},
+    {id:'serv-3',nombre:'Cambio de frenos',horas:1.5},{id:'serv-4',nombre:'Alineación',horas:1},
+    {id:'serv-5',nombre:'Balanceo de ruedas',horas:0.75}
+  ];
+  const servicios = APP.lsGet('mp_servicios', servDefault);
+  const servIds = ot.servicios_diagnostico || ot.servicios_seleccionados || [];
+  const servNombres = servIds.map(id => { const s = servicios.find(sv => sv.id === id); return s ? s.nombre : id; });
+
+  _otOverlay(`
+    ${_otHeader(ot, '🔨 Reparación — Seguimiento de trabajo')}
+    ${_otBody(`
+      ${_otCard('🔍 Diagnóstico', `<div style="padding:10px;background:var(--surface-1);border-radius:var(--radius);font-size:12px;line-height:1.6;color:var(--text-secondary)">${ot.diagnostico||'Sin diagnóstico'}</div>`)}
+      ${servNombres.length > 0 ? _otCard('🔧 Servicios', `<div style="display:flex;flex-wrap:wrap;gap:6px">${servNombres.map(n => `<span style="padding:4px 10px;background:var(--surface-1);border:0.5px solid var(--border);border-radius:var(--radius);font-size:12px">${n}</span>`).join('')}</div>`) : ''}
+      <div class="card">
+        <div class="ch"><span class="ct">📝 Anotaciones durante reparación</span></div>
+        <div class="fg">
+          <label>Notas del mecánico</label>
+          <textarea id="ot-panel-notas-reparacion" placeholder="Registra observaciones, dificultades, hallazgos..." style="min-height:120px">${ot.notas_reparacion||''}</textarea>
+        </div>
+      </div>
+      <div style="background:var(--surface-1);padding:16px;border-radius:var(--radius);border:0.5px solid var(--border)">
+        <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center">
+          <button class="btn" onclick="otPanelIniciarReparacion('${ot_id}')" style="font-size:12px;padding:10px 24px;background:#065f46;color:white;border:none;border-radius:var(--radius)"><i class="ti ti-player-play"></i> Iniciar reparación</button>
+          <button class="btn" onclick="otPanelPausarReparacion('${ot_id}')" style="font-size:12px;padding:10px 24px;border-color:#d97706;color:#92400e"><i class="ti ti-player-pause"></i> Pausar reparación</button>
+          <button class="btn bpa" onclick="otFinalizarReparacion('${ot_id}')" style="font-size:12px;padding:10px 24px"><i class="ti ti-player-stop"></i> Finalizar y pasar a Control</button>
+        </div>
+      </div>
+    `)}
+    ${_otFooter(`<button class="btn" onclick="_otCerrarPanelFase()" style="font-size:12px">Cerrar</button>`)}
+  `);
+}
+
+function otPanelIniciarReparacion(ot_id) {
+  const ots = APP.lsGet('ots', []);
+  const ot = ots.find(o => o.id === ot_id);
+  if (!ot) return;
+  ot.inicio_reparacion = new Date().toISOString();
+  ot.estado_reparacion = 'en_curso';
+  APP.lsSet('ots', ots);
+  APP.toast.show('🔨 Reparación iniciada', 'success');
+}
+
+function otPanelPausarReparacion(ot_id) {
+  const ots = APP.lsGet('ots', []);
+  const ot = ots.find(o => o.id === ot_id);
+  if (!ot) return;
+  ot.estado_reparacion = 'pausada';
+  APP.lsSet('ots', ots);
+  APP.toast.show('⏸️ Reparación pausada', 'info');
+}
+
+function otFinalizarReparacion(ot_id) {
+  const ots = APP.lsGet('ots', []);
+  const ot = ots.find(o => o.id === ot_id);
+  if (!ot) return;
+  const notas = document.getElementById('ot-panel-notas-reparacion')?.value?.trim();
+  ot.notas_reparacion = notas || '';
+  ot.fin_reparacion = new Date().toISOString();
+  ot.estado_reparacion = 'finalizada';
+  ot.estado = 'control';
+  _otAvanzarAFase(ot_id, 'control', 'Control');
+}
+
+// ===== PANEL 6: CONTROL =====
+function otAbrirPanelControl(ot_id) {
+  const ots = APP.lsGet('ots', []);
+  const ot = ots.find(o => o.id === ot_id);
+  if (!ot) return;
+
+  _otOverlay(`
+    ${_otHeader(ot, '🛡️ Control de calidad — Revisión final')}
+    ${_otBody(`
+      ${_otCard('🔍 Diagnóstico', `<div style="padding:10px;background:var(--surface-1);border-radius:var(--radius);font-size:12px;line-height:1.6;color:var(--text-secondary)">${ot.diagnostico||'Sin diagnóstico'}</div>`)}
+      ${ot.notas_reparacion ? _otCard('📝 Notas de reparación', `<div style="padding:10px;background:var(--surface-1);border-radius:var(--radius);font-size:12px;line-height:1.6;color:var(--text-secondary)">${ot.notas_reparacion}</div>`) : ''}
+      <div class="card">
+        <div class="ch"><span class="ct">✅ Control de calidad</span></div>
+        <div class="fg">
+          <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer">
+            <input type="checkbox" id="ot-panel-control-aprobado" ${ot.control_aprobado ? 'checked' : ''}>
+            ✓ Trabajo revisado y aprobado
+          </label>
+        </div>
+        <div class="fg">
+          <label>Notas de control</label>
+          <textarea id="ot-panel-notas-control" placeholder="Observaciones del control de calidad..." style="min-height:100px">${ot.notas_control||''}</textarea>
+        </div>
+      </div>
+    `)}
+    ${_otFooter(`
+      <button class="btn" onclick="_otCerrarPanelFase()" style="font-size:12px">Cancelar</button>
+      <button class="btn bpa" onclick="otGuardarPanelControl('${ot_id}')" style="font-size:12px"><i class="ti ti-device-floppy"></i> Guardar y avanzar a Entrega</button>
+    `)}
+  `);
+}
+
+function otGuardarPanelControl(ot_id) {
+  const ots = APP.lsGet('ots', []);
+  const ot = ots.find(o => o.id === ot_id);
+  if (!ot) return;
+  ot.control_aprobado = document.getElementById('ot-panel-control-aprobado')?.checked || false;
+  ot.notas_control = document.getElementById('ot-panel-notas-control')?.value?.trim() || '';
+  ot.estado = 'entrega';
+  _otAvanzarAFase(ot_id, 'entrega', 'Entrega');
+}
+
+// ===== PANEL 7: ENTREGA =====
+function otAbrirPanelEntrega(ot_id) {
+  const ots = APP.lsGet('ots', []);
+  const ot = ots.find(o => o.id === ot_id);
+  if (!ot) return;
+
+  const repuestos = ot.cotizacion?.repuestos || [];
+  const subRep = repuestos.reduce((s, r) => s + ((r.cantidad||0)*(r.precio_unitario||0)), 0);
+  const manoObra = ot.cotizacion?.mano_obra || 0;
+  const subtotal = subRep + manoObra;
+  const iva = subtotal * 0.19;
+  const total = subtotal + iva;
+
+  _otOverlay(`
+    ${_otHeader(ot, '📦 Entrega — Generar boleta y confirmar entrega')}
+    ${_otBody(`
+      ${_otCard('📋 Resumen del trabajo', _otGrid2([
+        _otReadonly('Cliente', ot.cliente_nombre),
+        _otReadonly('Vehículo', `${ot.vehiculo_marca||''} ${ot.vehiculo_modelo||''} ${ot.vehiculo_anio||''}`),
+        _otReadonly('Patente', ot.patente),
+        _otReadonly('Diagnóstico', ot.diagnostico),
+        _otReadonly('Total cotizado', '$'+total.toLocaleString('es-CL')),
+      ]))}
+      <div class="card">
+        <div class="ch"><span class="ct">💰 Totales</span></div>
+        <div style="padding:12px 0">
+          <div style="display:flex;justify-content:space-between;padding:4px 0;font-size:12px"><span>Subtotal repuestos</span><span>$${subRep.toLocaleString('es-CL')}</span></div>
+          <div style="display:flex;justify-content:space-between;padding:4px 0;font-size:12px"><span>Mano de obra</span><span>$${manoObra.toLocaleString('es-CL')}</span></div>
+          <div style="display:flex;justify-content:space-between;padding:4px 0;font-size:12px"><span>Subtotal</span><span style="font-weight:500">$${subtotal.toLocaleString('es-CL')}</span></div>
+          <div style="display:flex;justify-content:space-between;padding:4px 0;font-size:12px;color:var(--text-muted)"><span>IVA 19%</span><span>$${iva.toLocaleString('es-CL')}</span></div>
+          <div style="display:flex;justify-content:space-between;padding:8px 0 0;font-size:14px;font-weight:700;border-top:0.5px solid var(--border);margin-top:4px;color:var(--text-accent)"><span>TOTAL</span><span>$${total.toLocaleString('es-CL')}</span></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="ch"><span class="ct">📄 Documentos</span></div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap">
+          <button class="btn" onclick="otImprimirCotizacion('${ot_id}')" style="font-size:12px"><i class="ti ti-printer"></i> Imprimir boleta</button>
+          <button class="btn" onclick="otDescargarPDF('${ot_id}')" style="font-size:12px"><i class="ti ti-file-pdf"></i> Descargar PDF</button>
+          <button class="btn" onclick="otEnviarWhatsApp('${ot_id}')" style="font-size:12px;color:#25D366;border-color:#25D366"><i class="ti ti-brand-whatsapp"></i> Enviar por WhatsApp</button>
+          <button class="btn" onclick="otFacturarOT('${ot_id}')" style="font-size:12px"><i class="ti ti-receipt"></i> Facturar</button>
+        </div>
+      </div>
+      <div class="card">
+        <div class="ch"><span class="ct">✅ Confirmar entrega</span></div>
+        <div class="fg">
+          <label>Método de pago</label>
+          <select id="ot-panel-metodo-pago" style="width:100%;padding:8px;border:0.5px solid var(--border);border-radius:var(--radius);background:var(--surface-1);color:var(--text-primary)">
+            <option value="efectivo">Efectivo</option>
+            <option value="transferencia">Transferencia bancaria</option>
+            <option value="tarjeta">Tarjeta débito/crédito</option>
+            <option value="cheque">Cheque</option>
+          </select>
+        </div>
+        <div class="fg">
+          <label>Notas de entrega</label>
+          <textarea id="ot-panel-notas-entrega" placeholder="Observaciones finales..." style="min-height:80px"></textarea>
+        </div>
+      </div>
+    `)}
+    ${_otFooter(`
+      <button class="btn" onclick="_otCerrarPanelFase()" style="font-size:12px">Cerrar</button>
+      <button class="btn bpa" onclick="otConfirmarEntrega('${ot_id}')" style="font-size:12px"><i class="ti ti-check"></i> Confirmar entrega y Archivar</button>
+    `)}
+  `);
+}
+
+function otFacturarOT(ot_id) {
+  APP.toast.show('🧾 Abriendo módulo de facturación...', 'info');
+  if (typeof nav === 'function') nav('facturacion');
+  _otCerrarPanelFase();
+}
+
+function otConfirmarEntrega(ot_id) {
+  const ots = APP.lsGet('ots', []);
+  const ot = ots.find(o => o.id === ot_id);
+  if (!ot) return;
+  const metodo = document.getElementById('ot-panel-metodo-pago')?.value || 'efectivo';
+  const notas = document.getElementById('ot-panel-notas-entrega')?.value?.trim() || '';
+  ot.metodo_pago = metodo;
+  ot.notas_entrega = notas;
+  ot.fecha_entrega = new Date().toISOString();
+  ot.estado = 'archivado';
+  APP.lsSet('ots', ots);
+  _otAvanzarAFase(ot_id, 'archivado', 'Archivado');
+}
+
+// ===== WINDOW EXPORTS =====
 window.otAbrirRecepcion = otAbrirRecepcion;
 window.otGuardarSintomas = otGuardarSintomas;
 window.otAbrirDiagnostico = otAbrirDiagnostico;
@@ -814,3 +1563,32 @@ window.otGuardarCotizacion = otGuardarCotizacion;
 window.otAbrirParaEditar = otAbrirParaEditar;
 window.otMostrarDetalle = otMostrarDetalle;
 window.otCerrarDetalle = otCerrarDetalle;
+window.otAvanzarFase = otAvanzarFase;
+window.otAbrirPanelRecepcion = otAbrirPanelRecepcion;
+window.otGuardarPanelRecepcion = otGuardarPanelRecepcion;
+window.otAbrirPanelDiagnostico = otAbrirPanelDiagnostico;
+window.otGuardarPanelDiagnostico = otGuardarPanelDiagnostico;
+window.otBuscadorServicios = otBuscadorServicios;
+window.otRellenarServicioSeleccionado = otRellenarServicioSeleccionado;
+window.otCargarRepuestosTabla = otCargarRepuestosTabla;
+window.otAgregarRepuestoManual = otAgregarRepuestoManual;
+window.otEliminarFilaRepuesto = otEliminarFilaRepuesto;
+window.otGuardarYAvanzarRepuestos = otGuardarYAvanzarRepuestos;
+window.otAbrirPanelRepuestos = otAbrirPanelRepuestos;
+window.otRecalcularPanelRepuestos = otRecalcularPanelRepuestos;
+window.otPanelAgregarFilaRepuesto = otPanelAgregarFilaRepuesto;
+window.otGuardarPanelRepuestos = otGuardarPanelRepuestos;
+window.otAbrirPanelAprobacion = otAbrirPanelAprobacion;
+window.otAprobarCotizacion = otAprobarCotizacion;
+window.otRechazarAprobacion = otRechazarAprobacion;
+window.otAbrirPanelReparacion = otAbrirPanelReparacion;
+window.otPanelIniciarReparacion = otPanelIniciarReparacion;
+window.otPanelPausarReparacion = otPanelPausarReparacion;
+window.otFinalizarReparacion = otFinalizarReparacion;
+window.otAbrirPanelControl = otAbrirPanelControl;
+window.otGuardarPanelControl = otGuardarPanelControl;
+window.otAbrirPanelEntrega = otAbrirPanelEntrega;
+window.otFacturarOT = otFacturarOT;
+window.otConfirmarEntrega = otConfirmarEntrega;
+window._otCerrarPanelFase = _otCerrarPanelFase;
+window._otAvanzarAFase = _otAvanzarAFase;

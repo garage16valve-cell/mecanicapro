@@ -1401,30 +1401,77 @@
 <!-- ===== FLUJO OT: DIAGNÓSTICO ===== -->
 <div id="ot-diagnostico-panel" style="display:none;margin-top:20px">
   <div style="display:grid;grid-template-columns:1fr 2fr 1fr;gap:14px">
-    <!-- Panel izq: Síntomas -->
+    <!-- Panel izq: Síntomas + Diagnóstico -->
     <div id="ot-diagnostico-sintomas-display"></div>
 
-    <!-- Panel centro: Diagnóstico + Servicios -->
+    <!-- Panel centro: Diagnóstico + Servicios con buscador -->
     <div class="card">
       <div class="ch"><span class="ct">🔍 Diagnóstico técnico</span></div>
       <div class="fg">
         <label>Anotar diagnóstico técnico <span style="color:#ef4444">*</span></label>
-        <textarea id="ot-diagnostico-input" placeholder="Describe el problema encontrado..." style="min-height:80px"></textarea>
+        <textarea id="ot-diagnostico-input-panel" placeholder="Describe el problema encontrado..." style="min-height:80px"></textarea>
       </div>
-      <div style="margin-bottom:20px">
-        <label style="font-size:11px;color:var(--text-muted);display:block;margin-bottom:10px">Servicios a realizar</label>
-        <div id="ot-servicios-checkboxes" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;background:var(--surface-1);padding:15px;border-radius:4px;border:0.5px solid var(--border);min-height:60px"></div>
+
+      <div class="fg" style="position:relative">
+        <label>Buscar servicio</label>
+        <input id="ot-buscador-servicios-panel" type="text" placeholder="Escribe el nombre del servicio…" autocomplete="off"
+          oninput="otBuscadorServicios(this.value, 'panel')"
+          onblur="setTimeout(()=>{const d=document.getElementById('ot-sugerencias-servicios-panel');if(d)d.style.display='none'},200)"
+          style="width:100%;padding:10px 12px;border:0.5px solid var(--border);border-radius:var(--radius);background:var(--surface-1);color:var(--text-primary);font-size:12px;box-sizing:border-box">
+        <div id="ot-sugerencias-servicios-panel" style="display:none;position:absolute;top:100%;left:0;right:0;background:var(--surface-1);border:0.5px solid var(--border);border-radius:0 0 var(--radius) var(--radius);z-index:100;max-height:200px;overflow-y:auto;box-shadow:0 4px 12px rgba(0,0,0,0.15)"></div>
       </div>
+
+      <div id="ot-panel-datos-servicio-panel" style="display:none">
+        <div style="margin-top:12px;border-top:0.5px solid var(--border);padding-top:12px">
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">
+            <div>
+              <label style="font-size:10px;color:var(--text-muted)">Nombre</label>
+              <input id="ot-servicio-nombre-panel" type="text" style="width:100%;padding:8px;border:0.5px solid var(--border);border-radius:var(--radius);background:var(--surface-2);color:var(--text-primary);font-size:12px;box-sizing:border-box">
+            </div>
+            <div>
+              <label style="font-size:10px;color:var(--text-muted)">Horas</label>
+              <input id="ot-servicio-horas-panel" type="number" step="0.5" min="0" value="0" style="width:100%;padding:8px;border:0.5px solid var(--border);border-radius:var(--radius);background:var(--surface-2);color:var(--text-primary);font-size:12px;box-sizing:border-box">
+            </div>
+            <div>
+              <label style="font-size:10px;color:var(--text-muted)">Valor CLP</label>
+              <input id="ot-servicio-valor-panel" type="number" min="0" value="0" style="width:100%;padding:8px;border:0.5px solid var(--border);border-radius:var(--radius);background:var(--surface-2);color:var(--text-primary);font-size:12px;box-sizing:border-box">
+            </div>
+          </div>
+        </div>
+      </div>
+
       <input type="hidden" id="ot-diagnostico-ot-id-hidden">
-      <button class="btn bpa" style="width:100%;justify-content:center;margin-top:12px" onclick="otGuardarDiagnostico(document.getElementById('ot-diagnostico-ot-id-hidden').value, document.getElementById('ot-diagnostico-input').value, [])">
-        <i class="ti ti-arrow-right"></i> Armar cotización
+      <input type="hidden" id="ot-servicio-seleccionado-id-panel">
+      <button class="btn bpa" style="width:100%;justify-content:center;margin-top:12px" onclick="otGuardarYAvanzarRepuestos('panel', document.getElementById('ot-diagnostico-ot-id-hidden').value)">
+        <i class="ti ti-arrow-right"></i> Guardar y avanzar
       </button>
     </div>
 
-    <!-- Panel derecha: Repuestos sugeridos -->
+    <!-- Panel derecha: Repuestos sugeridos / editables -->
     <div class="card">
-      <div class="ch"><span class="ct">📦 Repuestos sugeridos</span></div>
-      <div id="ot-diagnostico-repuestos-sugeridos"></div>
+      <div class="ch"><span class="ct">📦 Repuestos</span></div>
+      <div style="overflow-x:auto;margin-bottom:10px">
+        <table style="width:100%;border-collapse:collapse;font-size:10px;min-width:300px">
+          <thead>
+            <tr style="background:var(--surface-2);border-bottom:0.5px solid var(--border)">
+              <th style="text-align:left;padding:6px;font-size:9px;font-weight:600;color:var(--text-muted);text-transform:uppercase">Repuesto</th>
+              <th style="text-align:center;padding:6px;font-size:9px;font-weight:600;color:var(--text-muted);text-transform:uppercase">Cant</th>
+              <th style="text-align:right;padding:6px;font-size:9px;font-weight:600;color:var(--text-muted);text-transform:uppercase">Precio</th>
+              <th style="text-align:center;padding:6px;width:30px"></th>
+            </tr>
+          </thead>
+          <tbody id="ot-panel-repuestos-tbody-panel">
+            <tr id="ot-panel-repuestos-vacio-panel">
+              <td colspan="4" style="text-align:center;padding:16px;color:var(--text-muted);font-size:10px">
+                Selecciona un servicio
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <button class="btn bpa" onclick="otAgregarRepuestoManual('panel')" style="width:100%;justify-content:center;font-size:10px">
+        <i class="ti ti-plus"></i> Agregar repuesto
+      </button>
     </div>
   </div>
 </div>
@@ -1554,18 +1601,73 @@
           </div>
         </div>
 
-        <div style="margin-bottom:20px">
-          <label style="font-size:11px;color:var(--text-muted);display:block;margin-bottom:10px">Servicios a realizar</label>
-          <div id="ot-servicios-checkboxes" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;background:var(--surface-1);padding:15px;border-radius:4px;border:0.5px solid var(--border);min-height:60px"></div>
+        <!-- Buscador de servicios -->
+        <div class="card" style="margin-bottom:16px">
+          <div class="ch"><span class="ct">🔧 Buscar servicio</span></div>
+          <div class="fg" style="position:relative">
+            <label>Escribe el nombre del servicio</label>
+            <input id="ot-buscador-servicios" type="text" placeholder="Ej: Cambio de frenos, Alineación…" autocomplete="off"
+              oninput="otBuscadorServicios(this.value)"
+              onblur="setTimeout(()=>{const d=document.getElementById('ot-sugerencias-servicios');if(d)d.style.display='none'},200)"
+              style="width:100%;padding:10px 12px;border:0.5px solid var(--border);border-radius:var(--radius);background:var(--surface-1);color:var(--text-primary);font-size:12px;box-sizing:border-box">
+            <div id="ot-sugerencias-servicios" style="display:none;position:absolute;top:100%;left:0;right:0;background:var(--surface-1);border:0.5px solid var(--border);border-radius:0 0 var(--radius) var(--radius);z-index:100;max-height:200px;overflow-y:auto;box-shadow:0 4px 12px rgba(0,0,0,0.15)"></div>
+          </div>
         </div>
 
+        <!-- Datos servicio editable -->
+        <div id="ot-panel-datos-servicio" style="display:none" class="card" style="margin-bottom:16px">
+          <div class="ch"><span class="ct">📋 Datos del servicio</span></div>
+          <div class="fgrid3">
+            <div class="fg">
+              <label>Nombre del servicio</label>
+              <input id="ot-servicio-nombre" type="text" style="width:100%;padding:8px;border:0.5px solid var(--border);border-radius:var(--radius);background:var(--surface-2);color:var(--text-primary);font-size:12px;box-sizing:border-box">
+            </div>
+            <div class="fg">
+              <label>Horas estimadas</label>
+              <input id="ot-servicio-horas" type="number" step="0.5" min="0" value="0" style="width:100%;padding:8px;border:0.5px solid var(--border);border-radius:var(--radius);background:var(--surface-2);color:var(--text-primary);font-size:12px;box-sizing:border-box">
+            </div>
+            <div class="fg">
+              <label>Valor CLP</label>
+              <input id="ot-servicio-valor" type="number" min="0" value="0" style="width:100%;padding:8px;border:0.5px solid var(--border);border-radius:var(--radius);background:var(--surface-2);color:var(--text-primary);font-size:12px;box-sizing:border-box">
+            </div>
+          </div>
+        </div>
+
+        <!-- Repuestos -->
+        <div class="card" style="margin-bottom:16px">
+          <div class="ch"><span class="ct">📦 Repuestos</span></div>
+          <div id="ot-panel-repuestos-container" style="overflow-x:auto;margin-bottom:10px">
+            <table style="width:100%;border-collapse:collapse;font-size:11px;min-width:500px">
+              <thead>
+                <tr style="background:var(--surface-2);border-bottom:0.5px solid var(--border)">
+                  <th style="text-align:left;padding:8px;font-size:10px;font-weight:600;color:var(--text-muted);text-transform:uppercase">Repuesto</th>
+                  <th style="text-align:center;padding:8px;font-size:10px;font-weight:600;color:var(--text-muted);text-transform:uppercase">Cantidad</th>
+                  <th style="text-align:right;padding:8px;font-size:10px;font-weight:600;color:var(--text-muted);text-transform:uppercase">Precio</th>
+                  <th style="text-align:center;padding:8px;width:40px"></th>
+                </tr>
+              </thead>
+              <tbody id="ot-panel-repuestos-tbody">
+                <tr id="ot-panel-repuestos-vacio">
+                  <td colspan="4" style="text-align:center;padding:20px;color:var(--text-muted);font-size:11px">
+                    Selecciona un servicio para ver repuestos sugeridos
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <button class="btn bpa" onclick="otAgregarRepuestoManual()" style="width:100%;justify-content:center;font-size:11px">
+            <i class="ti ti-plus"></i> Agregar repuesto manual
+          </button>
+        </div>
+
+        <input type="hidden" id="ot-servicio-seleccionado-id">
         <input type="hidden" id="ot-diagnostico-ot-id">
         <div style="display:flex;gap:8px;justify-content:space-between;margin-top:16px">
           <button class="btn" onclick="otVolverRecepcion(document.getElementById('ot-diagnostico-ot-id').value)" style="font-size:11px">
-            <i class="ti ti-arrow-left"></i> Volver a Recepción
+            <i class="ti ti-arrow-left"></i> Cancelar
           </button>
-          <button class="btn bpa" onclick="otGuardarDiagnosticoNuevo()" style="font-size:11px">
-            <i class="ti ti-device-floppy"></i> Guardar y avanzar
+          <button class="btn bpa" onclick="otGuardarYAvanzarRepuestos()" style="font-size:11px">
+            <i class="ti ti-device-floppy"></i> Guardar y avanzar a Repuestos
           </button>
         </div>
       </div>
