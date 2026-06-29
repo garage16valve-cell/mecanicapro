@@ -260,18 +260,7 @@ function adminRenderUsuarios(buscar) {
 var _svcAdminContext = false;
 
 function adminNuevoUsuario() {
-  _svcAdminContext = true;
-  _svcOpLimpiarForm();
-  _svcOpEditId = null;
-  _svcOpCerts = [];
-  const rg = document.getElementById('svc-op-rol-group');
-  if (rg) rg.style.display = 'block';
-  const sel = document.getElementById('svc-op-f-rol');
-  if (sel) sel.value = 'mecanico';
-  const t = document.getElementById('svc-op-titulo');
-  if (t) t.textContent = 'Nuevo Usuario';
-  const m = document.getElementById('svc-op-modal');
-  if (m) m.style.display = '';
+  svcOpNuevo();
 }
 
 function adminEditarUsuario(id) {
