@@ -33,7 +33,8 @@
       "Bash(# Crear *)",
       "Bash(ping -n 1 github.com)",
       "Bash(ping -n 2 github.com)",
-      "Bash(cd \"C:\\\\Users\\\\camil\\\\Downloads\\\\Gestion de taller\" && sed -n '1,1644p' modules/taller.html > /tmp/taller_content.tmp && wc -l /tmp/taller_content.tmp)"
+      "Bash(cd \"C:\\\\Users\\\\camil\\\\Downloads\\\\Gestion de taller\" && sed -n '1,1644p' modules/taller.html > /tmp/taller_content.tmp && wc -l /tmp/taller_content.tmp)",
+      "mcp__Claude_in_Chrome__tabs_context_mcp"
     ]
   }
 }
