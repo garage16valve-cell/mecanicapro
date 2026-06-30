@@ -296,9 +296,9 @@ function initExampleData() {
   // Usuarios/Operarios
   if (!APP.lsGet('usuarios') || APP.lsGet('usuarios').length === 0) {
     APP.lsSet('usuarios', [
-      { id: 'op_001', nombre: 'Camilo', apellido: 'Yañez', rut: '18.915.883-0', whatsapp: '+56951655331', rol: 'mecanico', formacion: { nivel: 'profesional', especialidad: 'Mecánica automotriz', institucion: 'Universidad Técnica', año_egreso: 2015, titulo_validado: true }, experiencia: { años: 8, especialidades: 'Motor, frenos, suspensión' } },
-      { id: 'op_002', nombre: 'Cecilia', apellido: 'Puente', rut: '15.123.456-8', whatsapp: '+56923145698', rol: 'mecanico', formacion: { nivel: 'tecnico', especialidad: 'Electricidad automotriz', institucion: 'INACAP', año_egreso: 2018 }, experiencia: { años: 5, especialidades: 'Sistemas eléctricos, diagnóstico' } },
-      { id: 'admin_001', nombre: 'Admin', apellido: 'Sistema', rut: '00.000.000-0', whatsapp: '+56951234567', rol: 'Administrador' }
+      { id: 'op_001', nombre: 'Camilo', apellido: 'Yañez', rut: '18.915.883-0', whatsapp: '+56951655331', rol: 'mecanico', pin: '1111', formacion: { nivel: 'profesional', especialidad: 'Mecánica automotriz', institucion: 'Universidad Técnica', año_egreso: 2015, titulo_validado: true }, experiencia: { años: 8, especialidades: 'Motor, frenos, suspensión' } },
+      { id: 'op_002', nombre: 'Cecilia', apellido: 'Puente', rut: '15.123.456-8', whatsapp: '+56923145698', rol: 'mecanico', pin: '2222', formacion: { nivel: 'tecnico', especialidad: 'Electricidad automotriz', institucion: 'INACAP', año_egreso: 2018 }, experiencia: { años: 5, especialidades: 'Sistemas eléctricos, diagnóstico' } },
+      { id: 'admin_001', nombre: 'Admin', apellido: 'Sistema', rut: '00.000.000-0', whatsapp: '+56951234567', rol: 'administrador', pin: '0000' }
     ]);
   }
 

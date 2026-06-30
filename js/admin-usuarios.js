@@ -391,7 +391,8 @@
   // ─── Entrada directa (desarrollo) ───
   window.usuariosEntrarDirecto = function () {
     _ensureDefaultUser();
-    const u = APP.lsGet('usuarios', []).find(x => x.id === 1) || APP.lsGet('usuarios', [])[0];
+    const usuarios = APP.lsGet('usuarios', []);
+    const u = usuarios.find(x => (x.rol || '').toLowerCase() === 'administrador') || usuarios[0];
     if (u) _iniciarSesion(u);
   };
 
