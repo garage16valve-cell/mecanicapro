@@ -3457,8 +3457,8 @@
       };
 
       function getCfgChecklist() {
-        const raw = APP.lsGet('mp_config_checklist');
-        return raw ? JSON.parse(raw) : CFG_CHECKLIST_DEFAULTS;
+        var raw = APP.lsGet('mp_config_checklist');
+        return raw || CFG_CHECKLIST_DEFAULTS;
       }
 
       function renderCfgChecklist() {
@@ -3547,7 +3547,7 @@
   <!-- ════════════════════════════════════════ -->
   <!-- TAB: USUARIOS                           -->
   <!-- ════════════════════════════════════════ -->
-  <div id="adm-tab-usuarios" style="display:block">
+  <div id="adm-tab-usuarios" style="display:none">
   <h2 style="margin-bottom:14px">Usuarios y roles</h2>
 
   <div style="margin-bottom:14px;display:flex;gap:8px;flex-wrap:wrap">
@@ -3762,16 +3762,32 @@
 
 <!-- Main App -->
 <script src="js/main.js"></script>
+<script src="js/main-selectores.js"></script>
 
-<!-- Wiki, OT Flujo, Cotización y PDF -->
-<script src="js/wiki.js"></script>
+<!-- Módulo Taller -->
+<script src="js/taller.js"></script>
 <script src="js/taller-lista.js"></script>
 <script src="js/taller-formulario.js"></script>
-<script src="js/ot-flujo.js"></script>
 <script src="js/taller-detalle.js"></script>
+<script src="js/taller-repuestos.js"></script>
+<script src="js/taller-pago.js"></script>
+
+<!-- OT Flujo, Cotización y PDF -->
+<script src="js/wiki.js"></script>
+<script src="js/ot-flujo.js"></script>
 <script src="js/cotizacion-proveedores.js"></script>
 <script src="js/panel-acciones-cotizacion.js"></script>
 <script src="js/pdf-cotizacion.js"></script>
+
+<!-- Módulos Admin, Dashboard, Finanzas, Servicios, Agenda, Inventario, Marketing -->
+<script src="js/admin.js"></script>
+<script src="js/admin-usuarios.js"></script>
+<script src="js/dashboard.js"></script>
+<script src="js/finanzas.js"></script>
+<script src="js/servicios.js"></script>
+<script src="js/agenda.js"></script>
+<script src="js/inventario.js"></script>
+<script src="js/marketing.js"></script>
 
 <!-- jsPDF para generación de PDF -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>

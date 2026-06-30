@@ -327,8 +327,8 @@
       };
 
       function getCfgChecklist() {
-        const raw = APP.lsGet('mp_config_checklist');
-        return raw ? JSON.parse(raw) : CFG_CHECKLIST_DEFAULTS;
+        var raw = APP.lsGet('mp_config_checklist');
+        return raw || CFG_CHECKLIST_DEFAULTS;
       }
 
       function renderCfgChecklist() {
