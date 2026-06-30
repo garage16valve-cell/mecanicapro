@@ -1283,6 +1283,10 @@ function insertarPanelOT(otId, ot) {
     botonesHTML += '<button class="btn bpa" onclick="ejecutarCambioFase(\'' + otId + '\',\'' + siguiente + '\')" style="font-size:11px;padding:6px 14px">';
     botonesHTML += (_FASES_LABELS[siguiente] || siguiente) + ' <i class="ti ti-arrow-right"></i></button>';
   }
+  // Botón Editar para completar datos faltantes
+  botonesHTML += '<button class="btn" onclick="abrirDetalleOT(\'' + otId + '\');setTimeout(()=>toggleEditarOT(),100)" style="font-size:11px;padding:6px 14px" title="Editar OT para completar datos"><i class="ti ti-edit"></i> Editar</button>';
+  // Botón Historial / Trazabilidad
+  botonesHTML += '<button class="btn" onclick="abrirHistorialOT(\'' + otId + '\')" style="font-size:11px;padding:6px 14px" title="Ver trazabilidad completa"><i class="ti ti-history"></i> Historial</button>';
   botonesHTML += '</div>';
 
   const faseColor = (typeof FASE_COLORES !== 'undefined' && FASE_COLORES[fase]) || { color:'#6b7280', bg:'#f3f4f6', border:'#d1d5db', label: fase.toUpperCase() };
