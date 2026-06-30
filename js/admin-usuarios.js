@@ -40,7 +40,7 @@
   APP.puedeVer = function (seccion) {
     const sesion = APP.lsGet('sesion', null);
     if (!sesion || !sesion.rol) return false;
-    const rol = sesion.rol;
+    const rol = sesion.rol.toLowerCase();
     if (rol === 'administrador') return true;
     const ps = PERMISOS[rol];
     return ps ? ps.includes(seccion) : false;
@@ -301,7 +301,7 @@
       usuario_id:  usuario.id,
       nombre:      usuario.nombre,
       apellido:    usuario.apellido || '',
-      rol:         usuario.rol,
+      rol:         (usuario.rol || '').toLowerCase(),
       color:       usuario.color,
       fecha_login: Date.now(),
     };
@@ -346,7 +346,8 @@
   }
 
   function _aplicarPermisosMeniu(rol) {
-    if (rol === 'administrador') return; // ve todo
+    const rolNorm = (rol || '').toLowerCase();
+    if (rolNorm === 'administrador') return; // ve todo
 
     // Items del menú y la sección a la que corresponden
     const menuPermisos = {
@@ -373,7 +374,7 @@
       const seccion = match[1];
       const permitido = menuPermisos[seccion];
       if (permitido === undefined) return;
-      ni.style.display = (permitido.includes(rol)) ? '' : 'none';
+      ni.style.display = (permitido.includes(rolNorm)) ? '' : 'none';
     });
 
     // Ocultar separadores de sección vacíos
