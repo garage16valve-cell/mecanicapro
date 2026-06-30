@@ -279,8 +279,35 @@ function adminNuevoUsuario() {
   admCertRender();
   ['adm-doc-titulo-preview','adm-doc-cv-preview'].forEach(id => { const el = document.getElementById(id); if (el) el.innerHTML = ''; });
   ['adm-f-doc-titulo','adm-f-doc-cv'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+  var pinEl = document.getElementById('adm-f-pin');
+  if (pinEl) { pinEl.value = ''; pinEl.type = 'password'; pinEl.removeEventListener('input', admCheckPinDuplicado); pinEl.addEventListener('input', admCheckPinDuplicado); }
+  var toggleBtn = document.getElementById('adm-pin-toggle');
+  if (toggleBtn) toggleBtn.textContent = '👁';
+  var warnEl = document.getElementById('adm-pin-warn');
+  if (warnEl) warnEl.textContent = '';
   document.getElementById('adm-panel-titulo').textContent = 'Nuevo usuario';
   document.getElementById('adm-panel-editar').style.display = '';
+}
+
+function admTogglePin() {
+  var el = document.getElementById('adm-f-pin');
+  if (!el) return;
+  el.type = el.type === 'password' ? 'text' : 'password';
+  var btn = document.getElementById('adm-pin-toggle');
+  if (btn) btn.textContent = el.type === 'password' ? '👁' : '🔒';
+}
+
+function admCheckPinDuplicado() {
+  var pinEl = document.getElementById('adm-f-pin');
+  var warnEl = document.getElementById('adm-pin-warn');
+  if (!pinEl || !warnEl) return;
+  var pin = pinEl.value.trim();
+  if (pin.length < 4) { warnEl.textContent = ''; return; }
+  var usuarios = APP.lsGet('usuarios', []);
+  var dup = usuarios.find(function(u) {
+    return String(u.pin) === pin && String(u.id) !== String(_admUsuEditId) && u.estado !== 'inactivo';
+  });
+  warnEl.textContent = dup ? '⚠ Este PIN ya está en uso por ' + (dup.nombre || '') + ' ' + (dup.apellido || '') : '';
 }
 
 function adminEditarUsuario(id) {
@@ -295,6 +322,13 @@ function adminEditarUsuario(id) {
   s('adm-f-rut', u.rut);
   s('adm-f-wz', u.whatsapp || u.wz || '');
   s('adm-f-rol', u.rol || 'mecanico');
+  s('adm-f-pin', u.pin || '');
+  var pinEl = document.getElementById('adm-f-pin');
+  if (pinEl) { pinEl.type = 'password'; pinEl.removeEventListener('input', admCheckPinDuplicado); pinEl.addEventListener('input', admCheckPinDuplicado); }
+  var toggleBtn = document.getElementById('adm-pin-toggle');
+  if (toggleBtn) toggleBtn.textContent = '👁';
+  var warnEl = document.getElementById('adm-pin-warn');
+  if (warnEl) warnEl.textContent = '';
   const f = u.formacion || {};
   const niv = document.getElementById('adm-f-nivel');
   if (niv) niv.value = f.nivel || 'sin_estudios';
@@ -324,6 +358,11 @@ function adminGuardarUsuario() {
   const nombre   = g('adm-f-nombre');
   const apellido = g('adm-f-apellido');
   if (!nombre && !apellido) { APP.toast.show('⚠️ Ingresa al menos el nombre.', 'warning'); return; }
+
+  const pinVal = g('adm-f-pin');
+  const esNuevo = !_admUsuEditId;
+  if (esNuevo && !pinVal) { APP.toast.show('⚠️ El PIN es obligatorio para usuarios nuevos.', 'warning'); return; }
+  if (pinVal && !/^\d{4}$/.test(pinVal)) { APP.toast.show('⚠️ El PIN debe ser exactamente 4 dígitos numéricos.', 'warning'); return; }
 
   const anoAct = new Date().getFullYear();
   const anoEg = parseInt(g('adm-f-ano-egreso'));
@@ -358,6 +397,7 @@ function adminGuardarUsuario() {
       especialidades: g('adm-f-exp-desc'),
     },
   };
+  if (pinVal) dato.pin = pinVal;
 
   const docTitulo = document.getElementById('adm-doc-titulo-preview')?.dataset?.base64;
   const docCv     = document.getElementById('adm-doc-cv-preview')?.dataset?.base64;
