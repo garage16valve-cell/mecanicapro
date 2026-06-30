@@ -1235,17 +1235,7 @@ function insertarPanelOT(otId, ot) {
     const check = getChecklistFase(ot, siguiente);
 
     // Evaluar campos existentes para mostrar OK
-    const configRaw = localStorage.getItem('mp_config_checklist');
-    const defaults = {
-      rut_cliente:         { modo:'bloquea',  fase:'recepcion', label:'RUT cliente' },
-      patente:             { modo:'bloquea',  fase:'recepcion', label:'Patente' },
-      diagnostico_anotado: { modo:'bloquea',  fase:'diagnostico', label:'Diagnóstico' },
-      nmotor:              { modo:'advierte', fase:'todos', label:'N° Motor' },
-      km_entrada:          { modo:'advierte', fase:'todos', label:'Km entrada' },
-      color:               { modo:'advierte', fase:'todos', label:'Color' },
-      cotizacion_items:    { modo:'advierte', fase:'repuestos', label:'Ítems cotización' }
-    };
-    const cfg = configRaw ? JSON.parse(configRaw) : defaults;
+    const cfg = getCfgChecklist();
     const campoMap = {
       rut_cliente: ot.cliente_rut,
       patente: ot.patente,
