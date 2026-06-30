@@ -185,7 +185,7 @@
               style="width:56px;height:64px;font-size:30px;font-weight:700;text-align:center;
               border:2px solid var(--border);border-radius:8px;background:var(--surface-0);
               color:var(--text-primary);outline:none;transition:border-color .15s"
-              oninput="usuariosPinInput(this,${i},${usuario.id})"
+              oninput="usuariosPinInput(this,${i},'${usuario.id}')"
               onkeydown="usuariosPinKeydown(event,${i})"
               onfocus="this.style.borderColor=('${usuario.color}')"
               onblur="this.style.borderColor=''">`).join('')}
