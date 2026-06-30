@@ -231,7 +231,7 @@ function adminRenderUsuarios(buscar) {
     tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:20px;color:var(--text-muted)">' + (filtro ? 'Sin resultados' : 'Sin usuarios registrados') + '</td></tr>';
     return;
   }
-  const ROLES = { Administrador:'Administrador', Recepcionista:'Recepcionista', mecanico:'Mecánico', Contador:'Contador' };
+  const ROLES = { administrador:'Administrador', recepcionista:'Recepcionista', mecanico:'Mecánico', contable:'Contador' };
   tbody.innerHTML = filtrados.map(u => {
     const iniciales = ((u.nombre || '?')[0] + (u.apellido || '')[0]).toUpperCase() || '?';
     const esActivo = u.estado !== 'inactivo';

@@ -57,8 +57,23 @@
     }
   }
 
+  function _normalizarRoles() {
+    let usuarios = APP.lsGet('usuarios', null);
+    if (!Array.isArray(usuarios)) return;
+    const MAP = { 'administrador':'administrador', 'recepcionista':'recepcionista', 'mecanico':'mecanico', 'mecánico':'mecanico', 'contable':'contable', 'contador':'contable' };
+    let changed = false;
+    usuarios.forEach(u => {
+      if (!u.rol) return;
+      const norm = MAP[u.rol.toLowerCase()] || u.rol.toLowerCase();
+      if (u.rol !== norm) { u.rol = norm; changed = true; }
+      if (u.pin === undefined) { u.pin = '0000'; changed = true; }
+    });
+    if (changed) APP.lsSet('usuarios', usuarios);
+  }
+
   function _init() {
     _ensureDefaultUser();
+    _normalizarRoles();
     const sesion = APP.lsGet('sesion', null);
     if (!sesion || !sesion.usuario_id) {
       _mostrarLogin();
