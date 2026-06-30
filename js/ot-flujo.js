@@ -2439,7 +2439,7 @@ function cambiarFaseOT(otId, faseDestino, datosPendientes) {
   var ot = ots.find(function(o) { return o.id === otId; });
   if (!ot) return;
 
-  var faseAnteriorVal = ot.fase || 'recepcion';
+  var faseAnterior = ot.fase || 'recepcion';
   var ses = APP.lsGet('sesion') || {};
   var nombreUsuario = ses.nombre || 'Usuario desconocido';
   var idUsuario = ses.usuario_id || null;
@@ -2451,7 +2451,7 @@ function cambiarFaseOT(otId, faseDestino, datosPendientes) {
   ot.fase = faseDestino;
   ot.historial.push({
     evento: 'cambio_fase',
-    descripcion: nombreUsuario + ' cambió de ' + faseAnteriorVal + ' → ' + faseDestino,
+    descripcion: nombreUsuario + ' cambió de ' + faseAnterior + ' → ' + faseDestino,
     fecha: new Date().toISOString(),
     usuario_id: idUsuario,
     usuario_nombre: nombreUsuario,
@@ -2470,15 +2470,9 @@ function cambiarFaseOT(otId, faseDestino, datosPendientes) {
   }
 
   APP.lsSet('ots', ots);
-  APP.lsSet('mp_ots', ots);
-
-  var panel = document.querySelector('.ot-panel-inline');
-  if (panel) panel.remove();
 
   if (typeof renderListaOTs === 'function') renderListaOTs();
-  if (typeof actualizarContadoresFiltro === 'function') actualizarContadoresFiltro();
-
-  if (APP.toast) APP.toast.show('✅ OT avanzó a ' + faseDestino, 'success');
+  if (typeof togglePanelOT === 'function') togglePanelOT(otId);
 }
 
 function abrirHistorialOT(otId) {
@@ -2486,22 +2480,19 @@ function abrirHistorialOT(otId) {
   var ot = ots.find(function(o) { return o.id === otId; });
   if (!ot) return;
 
+  var titulo = document.getElementById('modal-historial-titulo');
+  var lista = document.getElementById('modal-historial-lista');
+  var modal = document.getElementById('modal-historial-ot');
+  if (!titulo || !lista || !modal) return;
+
+  titulo.textContent = 'Historial · #' + (ot.numero || ot.id);
+
   var entradas = ot.historial || ot.historial_eventos || [];
 
-  var overlay = document.getElementById('modal-historial-ot');
-  if (overlay) overlay.remove();
-
-  overlay = document.createElement('div');
-  overlay.id = 'modal-historial-ot';
-  overlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.45);z-index:1200;display:flex;align-items:center;justify-content:center;padding:20px';
-  overlay.onclick = function(e) { if (e.target === overlay) overlay.remove(); };
-
-  var titulo = 'Historial · #' + (ot.numero || ot.id);
-  var listaHTML = '';
-
   if (entradas.length === 0) {
-    listaHTML = '<p style="color:var(--text-muted);text-align:center;padding:20px 0">Sin historial registrado para esta OT.</p>';
+    lista.innerHTML = '<p style="color:var(--text-muted);text-align:center;padding:20px 0">Sin historial registrado para esta OT.</p>';
   } else {
+    var html = '';
     entradas.slice().reverse().forEach(function(e) {
       var icono = '•';
       var color = 'var(--text-secondary)';
@@ -2522,7 +2513,7 @@ function abrirHistorialOT(otId) {
 
       var usuario = e.usuario_nombre || e.usuario || '';
 
-      listaHTML += '<div style="padding:10px 0;border-bottom:0.5px solid var(--border);display:flex;gap:10px">' +
+      html += '<div style="padding:10px 0;border-bottom:0.5px solid var(--border);display:flex;gap:10px">' +
         '<div style="font-size:16px;line-height:1;color:' + color + '">' + icono + '</div>' +
         '<div style="flex:1;min-width:0">' +
           '<div style="font-size:12px;color:var(--text-primary)">' + (e.descripcion || e.evento || '') + '</div>' +
@@ -2531,21 +2522,19 @@ function abrirHistorialOT(otId) {
         '</div>' +
       '</div>';
     });
+    lista.innerHTML = html;
   }
 
-  overlay.innerHTML =
-    '<div style="background:var(--surface-2);border-radius:var(--radius);box-shadow:0 8px 30px rgba(0,0,0,.25);max-width:520px;width:100%;max-height:80vh;display:flex;flex-direction:column">' +
-      '<div style="padding:14px 16px;border-bottom:0.5px solid var(--border);display:flex;align-items:center;justify-content:space-between">' +
-        '<div style="font-size:14px;font-weight:600">' + titulo + '</div>' +
-        '<button onclick="document.getElementById(\'modal-historial-ot\').remove()" style="background:none;border:none;font-size:18px;cursor:pointer;color:var(--text-muted);padding:4px">✕</button>' +
-      '</div>' +
-      '<div style="padding:16px;overflow-y:auto;flex:1">' + listaHTML + '</div>' +
-    '</div>';
+  modal.style.display = '';
+}
 
-  document.body.appendChild(overlay);
+function cerrarHistorialOT() {
+  var modal = document.getElementById('modal-historial-ot');
+  if (modal) modal.style.display = 'none';
 }
 
 window.getChecklistFase = getChecklistFase;
 window.ejecutarCambioFase = ejecutarCambioFase;
 window.cambiarFaseOT = cambiarFaseOT;
 window.abrirHistorialOT = abrirHistorialOT;
+window.cerrarHistorialOT = cerrarHistorialOT;

@@ -901,6 +901,14 @@ function nfGuardarOT() {
       referencia: '',
       monto: 0
     },
+    historial: [{
+      evento: 'creacion',
+      descripcion: 'OT creada' + (esExpress ? ' (Express)' : ''),
+      fecha: new Date().toISOString(),
+      usuario_id: (APP.lsGet('sesion') || {}).usuario_id || null,
+      usuario_nombre: (APP.lsGet('sesion') || {}).nombre || 'Sistema',
+      datos_pendientes: []
+    }],
     historial_eventos: [{
       fecha: Date.now(),
       accion: 'OT creada' + (esExpress ? ' (Express)' : ''),
