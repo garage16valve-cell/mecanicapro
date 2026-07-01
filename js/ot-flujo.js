@@ -2351,8 +2351,7 @@ const _CHECKLIST_CAMPO_MAP = {
 };
 
 function getChecklistFase(ot, faseDestino) {
-  const configRaw = APP.lsGet('mp_config_checklist');
-  const cfg = configRaw ? JSON.parse(configRaw) : _CHECKLIST_DEFAULTS;
+  const cfg = APP.lsGet('mp_config_checklist') || _CHECKLIST_DEFAULTS;
 
   const bloqueantes = [];
   const opcionales = [];
