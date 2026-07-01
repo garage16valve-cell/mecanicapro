@@ -1311,3 +1311,7 @@ function insertarPanelOT(otId, ot) {
     filaOT.parentNode.insertBefore(panelDiv, filaOT.nextSibling);
   }
 }
+
+window.togglePanelOT = togglePanelOT;
+window.faseSiguiente = faseSiguiente;
+window.faseAnterior = faseAnterior;

@@ -436,27 +436,21 @@ function initExampleData() {
     });
   }
 
-  // Datos del taller
-  if (!APP.lsGet('taller_config')) {
+  // Datos del taller — force reset if stored as array (persistence bug)
+  const _tc = APP.lsGet('taller_config', null);
+  if (!_tc || Array.isArray(_tc) || typeof _tc !== 'object') {
     APP.lsSet('taller_config', {
       nombre_fantasia: 'Garage 16 Valve',
-      nombre_empresa: 'Integral Automotriz SPA',
-      rut: '76.123.456-7',
-      pais: 'Chile',
-      region: 'Valparaíso',
-      ciudad: 'Valparaíso',
-      comuna: 'Cerro Barón',
+      direccion: 'Avenida Brasil 2543, Valparaíso',
       telefono: '+56951234567',
       email: 'contacto@integralautomotriz.cl',
-      direccion: 'Avenida Brasil 2543, Valparaíso',
       link_agenda: 'https://integral-automotriz-spa.reservio.com/booking',
       logo_base64: '',
       hora_inicio: '09:00',
       hora_fin: '18:00',
       descanso_inicio: '13:00',
       descanso_fin: '14:00',
-      capacidad_maxima: 8,
-      precio_minimo_hora: 25000
+      capacidad_maxima: 8
     });
   }
 
@@ -486,12 +480,6 @@ function initExampleData() {
     const sync = {
       ...mtc,
       nombre: mtc.nombre || tc.nombre_fantasia,
-      razonSocial: mtc.razonSocial || tc.nombre_empresa || '',
-      rut: mtc.rut || tc.rut,
-      pais: mtc.pais || tc.pais || '',
-      region: mtc.region || tc.region || '',
-      ciudad: mtc.ciudad || tc.ciudad || '',
-      comuna: mtc.comuna || tc.comuna || '',
       direccion: mtc.direccion || tc.direccion || '',
       telefono: mtc.telefono || tc.telefono,
       email: mtc.email || tc.email || '',
@@ -499,7 +487,6 @@ function initExampleData() {
       horaInicio: mtc.horaInicio || tc.hora_inicio || '09:00',
       horaFin: mtc.horaFin || tc.hora_fin || '18:00',
       capHorasDia: mtc.capHorasDia || tc.capacidad_maxima || 8,
-      precioMinHora: mtc.precioMinHora || tc.precio_minimo_hora || 0,
       horaDescansoInicio: mtc.horaDescansoInicio || tc.descanso_inicio || '13:00',
       horaDescansoFin: mtc.horaDescansoFin || tc.descanso_fin || '14:00'
     };

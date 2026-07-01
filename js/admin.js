@@ -170,7 +170,6 @@ function _admCargarConfigRepuestos() {
   const cfg = APP.lsGet('mp_config', {});
   const s   = (id, v) => { const el = document.getElementById(id); if (el) el.value = v ?? ''; };
   s('cfg-ganancia',      cfg.ganancia_repuestos || 30);
-  s('cfg-precio-min-mo', cfg.precio_minimo_hora || '');
   const iva = document.getElementById('cfg-iva-defecto');
   if (iva) iva.checked = !!cfg.iva_por_defecto;
 }
@@ -179,13 +178,8 @@ function admGuardarConfigRepuestos() {
   const g   = id => (document.getElementById(id)?.value || '').trim();
   const cfg = APP.lsGet('mp_config', {});
   cfg.ganancia_repuestos = parseFloat(g('cfg-ganancia'))      || 0;
-  cfg.precio_minimo_hora = parseFloat(g('cfg-precio-min-mo')) || 0;
   cfg.iva_por_defecto    = !!document.getElementById('cfg-iva-defecto')?.checked;
   APP.lsSet('mp_config', cfg);
-  // Sincronizar precio_minimo_hora también a mp_taller_config para KPIs
-  const tcfg = APP.lsGet('mp_taller_config', {});
-  tcfg.precioMinHora = cfg.precio_minimo_hora;
-  APP.lsSet('mp_taller_config', tcfg);
   const btn = document.getElementById('cfg-rep-btn');
   if (btn) { const o=btn.innerHTML; btn.innerHTML='<i class="ti ti-check"></i> Guardado'; btn.disabled=true; setTimeout(()=>{btn.innerHTML=o;btn.disabled=false;},2000); }
 }
@@ -1067,86 +1061,6 @@ function admEliminarLogo() {
 // DATOS DEL TALLER — formulario completo + config operativa
 // ═══════════════════════════════════════════════════════════════════
 
-// ===== CASCADA PAÍS-REGIÓN-CIUDAD-COMUNA =====
-const _admRegiones = {
-  Chile: ['Metropolitana', 'Valparaíso', 'Biobío'],
-  Argentina: ['Buenos Aires', 'Córdoba'],
-  Perú: ['Lima', 'Arequipa']
-};
-const _admCiudades = {
-  Metropolitana: ['Santiago', 'Puente Alto', 'La Florida'],
-  Valparaíso: ['Valparaíso', 'Viña del Mar'],
-  Biobío: ['Concepción', 'Los Ángeles'],
-  'Buenos Aires': ['La Plata', 'Lomas de Zamora'],
-  Córdoba: ['Córdoba capital', 'Río Cuarto'],
-  Lima: ['Lima Metropolitana', 'Callao'],
-  Arequipa: ['Arequipa capital']
-};
-const _admComunas = {
-  Santiago: ['Providencia', 'Ñuñoa', 'Las Condes'],
-  'Puente Alto': ['Puente Alto'],
-  'La Florida': ['La Florida'],
-  Valparaíso: ['Cerro Barón', 'Gálvez'],
-  'Viña del Mar': ['Viña del Mar'],
-  Concepción: ['Chillán', 'Talcahuano'],
-  'Los Ángeles': ['Los Ángeles'],
-  'La Plata': ['La Plata'],
-  'Lomas de Zamora': ['Lomas de Zamora'],
-  'Córdoba capital': ['Córdoba capital'],
-  'Río Cuarto': ['Río Cuarto'],
-  'Lima Metropolitana': ['Lima Metropolitana'],
-  Callao: ['Callao'],
-  'Arequipa capital': ['Arequipa capital']
-};
-
-function cargarRegiones() {
-  const pais = document.getElementById('taller-pais')?.value || '';
-  const selRegion = document.getElementById('taller-region');
-  const selCiudad = document.getElementById('taller-ciudad');
-  const selComuna = document.getElementById('taller-comuna');
-  if (!selRegion) return;
-  selRegion.innerHTML = '<option value="">— Seleccionar región —</option>';
-  selCiudad.innerHTML = '<option value="">— Seleccionar ciudad —</option>';
-  selComuna.innerHTML = '<option value="">— Seleccionar comuna —</option>';
-  if (!pais) return;
-  const regiones = _admRegiones[pais] || [];
-  regiones.forEach(r => {
-    const opt = document.createElement('option');
-    opt.value = r; opt.textContent = r;
-    selRegion.appendChild(opt);
-  });
-}
-
-function cargarCiudades() {
-  const region = document.getElementById('taller-region')?.value || '';
-  const selCiudad = document.getElementById('taller-ciudad');
-  const selComuna = document.getElementById('taller-comuna');
-  if (!selCiudad) return;
-  selCiudad.innerHTML = '<option value="">— Seleccionar ciudad —</option>';
-  selComuna.innerHTML = '<option value="">— Seleccionar comuna —</option>';
-  if (!region) return;
-  const ciudades = _admCiudades[region] || [];
-  ciudades.forEach(c => {
-    const opt = document.createElement('option');
-    opt.value = c; opt.textContent = c;
-    selCiudad.appendChild(opt);
-  });
-}
-
-function cargarComunas() {
-  const ciudad = document.getElementById('taller-ciudad')?.value || '';
-  const selComuna = document.getElementById('taller-comuna');
-  if (!selComuna) return;
-  selComuna.innerHTML = '<option value="">— Seleccionar comuna —</option>';
-  if (!ciudad) return;
-  const comunas = _admComunas[ciudad] || [];
-  comunas.forEach(c => {
-    const opt = document.createElement('option');
-    opt.value = c; opt.textContent = c;
-    selComuna.appendChild(opt);
-  });
-}
-
 function actualizarHeaderNombreFantasia() {
   const val = document.getElementById('taller-nombre-fantasia')?.value || 'MecánicaPro';
   const nomEl = document.getElementById('sidebar-taller-nombre');
@@ -1154,32 +1068,17 @@ function actualizarHeaderNombreFantasia() {
 }
 
 function tallerCargarDatos() {
-  const config = APP.lsGet('taller_config') || {};
+  let config = APP.lsGet('taller_config') || {};
+  if (Array.isArray(config)) { config = {}; APP.lsSet('taller_config', config); }
   const s = (id, v) => { const el = document.getElementById(id); if (el) el.value = v ?? ''; };
   s('taller-nombre-fantasia', config.nombre_fantasia);
-  s('taller-nombre-empresa', config.nombre_empresa);
-  s('taller-rut', config.rut);
-  s('taller-pais', config.pais || '');
-  // Cargar cascada si hay país
-  if (config.pais) {
-    cargarRegiones();
-    s('taller-region', config.region || '');
-    if (config.region) {
-      cargarCiudades();
-      s('taller-ciudad', config.ciudad || '');
-      if (config.ciudad) {
-        cargarComunas();
-        s('taller-comuna', config.comuna || '');
-      }
-    }
-  }
+  s('taller-direccion', config.direccion);
   s('taller-telefono', config.telefono);
   s('taller-email', config.email || '');
   s('taller-link-agenda', config.link_agenda || '');
   s('taller-hora-inicio', config.hora_inicio || '09:00');
   s('taller-hora-fin', config.hora_fin || '18:00');
   s('taller-capacidad-maxima', config.capacidad_maxima ?? 8);
-  s('taller-precio-minimo-hora', config.precio_minimo_hora ?? '');
   s('taller-descanso-inicio', config.descanso_inicio || '13:00');
   s('taller-descanso-fin', config.descanso_fin || '14:00');
 
@@ -1202,7 +1101,8 @@ function tallerCargarLogo() {
     const txt = document.getElementById('taller-logo-text');
     if (img) { img.src = base64; img.style.display = 'block'; }
     if (txt) txt.style.display = 'none';
-    const config = APP.lsGet('taller_config') || {};
+    let config = APP.lsGet('taller_config') || {};
+    if (Array.isArray(config)) config = {};
     config.logo_base64 = base64;
     APP.lsSet('taller_config', config);
     tallerActualizarHeader();
@@ -1218,7 +1118,8 @@ function tallerEliminarLogo() {
   if (img) { img.src = ''; img.style.display = 'none'; }
   if (txt) txt.style.display = 'block';
   if (up) up.value = '';
-  const config = APP.lsGet('taller_config') || {};
+  let config = APP.lsGet('taller_config') || {};
+  if (Array.isArray(config)) config = {};
   config.logo_base64 = '';
   APP.lsSet('taller_config', config);
   tallerActualizarHeader();
@@ -1227,44 +1128,31 @@ function tallerEliminarLogo() {
 
 function tallerGuardarDatos() {
   const g = id => (document.getElementById(id)?.value || '').trim();
-  const config = APP.lsGet('taller_config') || {};
+  let config = APP.lsGet('taller_config') || {};
+  if (Array.isArray(config)) config = {};
   config.nombre_fantasia = g('taller-nombre-fantasia');
-  config.nombre_empresa = g('taller-nombre-empresa');
-  config.rut = g('taller-rut');
-  config.pais = g('taller-pais');
-  config.region = g('taller-region');
-  config.ciudad = g('taller-ciudad');
-  config.comuna = g('taller-comuna');
+  config.direccion = g('taller-direccion');
   config.telefono = g('taller-telefono');
   config.email = g('taller-email');
   config.link_agenda = g('taller-link-agenda');
   config.hora_inicio = g('taller-hora-inicio') || '09:00';
   config.hora_fin = g('taller-hora-fin') || '18:00';
   config.capacidad_maxima = parseFloat(g('taller-capacidad-maxima')) || 8;
-  config.precio_minimo_hora = parseFloat(g('taller-precio-minimo-hora')) || 0;
   config.descanso_inicio = g('taller-descanso-inicio') || '13:00';
   config.descanso_fin = g('taller-descanso-fin') || '14:00';
   APP.lsSet('taller_config', config);
 
-  // Sincronizar a mp_taller_config (compatibilidad)
   const mtc = APP.lsGet('mp_taller_config', {});
   APP.lsSet('mp_taller_config', {
     ...mtc,
     nombre: config.nombre_fantasia,
-    razonSocial: config.nombre_empresa,
-    rut: config.rut,
-    pais: config.pais,
-    region: config.region,
-    ciudad: config.ciudad,
-    comuna: config.comuna,
-    direccion: config.ciudad + ', ' + config.region + ', ' + config.pais,
+    direccion: config.direccion,
     telefono: config.telefono,
     email: config.email,
     agenda: config.link_agenda,
     horaInicio: config.hora_inicio,
     horaFin: config.hora_fin,
     capHorasDia: config.capacidad_maxima,
-    precioMinHora: config.precio_minimo_hora,
     horaDescansoInicio: config.descanso_inicio,
     horaDescansoFin: config.descanso_fin
   });
@@ -1289,7 +1177,7 @@ function tallerActualizarHeader() {
     if (defEl) defEl.style.display = 'flex';
   }
   if (nomEl) nomEl.textContent = config.nombre_fantasia || 'MecánicaPro';
-  if (subEl) subEl.textContent = config.nombre_empresa || (config.ciudad ? config.ciudad + ', ' + config.pais : 'Taller Valparaíso');
+  if (subEl) subEl.textContent = config.direccion || 'Taller Valparaíso';
 }
 
 // ===== CONFIGURACIÓN OPERATIVA =====
@@ -1299,7 +1187,7 @@ function _admCargarConfigOperativa() {
   s('cfg-op-inicio',     cfg.horaInicio    || '08:00');
   s('cfg-op-fin',        cfg.horaFin       || '18:00');
   s('cfg-op-cap',        cfg.capHorasDia   || 8);
-  s('cfg-op-precio-min', cfg.precioMinHora || '');
+  // precio_minimo_hora removido
 }
 
 function admGuardarConfigOperativa() {
@@ -1308,7 +1196,6 @@ function admGuardarConfigOperativa() {
   cfg.horaInicio    = g('cfg-op-inicio')     || '08:00';
   cfg.horaFin       = g('cfg-op-fin')        || '18:00';
   cfg.capHorasDia   = parseFloat(g('cfg-op-cap'))       || 8;
-  cfg.precioMinHora = parseFloat(g('cfg-op-precio-min'))|| 0;
   APP.lsSet('mp_taller_config', cfg);
 }
 
