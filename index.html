@@ -3423,7 +3423,7 @@
 
       function getCfgChecklist() {
         var raw = APP.lsGet('mp_config_checklist');
-        return raw || CFG_CHECKLIST_DEFAULTS;
+        return (raw && !Array.isArray(raw)) ? raw : CFG_CHECKLIST_DEFAULTS;
       }
 
       function renderCfgChecklist() {

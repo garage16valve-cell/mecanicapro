@@ -2351,7 +2351,8 @@ const _CHECKLIST_CAMPO_MAP = {
 };
 
 function getChecklistFase(ot, faseDestino) {
-  const cfg = APP.lsGet('mp_config_checklist') || _CHECKLIST_DEFAULTS;
+  const _raw = APP.lsGet('mp_config_checklist');
+  const cfg = (_raw && !Array.isArray(_raw)) ? _raw : _CHECKLIST_DEFAULTS;
 
   const bloqueantes = [];
   const opcionales = [];
@@ -2403,7 +2404,20 @@ function ejecutarCambioFase(otId, faseDestino) {
   cambiarFaseOT(otId, faseDestino, []);
 }
 
+let _pendingAvance = null; // { otId, faseDestino, opcionales }
+
+function _confirmarAvance() {
+  if (!_pendingAvance) return;
+  const { otId, faseDestino, opcionales } = _pendingAvance;
+  _pendingAvance = null;
+  cambiarFaseOT(otId, faseDestino, opcionales);
+  const modal = document.getElementById('modal-checklist-opcionales');
+  if (modal) modal.remove();
+}
+
 function _mostrarModalOpcionales(otId, faseDestino, opcionales) {
+  _pendingAvance = { otId, faseDestino, opcionales };
+
   let modal = document.getElementById('modal-checklist-opcionales');
   if (modal) modal.remove();
 
@@ -2419,7 +2433,7 @@ function _mostrarModalOpcionales(otId, faseDestino, opcionales) {
         '<p style="font-size:12px;color:var(--text-secondary);margin:0 0 12px;line-height:1.6">Los siguientes datos están vacíos: <strong>' + opcionales.join(', ') + '</strong>. ¿Deseas avanzar de todas formas?</p>' +
         '<div style="display:flex;gap:8px;justify-content:flex-end">' +
           '<button class="btn" onclick="document.getElementById(\'modal-checklist-opcionales\').remove()" style="font-size:11px;padding:8px 16px">Volver y completar</button>' +
-          '<button class="btn bpa" onclick="cambiarFaseOT(\'' + otId + '\',\'' + faseDestino + '\',' + JSON.stringify(opcionales) + ');document.getElementById(\'modal-checklist-opcionales\').remove()" style="font-size:11px;padding:8px 16px">Avanzar de todas formas</button>' +
+          '<button class="btn bpa" onclick="_confirmarAvance()" style="font-size:11px;padding:8px 16px">Avanzar de todas formas</button>' +
         '</div>' +
       '</div>' +
     '</div>';
@@ -2537,3 +2551,4 @@ window.ejecutarCambioFase = ejecutarCambioFase;
 window.cambiarFaseOT = cambiarFaseOT;
 window.abrirHistorialOT = abrirHistorialOT;
 window.cerrarHistorialOT = cerrarHistorialOT;
+window._confirmarAvance = _confirmarAvance;

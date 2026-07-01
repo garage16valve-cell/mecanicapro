@@ -1187,7 +1187,7 @@ function abrirDetalleOT(id) {
 
   // Repuestos dinámicos
   _detRepEditing = false;
-  _detRepItems   = (ot.repuestosItems && ot.repuestosItems.length) ? ot.repuestosItems : _detRepParseTexto(ot.repuestos || '');
+  _detRepItems   = (ot.repuestosItems && ot.repuestosItems.length) ? ot.repuestosItems : Array.isArray(ot.repuestos) ? ot.repuestos : _detRepParseTexto(ot.repuestos || '');
   _detRepRender();
   const addBtn = document.getElementById('det-rep-add-btn');
   if (addBtn) addBtn.style.display = 'none';
