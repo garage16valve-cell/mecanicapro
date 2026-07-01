@@ -71,7 +71,11 @@ body { font-family: var(--font-sans); background: var(--surface-0); color: var(-
 .logo-icon { width: 32px; height: 32px; background: var(--fill-accent); border-radius: 8px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
 .logo-title { font-size: 14px; font-weight: 500; }
 .logo-sub { font-size: 10px; color: var(--text-muted); }
-nav { padding: 8px; flex: 1; min-height: 0; overflow-y: auto; }
+nav { padding: 8px; flex: 1; min-height: 0; overflow-y: auto; scrollbar-width: thin; scrollbar-color: var(--border-strong) transparent; }
+nav::-webkit-scrollbar { width: 6px; }
+nav::-webkit-scrollbar-track { background: transparent; }
+nav::-webkit-scrollbar-thumb { background-color: var(--border-strong); border-radius: 3px; }
+nav::-webkit-scrollbar-thumb:hover { background-color: var(--text-muted); }
 .ns { font-size: 9px; color: var(--text-muted); font-weight: 500; padding: 10px 8px 3px; text-transform: uppercase; letter-spacing: .06em; }
 .ni { display: flex; align-items: center; gap: 9px; padding: 7px 10px; border-radius: var(--radius); cursor: pointer; font-size: 12px; color: var(--text-secondary); margin-bottom: 1px; transition: all .12s; user-select: none; }
 .ni:hover { background: var(--surface-1); color: var(--text-primary); }
