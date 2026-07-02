@@ -205,7 +205,75 @@
       else                  style += 'background:transparent;color:var(--text-muted);border-color:var(--border)';
       h += '<button onclick="window._otm_irFase(\'' + f + '\')" style="' + style + '">' + (FASES_LABEL[f] || f) + '</button>';
     });
+    // Tab especial Resumen
+    var resStyle = 'padding:4px 10px;border-radius:12px;font-size:10px;font-weight:600;cursor:pointer;border:1.5px solid;transition:all .1s;';
+    resStyle += (vista === 'resumen')
+      ? 'background:var(--surface-1);color:var(--text-primary);border-color:var(--fill-accent)'
+      : 'background:transparent;color:var(--text-muted);border-color:var(--border)';
+    h += '<button onclick="window._otm_irFase(\'resumen\')" style="' + resStyle + '"><i class="ti ti-list-details" style="font-size:10px"></i> Resumen</button>';
     h += '</div>';
+    return h;
+  }
+
+  // ─── Render vista resumen read-only ──────────────────────────────────────
+  function _renderResumen(ot) {
+    var rdSty = 'padding:6px 10px;border:0.5px solid var(--border);border-radius:6px;font-size:12px;background:var(--surface-2);color:var(--text-secondary);min-height:28px;word-break:break-word';
+    var lbSty = 'font-size:10px;color:var(--text-muted);margin-bottom:3px';
+    var h = '';
+
+    FASES.forEach(function(fase) {
+      var lista = CAMPOS_FASE[fase] || [];
+      if (!lista.length) return;
+      var tieneValor = lista.some(function(c){ return !!_get(ot, c.k); });
+      if (!tieneValor) return;
+
+      h += '<div style="margin-bottom:18px">';
+      h += '<div style="font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:8px;padding-bottom:4px;border-bottom:0.5px solid var(--border)">' + (FASES_LABEL[fase] || fase) + '</div>';
+      h += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">';
+      lista.forEach(function(c) {
+        var v = _get(ot, c.k);
+        if (!v && v !== 0) return;
+        var fw = (c.t === 'area') ? 'grid-column:1/-1' : '';
+        h += '<div style="' + fw + '"><div style="' + lbSty + '">' + _esc(c.l) + '</div>';
+        h += '<div style="' + rdSty + (c.t === 'area' ? ';white-space:pre-wrap' : '') + '">' + _esc(String(v)) + '</div></div>';
+      });
+      h += '</div></div>';
+    });
+
+    // Estado de espera actual
+    if (ot.estadoTrabajo === 'espera') {
+      h += '<div style="margin-bottom:18px">';
+      h += '<div style="font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:8px;padding-bottom:4px;border-bottom:0.5px solid var(--border)">Estado actual</div>';
+      h += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">';
+      h += '<div><div style="' + lbSty + '">Estado</div><div style="padding:5px 10px;border-radius:6px;font-size:12px;font-weight:600;background:#fef3c7;color:#92400e;border:0.5px solid #f59e0b;display:inline-block"><i class="ti ti-clock-pause" style="font-size:10px"></i> En espera</div></div>';
+      if (ot.motivoEspera) h += '<div><div style="' + lbSty + '">Motivo</div><div style="' + rdSty + '">' + _esc(ot.motivoEspera) + '</div></div>';
+      if (ot.espera_desde) {
+        var d = new Date(ot.espera_desde).toLocaleString('es-CL',{day:'2-digit',month:'2-digit',year:'2-digit',hour:'2-digit',minute:'2-digit'});
+        h += '<div><div style="' + lbSty + '">En espera desde</div><div style="' + rdSty + '">' + _esc(d) + '</div></div>';
+      }
+      if (ot.detalleEspera) h += '<div style="grid-column:1/-1"><div style="' + lbSty + '">Detalle</div><div style="' + rdSty + ';white-space:pre-wrap">' + _esc(ot.detalleEspera) + '</div></div>';
+      h += '</div></div>';
+    }
+
+    // Historial
+    var hist = ot.historial || ot.historial_eventos || [];
+    if (hist.length) {
+      h += '<div>';
+      h += '<div style="font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:8px;padding-bottom:4px;border-bottom:0.5px solid var(--border)">Historial</div>';
+      h += '<div style="display:flex;flex-direction:column;gap:4px">';
+      hist.slice().reverse().forEach(function(ev) {
+        var ts = ev.fecha ? new Date(ev.fecha).toLocaleString('es-CL',{day:'2-digit',month:'2-digit',year:'2-digit',hour:'2-digit',minute:'2-digit'}) : '';
+        var dot = ev.evento === 'cambio_fase' ? '#3b82f6' : (ev.evento === 'fin_espera' ? '#22c55e' : (ev.evento === 'datos_omitidos' ? '#f59e0b' : '#6b7280'));
+        h += '<div style="display:flex;gap:10px;align-items:flex-start;padding:8px 10px;background:var(--surface-1);border:0.5px solid var(--border);border-radius:6px">';
+        h += '<div style="width:8px;height:8px;border-radius:50%;background:' + dot + ';margin-top:4px;flex-shrink:0"></div>';
+        h += '<div style="flex:1;min-width:0"><div style="font-size:11px;color:var(--text-primary)">' + _esc(ev.descripcion || ev.evento) + '</div>';
+        if (ts) h += '<div style="font-size:10px;color:var(--text-muted);margin-top:2px">' + ts + (ev.usuario_nombre ? ' · ' + _esc(ev.usuario_nombre) : '') + '</div>';
+        h += '</div></div>';
+      });
+      h += '</div></div>';
+    }
+
+    if (!h) h = '<p style="font-size:12px;color:var(--text-muted);text-align:center;padding:24px">Sin datos registrados aún.</p>';
     return h;
   }
 
@@ -260,30 +328,37 @@
 
     var html = _tabs(fasActual, vista);
 
-    html += _renderEspera(ot);
+    if (vista === 'resumen') {
+      html += _renderResumen(ot);
+      html += '<div style="margin-top:14px;padding-top:12px;border-top:0.5px solid var(--border);text-align:center">';
+      html += '<button onclick="window._otm_irFase(\'' + fasActual + '\')" style="padding:7px 16px;border:0.5px solid var(--fill-accent);border-radius:6px;cursor:pointer;font-size:12px;font-weight:600;background:transparent;color:var(--fill-accent)">Volver a editar</button>';
+      html += '</div>';
+    } else {
+      html += _renderEspera(ot);
 
-    if (vista !== fasActual) {
-      html += '<div style="font-size:11px;color:var(--text-warning);background:var(--bg-warning);border:0.5px solid var(--border-warning);border-radius:6px;padding:6px 10px;margin-bottom:12px">' +
-        '<i class="ti ti-eye" style="font-size:12px"></i> Viendo campos de <strong>' + (FASES_LABEL[vista] || vista) +
-        '</strong> — la OT está en fase <strong>' + (FASES_LABEL[fasActual] || fasActual) + '</strong></div>';
+      if (vista !== fasActual) {
+        html += '<div style="font-size:11px;color:var(--text-warning);background:var(--bg-warning);border:0.5px solid var(--border-warning);border-radius:6px;padding:6px 10px;margin-bottom:12px">' +
+          '<i class="ti ti-eye" style="font-size:12px"></i> Viendo campos de <strong>' + (FASES_LABEL[vista] || vista) +
+          '</strong> — la OT está en fase <strong>' + (FASES_LABEL[fasActual] || fasActual) + '</strong></div>';
+      }
+
+      html += _campos(ot, vista);
+
+      html += '<div id="otm-err" style="margin-top:8px"></div>';
+
+      // navegación de fase real
+      html += '<div style="display:flex;gap:8px;margin-top:16px;padding-top:12px;border-top:0.5px solid var(--border);align-items:center">';
+      if (ant) {
+        html += '<button onclick="window._otm_cambiarFase(\'' + ant + '\')" style="padding:7px 14px;border:0.5px solid var(--border);border-radius:6px;cursor:pointer;font-size:12px;background:var(--surface-1);color:var(--text-secondary)">' +
+          '<i class="ti ti-arrow-left"></i> ' + (FASES_LABEL[ant] || ant) + '</button>';
+      }
+      html += '<div style="flex:1;text-align:center;font-size:10px;color:var(--text-muted)">Fase actual: <strong>' + (FASES_LABEL[fasActual] || fasActual) + '</strong></div>';
+      if (sig) {
+        html += '<button onclick="window._otm_cambiarFase(\'' + sig + '\')" style="padding:7px 14px;border:none;border-radius:6px;cursor:pointer;font-size:12px;background:var(--fill-accent);color:#fff;font-weight:600">' +
+          (FASES_LABEL[sig] || sig) + ' <i class="ti ti-arrow-right"></i></button>';
+      }
+      html += '</div>';
     }
-
-    html += _campos(ot, vista);
-
-    html += '<div id="otm-err" style="margin-top:8px"></div>';
-
-    // navegación de fase real
-    html += '<div style="display:flex;gap:8px;margin-top:16px;padding-top:12px;border-top:0.5px solid var(--border);align-items:center">';
-    if (ant) {
-      html += '<button onclick="window._otm_cambiarFase(\'' + ant + '\')" style="padding:7px 14px;border:0.5px solid var(--border);border-radius:6px;cursor:pointer;font-size:12px;background:var(--surface-1);color:var(--text-secondary)">' +
-        '<i class="ti ti-arrow-left"></i> ' + (FASES_LABEL[ant] || ant) + '</button>';
-    }
-    html += '<div style="flex:1;text-align:center;font-size:10px;color:var(--text-muted)">Fase actual: <strong>' + (FASES_LABEL[fasActual] || fasActual) + '</strong></div>';
-    if (sig) {
-      html += '<button onclick="window._otm_cambiarFase(\'' + sig + '\')" style="padding:7px 14px;border:none;border-radius:6px;cursor:pointer;font-size:12px;background:var(--fill-accent);color:#fff;font-weight:600">' +
-        (FASES_LABEL[sig] || sig) + ' <i class="ti ti-arrow-right"></i></button>';
-    }
-    html += '</div>';
 
     body.innerHTML = html;
   }
