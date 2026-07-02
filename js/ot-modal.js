@@ -38,6 +38,8 @@
       { k:'sintomas',         l:'Síntomas (ref.)',  t:'area' },
     ],
     repuestos: [
+      // TODO futuro: estructurar repuestos_notas con precios (igual que cotizacion.repuestos)
+      //              para poder incluirlos en el cálculo automático del monto de Pago.
       { k:'repuestos_notas', l:'Repuestos y materiales', t:'area',
         hint:'Lista libre; el detalle estructurado se gestiona en la sección Repuestos' },
       { k:'diagnostico',     l:'Diagnóstico (ref.)',      t:'area', ro:true },
@@ -57,7 +59,7 @@
     ],
     pago: [
       { k:'pago_metodo',     l:'Método de pago',    t:'select', opts:['Efectivo','Transferencia','Débito','Crédito','Otro'] },
-      { k:'pago_monto',      l:'Monto ($)',          t:'number' },
+      { k:'pago_monto',      l:'Monto ($)',          t:'number', hint:'Auto-calculado de mano de obra + repuestos cotizados. Puedes ajustarlo.' },
       { k:'pago_referencia', l:'N° comprobante',     t:'text'   },
     ],
     entrega: [
@@ -152,7 +154,18 @@
   // ─── Leer campo (incl. anidados y aliases) ────────────────────────────────
   function _get(ot, k) {
     if (k === 'pago_metodo')     return (ot.pago && ot.pago.metodo)     || '';
-    if (k === 'pago_monto')      return (ot.pago && ot.pago.monto != null) ? ot.pago.monto : '';
+    if (k === 'pago_monto') {
+      if (ot.pago && ot.pago.monto != null) return ot.pago.monto;
+      // Auto-calcular desde fuentes estructuradas
+      var _cot  = ot.cotizacion || {};
+      var _mo   = (_cot.mano_obra || 0);
+      var _svcs = (ot.serviciosItems || []).reduce(function(s, it) { return s + (parseInt(it.valor) || 0); }, 0);
+      var _mots = (ot.motivos || []).reduce(function(s, m) { return s + (parseInt(m.valor_mano_obra) || 0); }, 0);
+      var _reps = (Array.isArray(_cot.repuestos) ? _cot.repuestos : [])
+                    .reduce(function(s, r) { return s + ((r.cantidad || 0) * (r.precio_unitario || 0)); }, 0);
+      var _total = _mo + _svcs + _mots + _reps;
+      return _total > 0 ? _total : '';
+    }
     if (k === 'pago_referencia') return (ot.pago && ot.pago.referencia) || '';
     if (k === 'vehiculo_patente') return ot.vehiculo_patente || ot.patente || '';
     if (k === 'repuestos_notas') {
