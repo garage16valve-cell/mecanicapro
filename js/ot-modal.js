@@ -341,6 +341,37 @@
   }
 
   function _doFase(faseDestino, ops) {
+    // Auto-resolver espera activa antes de avanzar de fase
+    if (_otId) {
+      var ots2 = APP.lsGet('ots') || [];
+      var ot2  = ots2.find(function(o){ return o.id === _otId; });
+      if (ot2 && ot2.estadoTrabajo === 'espera') {
+        var ses2        = APP.lsGet('sesion') || {};
+        var nombreU     = ses2.nombre || 'Usuario desconocido';
+        var idU         = ses2.usuario_id || null;
+        var ahora2      = new Date();
+        var desde2      = ot2.espera_desde ? new Date(ot2.espera_desde) : ahora2;
+        var durMin      = Math.round((ahora2 - desde2) / 60000);
+        var durStr      = durMin < 60 ? durMin + ' min' : (Math.round(durMin / 6) / 10) + ' h';
+        if (!ot2.historial) ot2.historial = ot2.historial_eventos || [];
+        ot2.historial.push({
+          evento:              'fin_espera',
+          descripcion:         'Espera resuelta al avanzar de fase' +
+                               (ot2.motivoEspera ? ' (motivo: ' + ot2.motivoEspera + ')' : '') +
+                               ' — duración: ' + durStr,
+          fecha:               ahora2.toISOString(),
+          usuario_id:          idU,
+          usuario_nombre:      nombreU,
+          espera_duracion_min: durMin,
+          espera_motivo:       ot2.motivoEspera || null
+        });
+        ot2.estadoTrabajo = 'taller';
+        ot2.motivoEspera  = null;
+        ot2.detalleEspera = null;
+        ot2.espera_desde  = null;
+        APP.lsSet('ots', ots2);
+      }
+    }
     if (typeof cambiarFaseOT === 'function') cambiarFaseOT(_otId, faseDestino, ops);
     _vistaFase = faseDestino;
     _render();
