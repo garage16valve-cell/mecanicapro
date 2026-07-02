@@ -72,6 +72,83 @@
   var _pendFase   = null;
   var _pendOps    = null;
 
+  // ─── Render bloque estado de trabajo/espera ───────────────────────────────
+  function _renderEspera(ot) {
+    var enEspera = (ot.estadoTrabajo === 'espera');
+    var bs = 'width:100%;padding:7px 10px;border:0.5px solid var(--border);border-radius:6px;font-size:12px;background:var(--surface-2);color:var(--text-primary);box-sizing:border-box;font-family:inherit;outline:none';
+    var h = '<div style="background:var(--surface-1);border:0.5px solid var(--border);border-radius:8px;padding:12px 14px;margin-bottom:14px">';
+    h += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:' + (enEspera ? '12' : '0') + 'px">';
+    h += '<span style="font-size:12px;font-weight:600;color:var(--text-primary);flex:1">Estado del trabajo</span>';
+    h += '<div style="display:flex;gap:4px">';
+    h += '<button onclick="window._otm_setEspera(\'taller\')" style="padding:4px 12px;border-radius:12px;font-size:11px;font-weight:600;cursor:pointer;border:1.5px solid;transition:all .1s;' +
+      (!enEspera ? 'background:#22c55e;color:#fff;border-color:#22c55e' : 'background:transparent;color:var(--text-muted);border-color:var(--border)') +
+      '"><i class="ti ti-tool"></i> En taller</button>';
+    h += '<button onclick="window._otm_setEspera(\'espera\')" style="padding:4px 12px;border-radius:12px;font-size:11px;font-weight:600;cursor:pointer;border:1.5px solid;transition:all .1s;' +
+      (enEspera ? 'background:#f59e0b;color:#fff;border-color:#f59e0b' : 'background:transparent;color:var(--text-muted);border-color:var(--border)') +
+      '"><i class="ti ti-clock-pause"></i> En espera</button>';
+    h += '</div></div>';
+
+    if (enEspera) {
+      var motivos = APP.lsGet('mp_motivos_espera') || [];
+      h += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">';
+
+      // Motivo dropdown
+      h += '<div><label style="display:block;font-size:11px;color:var(--text-muted);margin-bottom:4px">Motivo de espera</label>';
+      h += '<select id="otm-espera-motivo" onchange="window._otm_blurEspera(\'motivoEspera\',this.value)" style="' + bs + ';cursor:pointer">';
+      h += '<option value="">— Sin especificar —</option>';
+      if (motivos.length) {
+        motivos.forEach(function(m) {
+          var id    = (typeof m === 'object') ? (m.id || m.nombre || '') : String(m);
+          var label = (typeof m === 'object') ? (m.nombre || m.label || id) : String(m);
+          h += '<option value="' + _esc(id) + '"' + (ot.motivoEspera === id ? ' selected' : '') + '>' + _esc(label) + '</option>';
+        });
+      } else if (ot.motivoEspera) {
+        h += '<option value="' + _esc(ot.motivoEspera) + '" selected>' + _esc(ot.motivoEspera) + '</option>';
+      }
+      h += '</select></div>';
+
+      // Desde (read-only display)
+      var desde = ot.espera_desde
+        ? new Date(ot.espera_desde).toLocaleString('es-CL', {day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})
+        : '—';
+      h += '<div><label style="display:block;font-size:11px;color:var(--text-muted);margin-bottom:4px">En espera desde</label>';
+      h += '<div style="padding:7px 10px;border:0.5px solid var(--border);border-radius:6px;font-size:12px;color:var(--text-secondary);background:var(--surface-1)">' + _esc(desde) + '</div></div>';
+
+      // Detalle full width
+      h += '<div style="grid-column:1/-1"><label style="display:block;font-size:11px;color:var(--text-muted);margin-bottom:4px">Detalle / nota de espera</label>';
+      h += '<textarea id="otm-espera-detalle" onblur="window._otm_blurEspera(\'detalleEspera\',this.value)" style="' + bs + ';resize:vertical;min-height:52px">' + _esc(String(ot.detalleEspera || '')) + '</textarea></div>';
+
+      h += '</div>';
+    }
+    h += '</div>';
+    return h;
+  }
+
+  // ─── Toggle estado espera ─────────────────────────────────────────────────
+  function _setEspera(estado) {
+    if (!_otId) return;
+    var ots = APP.lsGet('ots') || [];
+    var ot = ots.find(function(o){ return o.id === _otId; });
+    if (!ot || ot.estadoTrabajo === estado) return;
+    ot.estadoTrabajo = estado;
+    if (estado === 'espera' && !ot.espera_desde) ot.espera_desde = new Date().toISOString();
+    APP.lsSet('ots', ots);
+    _render();
+  }
+
+  // ─── Guardar campo de espera on blur ─────────────────────────────────────
+  function _blurEspera(field, value) {
+    if (!_otId) return;
+    var ots = APP.lsGet('ots') || [];
+    var ot = ots.find(function(o){ return o.id === _otId; });
+    if (!ot) return;
+    ot[field] = value;
+    APP.lsSet('ots', ots);
+    var elId = field === 'motivoEspera' ? 'otm-espera-motivo' : 'otm-espera-detalle';
+    var el = document.getElementById(elId);
+    if (el) { el.style.borderColor = '#22c55e'; setTimeout(function(){ el.style.borderColor = ''; }, 1000); }
+  }
+
   // ─── Leer campo (incl. anidados y aliases) ────────────────────────────────
   function _get(ot, k) {
     if (k === 'pago_metodo')     return (ot.pago && ot.pago.metodo)     || '';
@@ -182,6 +259,8 @@
     var ant = iActual > 0 ? FASES[iActual - 1] : null;
 
     var html = _tabs(fasActual, vista);
+
+    html += _renderEspera(ot);
 
     if (vista !== fasActual) {
       html += '<div style="font-size:11px;color:var(--text-warning);background:var(--bg-warning);border:0.5px solid var(--border-warning);border-radius:6px;padding:6px 10px;margin-bottom:12px">' +
@@ -323,11 +402,13 @@
   }
 
   // ─── Exports globales ─────────────────────────────────────────────────────
-  window.abrirModalOT        = abrirModalOT;
-  window.cerrarModalOT       = cerrarModalOT;
-  window._otm_blur           = _blur;
-  window._otm_cambiarFase    = _cambiarFase;
-  window._otm_irFase         = _irFase;
+  window.abrirModalOT         = abrirModalOT;
+  window.cerrarModalOT        = cerrarModalOT;
+  window._otm_blur            = _blur;
+  window._otm_cambiarFase     = _cambiarFase;
+  window._otm_irFase          = _irFase;
   window._otm_confirmarAvance = _confirmarAvance;
+  window._otm_setEspera       = _setEspera;
+  window._otm_blurEspera      = _blurEspera;
 
 })();
