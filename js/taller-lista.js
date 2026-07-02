@@ -186,7 +186,10 @@ function _renderFilaOT(ot) {
         '<span>' + fecha + '</span>' +
       '</div>' +
     '</div>' +
-    '<button class="btn" onclick="event.stopPropagation(); abrirHistorialOT(\'' + ot.id + '\')" style="flex-shrink:0;padding:6px 8px;font-size:11px" title="Ver historial">' +
+    '<button class="btn" onclick="event.stopPropagation(); abrirModalOTResumen(\'' + ot.id + '\')" style="flex-shrink:0;padding:6px 8px;font-size:11px" title="Ver resumen completo OT">' +
+      '<i class="ti ti-list-details"></i>' +
+    '</button>' +
+    '<button class="btn" onclick="event.stopPropagation(); abrirHistorialOT(\'' + ot.id + '\')" style="flex-shrink:0;padding:6px 8px;font-size:11px" title="Ver historial de eventos">' +
       '<i class="ti ti-clock"></i>' +
     '</button>' +
   '</div>';

@@ -459,13 +459,13 @@
   }
 
   // ─── Abrir modal ──────────────────────────────────────────────────────────
-  function abrirModalOT(otId) {
+  function abrirModalOT(otId, vistaInicial) {
     var ots = APP.lsGet('ots') || [];
     var ot = ots.find(function(o){ return o.id === otId; });
     if (!ot) { console.warn('[ot-modal] OT no encontrada:', otId); return; }
 
     _otId      = otId;
-    _vistaFase = ot.fase || 'recepcion';
+    _vistaFase = vistaInicial || ot.fase || 'recepcion';
     _pendFase  = null;
     _pendOps   = null;
 
@@ -509,6 +509,7 @@
 
   // ─── Exports globales ─────────────────────────────────────────────────────
   window.abrirModalOT         = abrirModalOT;
+  window.abrirModalOTResumen  = function(otId) { abrirModalOT(otId, 'resumen'); };
   window.cerrarModalOT        = cerrarModalOT;
   window._otm_blur            = _blur;
   window._otm_cambiarFase     = _cambiarFase;
