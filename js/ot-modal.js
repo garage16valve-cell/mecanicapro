@@ -268,7 +268,8 @@
       h += '</div></div>';
     }
 
-    // Historial
+    // PDF export (cuando se implemente): excluir el bloque historial de abajo —
+    //   es trazabilidad interna, no debe aparecer en el documento para el cliente.
     var hist = ot.historial || ot.historial_eventos || [];
     if (hist.length) {
       h += '<div>';
