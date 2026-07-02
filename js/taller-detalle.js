@@ -1187,11 +1187,11 @@ function _diagFinalizar() {
 
 // ===== PANEL INLINE OT — EXPANDIBLE EN LISTA =====
 
-const _FASES_ORDEN = ['recepcion','diagnostico','repuestos','reparacion','control','cotizacion','pago','entrega'];
+const _FASES_ORDEN = ['recepcion','diagnostico','repuestos','reparacion','cotizacion','pago','entrega'];
 
 const _FASES_LABELS = {
   recepcion:'Recepción', diagnostico:'Diagnóstico', repuestos:'Repuestos',
-  reparacion:'Reparación', control:'Control', cotizacion:'Cotización',
+  reparacion:'Reparación', cotizacion:'Cotización',
   pago:'Pago', entrega:'Entrega', cancelada:'Cancelada'
 };
 

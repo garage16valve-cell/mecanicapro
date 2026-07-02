@@ -6,7 +6,6 @@ var FASES_OPCIONES = [
   { id: 'diagnostico',label: 'Diagnóstico', emoji: '🔍' },
   { id: 'repuestos',  label: 'Repuestos',   emoji: '📦' },
   { id: 'reparacion', label: 'Reparación',  emoji: '🔨' },
-  { id: 'control',    label: 'Control',     emoji: '✅' },
   { id: 'cotizacion', label: 'Cotización',  emoji: '📄' },
   { id: 'pago',       label: 'Pago',        emoji: '💳' },
   { id: 'entrega',    label: 'Entrega',     emoji: '🎉' },
@@ -18,7 +17,6 @@ var FASE_COLORES = {
   'diagnostico':{ label: 'DIAGNÓSTICO', color: '#0891b2', bg: '#cffafe', border: '#06b6d4' },
   'repuestos':  { label: 'REPUESTOS',   color: '#ea580c', bg: '#ffedd5', border: '#f97316' },
   'reparacion': { label: 'REPARACIÓN',  color: '#be123c', bg: '#ffe4e6', border: '#f43f5e' },
-  'control':    { label: 'CONTROL',     color: '#059669', bg: '#d1fae5', border: '#10b981' },
   'cotizacion': { label: 'COTIZACIÓN',  color: '#7c2d12', bg: '#fed7aa', border: '#d97706' },
   'pago':       { label: 'PAGO',        color: '#0d47a1', bg: '#dbeafe', border: '#3b82f6' },
   'entrega':    { label: 'ENTREGA',     color: '#15803d', bg: '#dcfce7', border: '#22c55e' },
@@ -28,8 +26,24 @@ var FASE_COLORES = {
 var filtroFaseActivo = null;
 var _filtrosLista = { desde: '', hasta: '', q: '' };
 
+// Migración: OTs que quedaron en fase 'control' pasan a 'cotizacion'
+function _migrarFaseControl() {
+  var ots = APP.lsGet('ots') || [];
+  var modificadas = 0;
+  ots.forEach(function(ot) {
+    if (ot.fase === 'control') {
+      ot.fase = 'cotizacion';
+      if (!ot.historial) ot.historial = ot.historial_eventos || [];
+      ot.historial.push({ evento: 'migracion_fase', descripcion: 'Fase "control" eliminada del flujo — migrada automáticamente a Cotización', fecha: new Date().toISOString() });
+      modificadas++;
+    }
+  });
+  if (modificadas > 0) APP.lsSet('ots', ots);
+}
+
 // Init
 function iniciarListaOT() {
+  _migrarFaseControl();
   renderListaOTs();
   actualizarContadoresFiltro();
 }

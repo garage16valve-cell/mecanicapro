@@ -302,11 +302,11 @@
         const container = document.getElementById('cfg-checklist-lista');
         if (!container) return;
 
-        const faseOrden = ['recepcion','diagnostico','repuestos','aprobacion','reparacion','control','entrega','todos'];
+        const faseOrden = ['recepcion','diagnostico','repuestos','aprobacion','reparacion','cotizacion','pago','entrega','todos'];
         const faseLabels = {
           recepcion:'Recepción', diagnostico:'Diagnóstico', repuestos:'Repuestos',
-          aprobacion:'Aprobación', reparacion:'Reparación', control:'Control',
-          entrega:'Entrega', todos:'Todas las fases'
+          aprobacion:'Aprobación', reparacion:'Reparación', cotizacion:'Cotización',
+          pago:'Pago', entrega:'Entrega', todos:'Todas las fases'
         };
 
         let html = '';

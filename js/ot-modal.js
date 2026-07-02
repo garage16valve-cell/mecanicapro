@@ -8,10 +8,10 @@
   'use strict';
 
   // ─── Fases ───────────────────────────────────────────────────────────────
-  var FASES = ['recepcion','diagnostico','repuestos','reparacion','control','cotizacion','pago','entrega'];
+  var FASES = ['recepcion','diagnostico','repuestos','reparacion','cotizacion','pago','entrega'];
   var FASES_LABEL = {
     recepcion:'Recepción', diagnostico:'Diagnóstico', repuestos:'Repuestos',
-    reparacion:'Reparación', control:'Control', cotizacion:'Cotización',
+    reparacion:'Reparación', cotizacion:'Cotización',
     pago:'Pago', entrega:'Entrega', cancelada:'Cancelada'
   };
 
