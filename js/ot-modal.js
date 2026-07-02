@@ -370,6 +370,11 @@
     var ot = ots.find(function(o){ return o.id === _otId; });
     if (!ot) return;
 
+    // Retroceder fase nunca requiere validación de checklist
+    var iActual  = FASES.indexOf(ot.fase || 'recepcion');
+    var iDestino = FASES.indexOf(faseDestino);
+    if (iDestino < iActual) { _doFase(faseDestino, []); return; }
+
     var check = (typeof getChecklistFase === 'function')
       ? getChecklistFase(ot, faseDestino)
       : { bloqueantes:[], opcionales:[] };
