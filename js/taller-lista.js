@@ -145,6 +145,9 @@ function renderListaOTs() {
 function _renderFilaOT(ot) {
   var fase = ot.fase || 'recepcion';
   var faseInfo = FASE_COLORES[fase] || FASE_COLORES['recepcion'];
+  var esperaBadge = (ot.estadoTrabajo === 'espera')
+    ? '<div style="font-size:10px;padding:2px 8px;border-radius:8px;background:#fef3c7;color:#92400e;border:0.5px solid #f59e0b;font-weight:600"><i class="ti ti-clock-pause" style="font-size:9px"></i> En espera</div>'
+    : '';
 
   var fecha = ot.fecha_ingreso
     ? new Date(ot.fecha_ingreso).toLocaleDateString('es-CL', { day: '2-digit', month: '2-digit', year: '2-digit' })
@@ -160,6 +163,7 @@ function _renderFilaOT(ot) {
       '<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">' +
         '<div style="font-size:13px;font-weight:600;color:var(--text-primary)">#' + (ot.numero || ot.id) + '</div>' +
         '<div style="font-size:10px;padding:2px 8px;border-radius:8px;background:' + faseInfo.bg + ';color:' + faseInfo.color + ';border:0.5px solid ' + faseInfo.border + ';font-weight:600">' + faseInfo.label + '</div>' +
+        esperaBadge +
       '</div>' +
       '<div style="font-size:12px;color:var(--text-primary);margin-bottom:2px;font-weight:500">' + nombreCliente + '</div>' +
       '<div style="display:flex;gap:16px;font-size:11px;color:var(--text-muted)">' +
