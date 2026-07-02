@@ -8,8 +8,8 @@ var FASES_OPCIONES = [
   { id: 'reparacion', label: 'Reparación',  emoji: '🔨' },
   { id: 'cotizacion', label: 'Cotización',  emoji: '📄' },
   { id: 'pago',       label: 'Pago',        emoji: '💳' },
-  { id: 'entrega',    label: 'Entrega',     emoji: '🎉' },
-  { id: 'cancelada',  label: 'Cancelada',   emoji: '❌' }
+  { id: 'entrega',    label: 'Entrega',     emoji: '🎉' }
+  // 'cancelada' no aparece como pestaña — el estado existe pero no es parte del flujo activo
 ];
 
 var FASE_COLORES = {
