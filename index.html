@@ -3264,6 +3264,7 @@
     <div style="display:flex;gap:8px;margin-bottom:20px;border-bottom:0.5px solid var(--border);padding-bottom:12px">
       <button id="btn-cfg-tab-datos-taller" class="btn-cfg-tab" onclick="activarCfgTab('cfg-tab-datos-taller')" style="background:none;border:none;color:var(--text-primary);cursor:pointer;padding:6px 12px;font-size:13px;font-weight:600;border-bottom:2px solid currentColor">Datos del taller</button>
       <button id="btn-cfg-tab-flujo-ot" class="btn-cfg-tab" onclick="activarCfgTab('cfg-tab-flujo-ot')" style="background:none;border:none;color:var(--text-secondary);cursor:pointer;padding:6px 12px;font-size:13px">Flujo de OT</button>
+      <button id="btn-cfg-tab-motivos-espera" class="btn-cfg-tab" onclick="activarCfgTab('cfg-tab-motivos-espera')" style="background:none;border:none;color:var(--text-secondary);cursor:pointer;padding:6px 12px;font-size:13px">Motivos de espera</button>
     </div>
 
     <!-- CONTENIDO: Datos del Taller -->
@@ -3484,6 +3485,68 @@
       }
     </script>
 
+    <!-- CONTENIDO: Motivos de espera -->
+    <div id="cfg-tab-motivos-espera" class="cfg-tab-content" style="display:none">
+      <h2 style="margin-bottom:8px">Motivos de espera</h2>
+      <p style="font-size:12px;color:var(--text-muted);margin-bottom:20px">Define los motivos disponibles cuando una OT pasa a estado "En espera".</p>
+
+      <div style="background:var(--surface-1);border:0.5px solid var(--border);border-radius:8px;padding:14px;margin-bottom:16px">
+        <div style="display:flex;gap:8px;align-items:center">
+          <input type="text" id="cfg-espera-nuevo" placeholder="Ej: Esperando repuestos"
+            style="flex:1;padding:9px 12px;border:0.5px solid var(--border);border-radius:6px;font-size:12px;background:var(--surface-2);color:var(--text-primary);outline:none"
+            onkeydown="if(event.key==='Enter')agregarMotivoEspera()">
+          <button class="btn bpa" onclick="agregarMotivoEspera()" style="padding:9px 16px;font-size:12px;white-space:nowrap"><i class="ti ti-plus"></i> Agregar</button>
+        </div>
+      </div>
+
+      <div id="cfg-espera-lista"></div>
+    </div>
+
+    <script>
+      function renderMotivosEspera() {
+        var motivos = APP.lsGet('mp_motivos_espera') || [];
+        var cont = document.getElementById('cfg-espera-lista');
+        if (!cont) return;
+        if (!motivos.length) {
+          cont.innerHTML = '<p style="font-size:12px;color:var(--text-muted);text-align:center;padding:24px">Sin motivos definidos. Agrega el primero arriba.</p>';
+          return;
+        }
+        var h = '<div style="display:flex;flex-direction:column;gap:6px">';
+        motivos.forEach(function(m, i) {
+          var label = (typeof m === 'object') ? (m.nombre || '') : String(m);
+          h += '<div style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--surface-1);border:0.5px solid var(--border);border-radius:6px">' +
+            '<i class="ti ti-clock-pause" style="font-size:14px;color:#f59e0b;flex-shrink:0"></i>' +
+            '<span style="flex:1;font-size:12px;color:var(--text-primary)">' + _admEsc(label) + '</span>' +
+            '<button onclick="eliminarMotivoEspera(' + i + ')" style="padding:4px 8px;border:0.5px solid #ef4444;border-radius:4px;font-size:11px;background:transparent;color:#ef4444;cursor:pointer" title="Eliminar"><i class="ti ti-trash"></i></button>' +
+          '</div>';
+        });
+        h += '</div>';
+        cont.innerHTML = h;
+      }
+
+      function agregarMotivoEspera() {
+        var el = document.getElementById('cfg-espera-nuevo');
+        var val = el ? el.value.trim() : '';
+        if (!val) return;
+        var motivos = APP.lsGet('mp_motivos_espera') || [];
+        var existe = motivos.some(function(m){ return ((typeof m === 'object') ? m.nombre : m) === val; });
+        if (existe) { APP.toast.show('Ese motivo ya existe', 'warning'); return; }
+        motivos.push(val);
+        APP.lsSet('mp_motivos_espera', motivos);
+        if (el) el.value = '';
+        APP.toast.show('Motivo agregado', 'success');
+        renderMotivosEspera();
+      }
+
+      function eliminarMotivoEspera(idx) {
+        var motivos = APP.lsGet('mp_motivos_espera') || [];
+        motivos.splice(idx, 1);
+        APP.lsSet('mp_motivos_espera', motivos);
+        APP.toast.show('Motivo eliminado', 'success');
+        renderMotivosEspera();
+      }
+    </script>
+
   </div><!-- /adm-tab-config -->
 
   <!-- FUNCIÓN: Cambiar sub-pestañas en configuración -->
@@ -3506,6 +3569,9 @@
         btn.style.borderBottom = '2px solid currentColor';
         btn.style.color = 'var(--text-primary)';
       }
+
+      if (tabId === 'cfg-tab-motivos-espera' && typeof renderMotivosEspera === 'function') renderMotivosEspera();
+      if (tabId === 'cfg-tab-flujo-ot' && typeof renderCfgChecklist === 'function') renderCfgChecklist();
     }
   </script>
 
